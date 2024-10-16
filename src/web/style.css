@@ -112,14 +112,13 @@
   font-weight: bold;
 }
 
-.silhouette {
+.silhouette.outer {
   fill: var(--selection-color);
-  filter: url(#silhouette-blur);
-  /* flood-color: var(--selection-color); */
+  filter: url(#silhouette-outer-blur);
 }
-#silhouette-blur .silhouette-blur {
-  flood-color: var(--selection-color);
-  opacity: 1;
+.silhouette.inner {
+  fill: var(--light-page-color);
+  filter: url(#silhouette-inner-blur);
 }
 
 #page {

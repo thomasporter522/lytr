@@ -10,17 +10,19 @@ module Profile = {
     up: list((T.Profile.t, Silhouette.Profile.t)),
     top: (W.Profile.t, Silhouette.Profile.t),
     dn: list((T.Profile.t, Silhouette.Profile.t)),
+    // total silhouette
+    sil: Silhouette.Profile.t,
   };
 
-  let tokens = ({up, top, dn}: t) =>
+  let tokens = ({up, top, dn, _}: t) =>
     List.concat_map(((t, _)) => T.Profile.tokens(t), up)
     @ fst(fst(top))
     @ List.concat_map(((t, _)) => T.Profile.tokens(t), dn);
-  let cells = ({up, top, dn}: t) =>
+  let cells = ({up, top, dn, _}: t) =>
     List.concat_map(((t, _)) => T.Profile.cells(t), up)
     @ snd(fst(top))
     @ List.concat_map(((t, _)) => T.Profile.cells(t), dn);
-  let silhouettes = ({up, top, dn}: t) =>
+  let silhouettes = ({up, top, dn, _}: t) =>
     List.map(snd, up) @ [snd(top)] @ List.map(snd, dn);
 
   let mk =
@@ -45,6 +47,8 @@ module Profile = {
       | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) => dn_len - 2
       | _ => dn_len - 1
       };
+    let sil =
+      Silhouette.Profile.mk(~style=Outer, ~state, LZigg.flatten(zigg));
     let (state, up) =
       // reverse to get top-down index which matches eqs
       List.rev(zigg.up)
@@ -96,11 +100,12 @@ module Profile = {
            },
            state,
          );
-    {up, top, dn};
+    {up, top, dn, sil};
   };
 };
 
 let mk = (~font, p: Profile.t) =>
-  List.map(Silhouette.mk(~font), Profile.silhouettes(p))
+  [Silhouette.mk(~font, p.sil)]
+  @ List.map(Silhouette.mk(~font), Profile.silhouettes(p))
   @ List.map(Tok.mk(~font), Profile.tokens(p))
   @ List.map(Child.mk(~font), Profile.cells(p));

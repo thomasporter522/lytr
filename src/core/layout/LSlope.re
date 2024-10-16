@@ -19,7 +19,9 @@ let unroll = (~from: Dir.t, cell: LCell.t) => {
 
 module Dn = {
   let unroll = unroll(~from=L);
+  let flatten = dn => dn |> List.rev_map(LTerr.R.flatten) |> Block.hcats;
 };
 module Up = {
   let unroll = unroll(~from=R);
+  let flatten = dn => dn |> List.map(LTerr.L.flatten) |> Block.hcats;
 };

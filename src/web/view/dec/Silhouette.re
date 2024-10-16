@@ -67,9 +67,23 @@ let mk = (~font, p: Profile.t) => {
   Box.mk(~font, ~loc=Loc.zero, [path]);
 };
 
-let blur_filter =
+let outer_blur =
   Util.Nodes.filter(
-    ~attrs=[Attr.id("silhouette-blur")],
+    ~attrs=[Attr.id("silhouette-outer-blur")],
+    [
+      Node.create_svg(
+        "feGaussianBlur",
+        ~attrs=[
+          Attr.create("in", "SourceGraphic"),
+          Attr.create("stdDeviation", "0.1"),
+        ],
+        [],
+      ),
+    ],
+  );
+let inner_blur =
+  Util.Nodes.filter(
+    ~attrs=[Attr.id("silhouette-inner-blur")],
     [
       Node.create_svg(
         "feGaussianBlur",
