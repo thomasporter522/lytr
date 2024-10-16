@@ -55,7 +55,7 @@ module Profile = {
            (state, (i, terr: LTerr.t)) => {
              let null = i >= l_bound && fst(null);
              let eq = List.mem(i, eqs_l);
-             let b = LTerr.flatten(terr);
+             let b = LTerr.L.flatten(terr);
              let sil = Silhouette.Profile.mk(~style=Inner, ~state, b);
              let (state, p) =
                T.Profile.mk_l(~whole, ~state, ~eq, ~null, terr);
@@ -88,7 +88,7 @@ module Profile = {
            (state, (i, terr: LTerr.t)) => {
              let null = i >= r_bound && snd(null);
              let eq = List.mem(i, eqs_r);
-             let b = LTerr.flatten(terr);
+             let b = LTerr.R.flatten(terr);
              let sil = Silhouette.Profile.mk(~style=Inner, ~state, b);
              let (state, p) =
                T.Profile.mk_r(~whole, ~state, ~eq, ~null, terr);
