@@ -59,17 +59,21 @@ module Profile = {
            (state, (i, terr: LTerr.t)) => {
              let null = i >= l_bound && fst(null);
              let eq = List.mem(i, eqs_l);
+
+             let (p_r, cell) = LCell.depad(terr.cell, ~side=R);
+             let terr = {...terr, cell};
+
              let sil =
                Silhouette.Profile.mk(
                  ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
                  ~state,
-                 // exclude space from inner silhouette
-                 Mtrl.is_space(LCell.sort(terr.cell))
-                   ? LWald.flatten(~flatten=LCell.flatten, terr.wald)
-                   : LTerr.L.flatten(terr),
+                 LTerr.L.flatten(terr),
                );
              let (state, p) =
                T.Profile.mk_l(~whole, ~state, ~eq, ~null, terr);
+
+             let state = L.State.jump_cell(state, ~over=p_r);
+
              (state, (p, sil));
            },
            state,
@@ -99,28 +103,21 @@ module Profile = {
            (state, (i, terr: LTerr.t)) => {
              let null = i >= r_bound && snd(null);
              let eq = List.mem(i, eqs_r);
+
+             let (p_l, cell) = LCell.depad(~side=L, terr.cell);
+             let terr = {...terr, cell};
+
+             let state = L.State.jump_cell(state, ~over=p_l);
+
              let sil =
-               // exclude space from inner silhouette
-               Mtrl.is_space(LCell.sort(terr.cell))
-                 ? Silhouette.Profile.mk(
-                     ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
-                     ~state=
-                       L.State.jump_block(
-                         state,
-                         ~over=LCell.flatten(terr.cell),
-                       ),
-                     LWald.flatten(
-                       ~flatten=LCell.flatten,
-                       LWald.rev(terr.wald),
-                     ),
-                   )
-                 : Silhouette.Profile.mk(
-                     ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
-                     ~state,
-                     LTerr.R.flatten(terr),
-                   );
+               Silhouette.Profile.mk(
+                 ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
+                 ~state,
+                 LTerr.R.flatten(terr),
+               );
              let (state, p) =
                T.Profile.mk_r(~whole, ~state, ~eq, ~null, terr);
+
              (state, (p, sil));
            },
            state,
