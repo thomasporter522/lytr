@@ -5,10 +5,12 @@ module L = Layout;
 
 module Style = {
   type t =
+    | Space
     | Inner
     | Outer;
   let to_str =
     fun
+    | Space => "outer"
     | Inner => "inner"
     | Outer => "outer";
 };
