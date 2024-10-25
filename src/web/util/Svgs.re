@@ -21,6 +21,12 @@ module Rect = {
     width: float,
     height: float,
   };
+
+  let pad = (~x=0., ~y=0., {min, width, height}: t): t => {
+    min: Point.{x: min.x -. x, y: min.y -. y},
+    width: width +. 2. *. x,
+    height: height +. 2. *. y,
+  };
 };
 
 module Path = {

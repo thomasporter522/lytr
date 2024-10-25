@@ -115,16 +115,13 @@
 .silhouette.outer {
   fill: var(--selection-color);
   filter: url(#silhouette-outer-blur);
-  transform-origin: center;
-  transform-box: fill-box;
-  transform: scale(1.1);
 }
 .silhouette.inner {
   fill: var(--light-page-color);
   filter: url(#silhouette-inner-blur);
   transform-origin: center;
   transform-box: fill-box;
-  transform: scale(1.2, 1.1);
+  transform: scale(1.15, 1.15);
 }
 
 #page {

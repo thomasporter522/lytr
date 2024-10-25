@@ -42,7 +42,7 @@ let convex_adj = (-0.1);
 
 // how much to truncate half-height of decorations to leave line height padding
 // and avoid overlapping decorations on adjacent lines
-let v_trunc = 0.05;
+let v_trunc = 0.1;
 
 // how much to shift horizontal strokes to align with the edges of hexgaon decs
 let stroke_shift = 0.03;

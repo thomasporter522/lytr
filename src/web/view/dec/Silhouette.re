@@ -123,14 +123,20 @@ module Outer = {
              let min = point_of_loc(state.loc);
              let len = Block.Line.len(line);
              let s = L.State.map(Loc.shift(len), state);
-             (s, Rect.{min, width: Float.of_int(len), height: 1.});
+             let rect =
+               Rect.{min, width: Float.of_int(len), height: 1.}
+               |> Rect.pad(~x=0.5, ~y=0.075);
+             (s, rect);
            },
            (state, ind, line) => {
              let state = L.State.return(state, ind);
              let min = point_of_loc(state.loc);
              let len = Block.Line.len(line);
              let s = L.State.map(Loc.shift(len), state);
-             (s, (), Rect.{min, width: Float.of_int(len), height: 1.});
+             let rect =
+               Rect.{min, width: Float.of_int(len), height: 1.}
+               |> Rect.pad(~x=0.5, ~y=0.075);
+             (s, (), rect);
            },
          )
       |> snd
@@ -140,7 +146,7 @@ module Outer = {
 
   let mk = (~font, p: Profile.t) => {
     p
-    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.1, 0.1))
+    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.2, 0.2))
     |> Util.Svgs.Path.view
     |> Util.Nodes.add_classes(["silhouette", "outer"])
     |> Stds.Lists.single
@@ -155,7 +161,7 @@ module Outer = {
           "feGaussianBlur",
           ~attrs=[
             Attr.create("in", "SourceGraphic"),
-            Attr.create("stdDeviation", "0.1"),
+            Attr.create("stdDeviation", "0.05"),
           ],
           [],
         ),
