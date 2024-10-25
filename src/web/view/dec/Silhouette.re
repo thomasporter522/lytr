@@ -1,5 +1,6 @@
 open Virtual_dom.Vdom;
 
+module T = Token;
 open Tylr_core;
 module L = Layout;
 
@@ -14,86 +15,150 @@ module Style = {
     | Inner => "inner"
     | Outer => "outer";
 };
-module Profile = {
-  type t = {
-    first_row: Loc.Row.t,
-    lines: list((Loc.Col.t, Loc.Col.t)),
-    style: Style.t,
+
+module Inner = {
+  module Profile = {
+    type t = {
+      style: Style.t,
+      state: L.State.t,
+      block: Block.t,
+    };
+    let mk = (~style, ~state, block) => {style, state, block};
   };
-  let mk = (~style: Style.t, ~state: L.State.t, block: Block.t) => {
-    let first_row = state.loc.row;
-    let lines =
+
+  let tips = (t: Token.t): Tip.s =>
+    switch (t.mtrl) {
+    | Mtrl.Tile((_, mold)) =>
+      Tip.(
+        Mold.is_null(~side=L, mold) ? Conv : Conc,
+        Mold.is_null(~side=R, mold) ? Conv : Conc,
+      )
+    | Grout((_, tips)) => tips
+    | Space(_) => (Conv, Conv)
+    };
+
+  let blur =
+    Util.Nodes.filter(
+      ~attrs=[Attr.id("silhouette-inner-blur")],
+      [
+        Node.create_svg(
+          "feGaussianBlur",
+          ~attrs=[
+            Attr.create("in", "SourceGraphic"),
+            Attr.create("stdDeviation", "0.03"),
+          ],
+          [],
+        ),
+      ],
+    );
+
+  let mk = (~font, p: Profile.t): list(Node.t) => {
+    Block.flatten(p.block)
+    |> Chain.fold_left_map(
+         line =>
+           line
+           |> List.fold_left_map(
+                (state: L.State.t, tok) => {
+                  let sil =
+                    T.mk_silhouette(
+                      ~font,
+                      ~inner=
+                        switch (p.style) {
+                        | Inner => true
+                        | _ => false
+                        },
+                      state.loc,
+                      Token.length(tok),
+                      tips(tok),
+                    );
+                  let state =
+                    L.State.map(Loc.shift(Token.length(tok)), state);
+                  (state, sil);
+                },
+                p.state,
+              ),
+         (state, n, line) => {
+           let state = L.State.return(state, n);
+           let (state, sils) =
+             line
+             |> List.fold_left_map(
+                  (state: L.State.t, tok) => {
+                    let sil =
+                      T.mk_silhouette(
+                        ~font,
+                        ~inner=
+                          switch (p.style) {
+                          | Inner => true
+                          | _ => false
+                          },
+                        state.loc,
+                        Token.length(tok),
+                        tips(tok),
+                      );
+                    let state =
+                      L.State.map(Loc.shift(Token.length(tok)), state);
+                    (state, sil);
+                  },
+                  state,
+                );
+           (state, (), sils);
+         },
+       )
+    |> snd
+    |> Chain.loops
+    |> List.concat;
+  };
+};
+
+module Outer = {
+  module Profile = {
+    open Util.Svgs;
+    type t = list(Rect.t);
+    let point_of_loc = (loc: Loc.t) =>
+      Point.{x: Float.of_int(loc.col), y: Float.of_int(loc.row)};
+    let mk = (~state: L.State.t, block: Block.t) => {
       Block.flatten(block)
       |> Chain.fold_left_map(
            line => {
+             let min = point_of_loc(state.loc);
              let len = Block.Line.len(line);
              let s = L.State.map(Loc.shift(len), state);
-             (s, (state.loc.col, state.loc.col + len));
+             (s, Rect.{min, width: Float.of_int(len), height: 1.});
            },
            (state, ind, line) => {
-             let s = L.State.return(state, ind);
+             let state = L.State.return(state, ind);
+             let min = point_of_loc(state.loc);
              let len = Block.Line.len(line);
-             let s' = L.State.map(Loc.shift(len), s);
-             (s', (), (s.loc.col, state.loc.col + len));
+             let s = L.State.map(Loc.shift(len), state);
+             (s, (), Rect.{min, width: Float.of_int(len), height: 1.});
            },
          )
       |> snd
       |> fst;
-    {first_row, lines, style};
+    };
   };
-};
-let mk = (~font, p: Profile.t) => {
-  let (l, r) = List.split(p.lines);
-  let l_path =
-    Chain.nlist(List.rev(l))
-    |> Chain.map_linked((_, (), above) => Util.Svgs.Path.h(~x=above))
-    |> Chain.map_loop(_ => Util.Svgs.Path.v_(~dy=-1))
-    |> Chain.to_list(Fun.id, Fun.id);
-  let r_path =
-    Chain.nlist(r)
-    |> Chain.map_linked((_, (), below) => Util.Svgs.Path.h(~x=below))
-    |> Chain.map_loop(_ => Util.Svgs.Path.v_(~dy=1))
-    |> Chain.to_list(Fun.id, Fun.id);
-  let path =
-    List.concat(
-      Util.Svgs.Path.[
-        [m(~x=List.hd(l), ~y=p.first_row), h(~x=List.hd(r))],
-        r_path,
-        [h(~x=Stds.Lists.ft_exn(l))],
-        l_path,
-        [Z],
-      ],
-    )
-    |> Util.Svgs.Path.view
-    |> Util.Nodes.add_classes(["silhouette", Style.to_str(p.style)]);
-  Box.mk(~font, ~loc=Loc.zero, [path]);
-};
 
-let outer_blur =
-  Util.Nodes.filter(
-    ~attrs=[Attr.id("silhouette-outer-blur")],
-    [
-      Node.create_svg(
-        "feGaussianBlur",
-        ~attrs=[
-          Attr.create("in", "SourceGraphic"),
-          Attr.create("stdDeviation", "0.1"),
-        ],
-        [],
-      ),
-    ],
-  );
-let inner_blur =
-  Util.Nodes.filter(
-    ~attrs=[Attr.id("silhouette-inner-blur")],
-    [
-      Node.create_svg(
-        "feGaussianBlur",
-        ~attrs=[
-          Attr.create("in", "SourceGraphic"),
-          Attr.create("stdDeviation", "0.05"),
-        ],
-        [],
-      ),
-    ],
-  );
+  let mk = (~font, p: Profile.t) => {
+    p
+    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.1, 0.1))
+    |> Util.Svgs.Path.view
+    |> Util.Nodes.add_classes(["silhouette", "outer"])
+    |> Stds.Lists.single
+    |> Box.mk(~font, ~loc=Loc.zero);
+  };
+
+  let blur =
+    Util.Nodes.filter(
+      ~attrs=[Attr.id("silhouette-outer-blur")],
+      [
+        Node.create_svg(
+          "feGaussianBlur",
+          ~attrs=[
+            Attr.create("in", "SourceGraphic"),
+            Attr.create("stdDeviation", "0.1"),
+          ],
+          [],
+        ),
+      ],
+    );
+};

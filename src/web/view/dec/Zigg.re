@@ -7,11 +7,11 @@ module L = Layout;
 
 module Profile = {
   type t = {
-    up: list((T.Profile.t, Silhouette.Profile.t)),
-    top: (W.Profile.t, Silhouette.Profile.t),
-    dn: list((T.Profile.t, Silhouette.Profile.t)),
+    up: list((T.Profile.t, Silhouette.Inner.Profile.t)),
+    top: (W.Profile.t, Silhouette.Inner.Profile.t),
+    dn: list((T.Profile.t, Silhouette.Inner.Profile.t)),
     // total silhouette
-    sil: Silhouette.Profile.t,
+    sil: Silhouette.Outer.Profile.t,
   };
 
   let tokens = ({up, top, dn, _}: t) =>
@@ -47,8 +47,7 @@ module Profile = {
       | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) => dn_len - 2
       | _ => dn_len - 1
       };
-    let sil =
-      Silhouette.Profile.mk(~style=Outer, ~state, LZigg.flatten(zigg));
+    let sil = Silhouette.Outer.Profile.mk(~state, LZigg.flatten(zigg));
     let (state, up) =
       // reverse to get top-down index which matches eqs
       List.rev(zigg.up)
@@ -64,7 +63,7 @@ module Profile = {
              let terr = {...terr, cell};
 
              let sil =
-               Silhouette.Profile.mk(
+               Silhouette.Inner.Profile.mk(
                  ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
                  ~state,
                  LTerr.L.flatten(terr),
@@ -87,7 +86,7 @@ module Profile = {
       );
       let eq = List.(mem(-1, eqs_l), mem(-1, eqs_r));
       let sil =
-        Silhouette.Profile.mk(
+        Silhouette.Inner.Profile.mk(
           ~style=Mtrl.is_space(LWald.sort(zigg.top)) ? Space : Inner,
           ~state,
           LWald.flatten(~flatten=LCell.flatten, zigg.top),
@@ -110,7 +109,7 @@ module Profile = {
              let state = L.State.jump_cell(state, ~over=p_l);
 
              let sil =
-               Silhouette.Profile.mk(
+               Silhouette.Inner.Profile.mk(
                  ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
                  ~state,
                  LTerr.R.flatten(terr),
@@ -127,7 +126,7 @@ module Profile = {
 };
 
 let mk = (~font, p: Profile.t) =>
-  [Silhouette.mk(~font, p.sil)]
-  @ List.map(Silhouette.mk(~font), Profile.silhouettes(p))
+  [Silhouette.Outer.mk(~font, p.sil)]
+  @ List.concat_map(Silhouette.Inner.mk(~font), Profile.silhouettes(p))
   @ List.map(Tok.mk(~font), Profile.tokens(p))
   @ List.map(Child.mk(~font), Profile.cells(p));

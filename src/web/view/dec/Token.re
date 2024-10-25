@@ -102,6 +102,18 @@ let top_bar = (style: Style.t, length: int): Node.t => {
   |> Util.Nodes.add_classes(["tok-bar", Sort.to_str(style.sort)]);
 };
 
+let mk_silhouette = (~font, ~inner=true, loc: Loc.t, len: int, shape: Tip.s) =>
+  List.flatten([
+    Path.[m(~x=0, ~y=0) |> cmdfudge(~y=v_trunc), h(~x=len)],
+    tip(snd(shape)),
+    Path.[h(~x=0)],
+    Path.scale(-1., tip(fst(shape))),
+  ])
+  |> Util.Svgs.Path.view
+  |> Util.Nodes.add_classes(["silhouette", inner ? "inner" : "outer"])
+  |> Stds.Lists.single
+  |> Box.mk(~font, ~loc);
+
 let mk = (prof: Profile.t) =>
   prof.style
   |> Option.map(style =>

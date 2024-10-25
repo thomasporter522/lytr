@@ -136,3 +136,16 @@ let rec neighbors = (xs: list('x)): list(('x, 'x)) =>
   | [_] => []
   | [x1, x2, ...xs] => [(x1, x2), ...neighbors([x2, ...xs])]
   };
+
+let rotate = (xs: list('x)): list('x) =>
+  switch (xs) {
+  | [] => []
+  | [hd, ...tl] => tl @ [hd]
+  };
+
+let rec disjoint_pairs = (xs: list('x)): list(('x, 'x)) =>
+  switch (xs) {
+  | []
+  | [_] => []
+  | [x1, x2, ...xs] => [(x1, x2), ...disjoint_pairs(xs)]
+  };
