@@ -38,8 +38,8 @@
 
   --caret-color: #f62116;
 
-  --outer-silhouette-color: #d2b8aa;
-  --inner-silhouette-color: #fffcea;
+  --outer-silhouette-color: #ffdf00;
+  --inner-silhouette-color: #fff9d5;
 
   --exp-bg-color: #ebdfc5; /*#dbf6de;*/
   --exp-shadow-color: #c4b599;/*#329f43;*/
@@ -124,7 +124,7 @@
   filter: url(#silhouette-inner-blur);
   transform-origin: center;
   transform-box: fill-box;
-  transform: scale(1.2, 1.2);
+  transform: scale(1.2, 1.25) translate(0, 2%);
 }
 
 #page {

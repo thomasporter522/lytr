@@ -125,7 +125,7 @@ module Outer = {
              let s = L.State.map(Loc.shift(len), state);
              let rect =
                Rect.{min, width: Float.of_int(len), height: 1.}
-               |> Rect.pad(~x=0.5, ~y=0.075);
+               |> Rect.pad(~x=0.55, ~y=0.075);
              (s, rect);
            },
            (state, ind, line) => {
@@ -135,7 +135,7 @@ module Outer = {
              let s = L.State.map(Loc.shift(len), state);
              let rect =
                Rect.{min, width: Float.of_int(len), height: 1.}
-               |> Rect.pad(~x=0.5, ~y=0.075);
+               |> Rect.pad(~x=0.55, ~y=0.075);
              (s, (), rect);
            },
          )
