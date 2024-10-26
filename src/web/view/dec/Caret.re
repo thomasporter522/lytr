@@ -67,9 +67,14 @@ let path = (shape: Shape.t) => {
   |> transpose({dx: adj(shape), dy: 0.});
 };
 
+let hand_cls =
+  fun
+  | Caret.Hand.Anchor => "anchor"
+  | Focus => "focus";
+
 let mk = (~font, p: Profile.t) =>
   Svgs.Path.view(path(p.shape))
-  |> Nodes.add_classes(["caret"])
+  |> Nodes.add_classes(["caret", hand_cls(p.hand)])
   |> Stds.Lists.single
   |> Box.mk(~font, ~loc=p.loc)
   |> Stds.Lists.single

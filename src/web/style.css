@@ -36,7 +36,9 @@
   --hole-stroke-color: #dc322f;
   --unmolded-color: #dc322f;
 
-  --caret-color: #f62116;
+  /* --caret-color: #f62116; */
+  --caret-focus-color: #ff7200;
+  --caret-anchor-color: #ffa760;
 
   --outer-silhouette-color: #ffdf00;
   --inner-silhouette-color: #fff9d5;
@@ -548,11 +550,16 @@ svg {
 }
 .caret {
   fill: none;
-  stroke: var(--caret-color);
   stroke-width: 2;
   stroke-linecap: round;
   stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
+}
+.caret.focus {
+  stroke: var(--caret-focus-color);
+}
+.caret.anchor {
+  stroke: var(--caret-anchor-color);
 }
 .caret-container {
   position: relative;
