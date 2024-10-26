@@ -38,6 +38,9 @@
 
   --caret-color: #f62116;
 
+  --outer-silhouette-color: #d2b8aa;
+  --inner-silhouette-color: #fffcea;
+
   --exp-bg-color: #ebdfc5; /*#dbf6de;*/
   --exp-shadow-color: #c4b599;/*#329f43;*/
   --exp-rail-color: #a7d3ad;
@@ -113,15 +116,15 @@
 }
 
 .silhouette.outer {
-  fill: var(--selection-color);
+  fill: var(--outer-silhouette-color);
   filter: url(#silhouette-outer-blur);
 }
 .silhouette.inner {
-  fill: var(--light-page-color);
+  fill: var(--inner-silhouette-color);
   filter: url(#silhouette-inner-blur);
   transform-origin: center;
   transform-box: fill-box;
-  transform: scale(1.15, 1.15);
+  transform: scale(1.2, 1.2);
 }
 
 #page {

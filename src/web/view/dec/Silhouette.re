@@ -45,7 +45,7 @@ module Inner = {
           "feGaussianBlur",
           ~attrs=[
             Attr.create("in", "SourceGraphic"),
-            Attr.create("stdDeviation", "0.03"),
+            Attr.create("stdDeviation", "0.01"),
           ],
           [],
         ),
@@ -146,7 +146,7 @@ module Outer = {
 
   let mk = (~font, p: Profile.t) => {
     p
-    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.2, 0.2))
+    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.7, 0.3))
     |> Util.Svgs.Path.view
     |> Util.Nodes.add_classes(["silhouette", "outer"])
     |> Stds.Lists.single
@@ -161,7 +161,7 @@ module Outer = {
           "feGaussianBlur",
           ~attrs=[
             Attr.create("in", "SourceGraphic"),
-            Attr.create("stdDeviation", "0.05"),
+            Attr.create("stdDeviation", "0.01"),
           ],
           [],
         ),
