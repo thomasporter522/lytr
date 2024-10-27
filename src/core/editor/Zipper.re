@@ -292,12 +292,7 @@ let mk_button = (~cur: Cursor.t, ctx) =>
     let (zigg, rolled_l, dn') =
       Zigg.take_ineq(~side=L, sel.range, ~fill=l, dn);
     let (zigg, rolled_r, up') = Zigg.take_ineq(~side=R, zigg, ~fill=r, up);
-    let cell =
-      Cell.put(Zigg.roll(~l=rolled_l, zigg, ~r=rolled_r))
-      |> Cell.pad(
-           ~l=List.(length(dn) == length(dn')) ? l : Cell.empty,
-           ~r=List.(length(up) == length(up')) ? r : Cell.empty,
-         );
+    let cell = Cell.put(Zigg.roll(~l=rolled_l, zigg, ~r=rolled_r));
     let ctx = Ctx.(button(cons((dn', up'), tl)));
     unzip_exn(cell, ~ctx);
   };
