@@ -87,11 +87,18 @@ module Cell = {
   let dirty = mk(~dirty=Path.Map.singleton(Path.empty, ()), ());
   let mark_clean = marks => {...marks, dirty: Path.Map.empty};
 
-  let map = (f_cursor, f_obligs, f_dirty, {cursor, obligs, dirty, degrouted}) => {
+  let map =
+      (
+        f_cursor,
+        f_obligs,
+        f_dirty,
+        ~f_degrouted=Fun.const(false),
+        {cursor, obligs, dirty, degrouted},
+      ) => {
     cursor: f_cursor(cursor),
     obligs: f_obligs(obligs),
     dirty: f_dirty(dirty),
-    degrouted,
+    degrouted: f_degrouted(degrouted),
   };
   let cons = n =>
     map(
@@ -110,6 +117,7 @@ module Cell = {
       Option.map(Path.Cursor.map_paths(f)),
       Path.Map.map_paths(f),
       Path.Map.map_paths(f),
+      ~f_degrouted=Fun.id,
     );
   let union = (l: t, r: t) => {
     cursor: Options.merge(~f=Path.Cursor.union, l.cursor, r.cursor),
