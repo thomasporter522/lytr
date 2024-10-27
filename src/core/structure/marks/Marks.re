@@ -52,9 +52,13 @@ module Cell = {
   let pp = (out, {cursor, obligs, dirty, degrouted} as marks) =>
     if (is_empty(marks)) {
       Fmt.nop(out, marks);
-    } else if (Option.is_none(cursor) && Path.Map.is_empty(dirty)) {
+    } else if (Option.is_none(cursor)
+               && Path.Map.is_empty(dirty)
+               && !degrouted) {
       Fmt.pf(out, "obligs: %a", Path.Map.pp(Mtrl.T.pp), obligs);
-    } else if (Path.Map.is_empty(obligs) && Path.Map.is_empty(dirty)) {
+    } else if (Path.Map.is_empty(obligs)
+               && Path.Map.is_empty(dirty)
+               && !degrouted) {
       Fmt.pf(out, "cursor: %a", Path.Cursor.pp, Option.get(cursor));
     } else {
       Fmt.pf(

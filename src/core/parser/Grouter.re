@@ -121,6 +121,9 @@ let rec degrout = (c: Cell.t): Cells.t =>
       | [hd, ...tl] when Cell.Space.is_space(l) =>
         let l = Cell.mark_degrouted(l, ~side=R);
         [Cell.pad(~squash=false, ~l, hd), ...tl];
+      | [] when Cell.Space.is_space(l) =>
+        let l = Cell.mark_degrouted(l, ~side=R);
+        [l];
       | _ => [l, ...cells]
       };
     let cells_lr =
@@ -128,6 +131,9 @@ let rec degrout = (c: Cell.t): Cells.t =>
       | Some((pre, ft)) when Cell.Space.is_space(r) =>
         let r = Cell.mark_degrouted(~side=L, r);
         Lists.Framed.put_ft(pre, Cell.pad(~squash=false, ft, ~r));
+      | None when Cell.Space.is_space(r) =>
+        let r = Cell.mark_degrouted(~side=L, r);
+        [r];
       | _ => cells_l @ [r]
       };
     List.concat_map(degrout, cells_lr);
