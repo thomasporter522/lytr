@@ -559,7 +559,8 @@ svg {
   stroke: var(--caret-focus-color);
 }
 .caret.anchor {
-  stroke: var(--caret-anchor-color);
+  /* stroke: var(--caret-anchor-color); */
+  stroke: none;
 }
 .caret-container {
   position: relative;
