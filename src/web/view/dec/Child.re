@@ -50,7 +50,7 @@ module Profile = {
 let h_trunc = 0.2;
 let v_trunc = 0.15;
 
-let v_line_offset = 0.5;
+let v_line_offset = 0.3;
 
 let includes_all_but_padding =
     (~side: Dir.t, col: Loc.Col.t, (ind, line): Profile.row_metrics) => {
@@ -101,7 +101,7 @@ let mk = (~font, p: Profile.t) => {
       ? []
       : Util.Svgs.Path.[
           m(~x=p.ind, ~y=p.loc.row)
-          |> cmdfudge(~y=T.v_trunc +. T.stroke_shift)
+          // |> cmdfudge(~y=T.v_trunc +. T.stroke_shift)
           |> cmdfudge(~y=l_open_and_covers_row ? 0. : 1.)
           |> cmdfudge(~x=-. v_line_offset),
           v(~y=end_loc.row)
