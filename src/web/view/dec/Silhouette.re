@@ -1,4 +1,5 @@
 open Virtual_dom.Vdom;
+open Stds;
 
 module T = Token;
 open Tylr_core;
@@ -54,52 +55,85 @@ module Inner = {
       ],
     );
 
-  let mk_ind = (~font, loc: Loc.t, len: int): Node.t => {
+  // magic number used to align with scaling transform applied to e
+  let h_pad = 0.2;
+  let v_trunc = T.v_trunc -. 0.1;
+
+  let mk_glue = (~font, loc: Loc.t, len: int): Node.t => {
     Util.Svgs.Path.[
-      m(~x=0, ~y=0) |> cmdfudge(~y=T.v_trunc),
-      h(~x=len),
-      v(~y=1) |> cmdfudge(~y=-. T.v_trunc),
-      h(~x=0),
+      m(~x=0, ~y=0) |> cmdfudge(~x=-. h_pad, ~y=T.v_trunc),
+      h(~x=len) |> cmdfudge(~x=h_pad),
+      v(~y=0) |> cmdfudge(~y=-. T.v_trunc),
+      h(~x=0) |> cmdfudge(~x=-. h_pad),
       v(~y=0) |> cmdfudge(~y=T.v_trunc),
     ]
     |> Util.Svgs.Path.view
-    |> Util.Nodes.add_classes(["silhouette", "inner"])
+    |> Util.Nodes.add_classes(["silhouette", "glue"])
     |> Stds.Lists.single
     |> Box.mk(~font, ~loc);
   };
 
-  let mk_tok = (~font, loc: Loc.t, tok: Token.t) => {
-    let len = Token.length(tok);
-    let path =
-      switch (tips(tok)) {
-      | None =>
-        Util.Svgs.Path.[
-          m(~x=0, ~y=0) |> cmdfudge(~y=T.v_trunc),
-          h(~x=len),
-          v(~y=1) |> cmdfudge(~y=-. T.v_trunc),
-          h(~x=0),
-          v(~y=0) |> cmdfudge(~y=T.v_trunc),
-        ]
-      | Some((l, r)) =>
-        Util.Svgs.[
-          Path.[m(~x=0, ~y=0) |> cmdfudge(~y=T.v_trunc), h(~x=len)],
-          T.tip(r),
-          Path.[h(~x=0)],
-          Path.scale(-1., T.tip(l)),
-        ]
-        |> List.flatten
-      };
-    let clss =
-      switch (tok.mtrl) {
-      | Space(_) => ["silhouette", "space"]
-      | Grout(_)
-      | Tile(_) => ["silhouette", "inner"]
-      };
-    Util.Svgs.Path.view(path)
-    |> Util.Nodes.add_classes(clss)
-    |> Stds.Lists.single
-    |> Box.mk(~font, ~loc);
-  };
+  let mk_ind = (~font, loc: Loc.t, len: int) =>
+    if (len <= 0) {
+      None;
+    } else {
+      Util.Svgs.Path.[
+        m(~x=0, ~y=0) |> cmdfudge(~x=-. h_pad, ~y=v_trunc),
+        h(~x=len) |> cmdfudge(~x=h_pad),
+        v(~y=1) |> cmdfudge(~y=-. v_trunc),
+        h(~x=0) |> cmdfudge(~x=-. h_pad),
+        v(~y=0) |> cmdfudge(~y=v_trunc),
+      ]
+      |> Util.Svgs.Path.view
+      |> Util.Nodes.add_classes(["silhouette", "inner"])
+      |> Stds.Lists.single
+      |> Box.mk(~font, ~loc)
+      |> Option.some;
+    };
+
+  let mk_tok = (~font, loc: Loc.t, tok: Token.t) =>
+    switch (tok.mtrl) {
+    // ignore empty space tokens left over from line splitting
+    | Space(_) when Token.length(tok) == 0 => None
+    | _ =>
+      let len = Token.length(tok);
+      // magic number used to scale up tip size to align with h_pad and shortened
+      // v_trunc
+      let c = 1.2825;
+      let path =
+        switch (tips(tok)) {
+        | None =>
+          Util.Svgs.Path.[
+            m(~x=0, ~y=0) |> cmdfudge(~x=-. h_pad, ~y=v_trunc),
+            h(~x=len) |> cmdfudge(~x=h_pad),
+            v(~y=1) |> cmdfudge(~y=-. v_trunc),
+            h(~x=0) |> cmdfudge(~x=-. h_pad),
+            v(~y=0) |> cmdfudge(~y=v_trunc),
+          ]
+        | Some((l, r)) =>
+          Util.Svgs.[
+            Path.[
+              m(~x=0, ~y=0) |> cmdfudge(~x=-. h_pad, ~y=v_trunc),
+              h(~x=len) |> cmdfudge(~x=h_pad),
+            ],
+            Path.scale(c, T.tip(r)),
+            Path.[h(~x=0) |> cmdfudge(~x=-. h_pad)],
+            Path.scale(-. c, T.tip(l)),
+          ]
+          |> List.flatten
+        };
+      let clss =
+        switch (tok.mtrl) {
+        | Space(_) => ["silhouette", "space"]
+        | Grout(_)
+        | Tile(_) => ["silhouette", "inner"]
+        };
+      Util.Svgs.Path.view(path)
+      |> Util.Nodes.add_classes(clss)
+      |> Stds.Lists.single
+      |> Box.mk(~font, ~loc)
+      |> Option.some;
+    };
 
   let mk = (~font, p: Profile.t): list(Node.t) => {
     p.is_space
@@ -111,15 +145,23 @@ module Inner = {
                |> List.fold_left_map(
                     (state: L.State.t, tok) => {
                       let len = Token.length(tok);
-                      let sil = mk_tok(~font, state.loc, tok);
+                      let sil =
+                        Option.to_list(mk_tok(~font, state.loc, tok));
                       let state = L.State.map(Loc.shift(len), state);
                       (state, sil);
                     },
                     p.state,
-                  ),
-             (state, n, line) => {
-               let state = L.State.return(state, n);
-               let ind_sil = mk_ind(~font, Loc.shift(- n, state.loc), n);
+                  )
+               |> Tuples.map_snd(List.concat),
+             (s, n, line) => {
+               let state = L.State.return(s, n);
+               let loc = Loc.shift(- n, state.loc);
+               let glue_sil = {
+                 let intersection =
+                   min(s.loc.col - loc.col, n + Block.Line.len(line));
+                 mk_glue(~font, loc, intersection);
+               };
+               let ind_sil = Option.to_list(mk_ind(~font, loc, n));
                let (state, sils) =
                  line
                  |> List.fold_left_map(
@@ -127,11 +169,12 @@ module Inner = {
                         let len = Token.length(tok);
                         let sil = mk_tok(~font, state.loc, tok);
                         let state = L.State.map(Loc.shift(len), state);
-                        (state, sil);
+                        (state, Option.to_list(sil));
                       },
                       state,
-                    );
-               (state, [ind_sil], sils);
+                    )
+                 |> Tuples.map_snd(List.concat);
+               (state, [glue_sil, ...ind_sil], sils);
              },
            )
         |> snd
