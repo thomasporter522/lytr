@@ -19,22 +19,24 @@ module Style = {
 module Inner = {
   module Profile = {
     type t = {
-      style: Style.t,
+      is_space: bool,
       state: L.State.t,
       block: Block.t,
     };
-    let mk = (~style, ~state, block) => {style, state, block};
+    let mk = (~is_space, ~state, block) => {is_space, state, block};
   };
 
-  let tips = (t: Token.t): Tip.s =>
+  let tips = (t: Token.t): option(Tip.s) =>
     switch (t.mtrl) {
     | Mtrl.Tile((_, mold)) =>
-      Tip.(
-        Mold.is_null(~side=L, mold) ? Conv : Conc,
-        Mold.is_null(~side=R, mold) ? Conv : Conc,
+      Some(
+        Tip.(
+          Mold.is_null(~side=L, mold) ? Conv : Conc,
+          Mold.is_null(~side=R, mold) ? Conv : Conc,
+        ),
       )
-    | Grout((_, tips)) => tips
-    | Space(_) => (Conv, Conv)
+    | Grout((_, tips)) => Some(tips)
+    | Space(_) => None
     };
 
   let blur =
@@ -52,61 +54,89 @@ module Inner = {
       ],
     );
 
+  let mk_ind = (~font, loc: Loc.t, len: int): Node.t => {
+    Util.Svgs.Path.[
+      m(~x=0, ~y=0) |> cmdfudge(~y=T.v_trunc),
+      h(~x=len),
+      v(~y=1) |> cmdfudge(~y=-. T.v_trunc),
+      h(~x=0),
+      v(~y=0) |> cmdfudge(~y=T.v_trunc),
+    ]
+    |> Util.Svgs.Path.view
+    |> Util.Nodes.add_classes(["silhouette", "inner"])
+    |> Stds.Lists.single
+    |> Box.mk(~font, ~loc);
+  };
+
+  let mk_tok = (~font, loc: Loc.t, tok: Token.t) => {
+    let len = Token.length(tok);
+    let path =
+      switch (tips(tok)) {
+      | None =>
+        Util.Svgs.Path.[
+          m(~x=0, ~y=0) |> cmdfudge(~y=T.v_trunc),
+          h(~x=len),
+          v(~y=1) |> cmdfudge(~y=-. T.v_trunc),
+          h(~x=0),
+          v(~y=0) |> cmdfudge(~y=T.v_trunc),
+        ]
+      | Some((l, r)) =>
+        Util.Svgs.[
+          Path.[m(~x=0, ~y=0) |> cmdfudge(~y=T.v_trunc), h(~x=len)],
+          T.tip(r),
+          Path.[h(~x=0)],
+          Path.scale(-1., T.tip(l)),
+        ]
+        |> List.flatten
+      };
+    let clss =
+      switch (tok.mtrl) {
+      | Space(_) => ["silhouette", "space"]
+      | Grout(_)
+      | Tile(_) => ["silhouette", "inner"]
+      };
+    Util.Svgs.Path.view(path)
+    |> Util.Nodes.add_classes(clss)
+    |> Stds.Lists.single
+    |> Box.mk(~font, ~loc);
+  };
+
   let mk = (~font, p: Profile.t): list(Node.t) => {
-    Block.flatten(p.block)
-    |> Chain.fold_left_map(
-         line =>
-           line
-           |> List.fold_left_map(
-                (state: L.State.t, tok) => {
-                  let sil =
-                    T.mk_silhouette(
-                      ~font,
-                      ~inner=
-                        switch (p.style) {
-                        | Inner => true
-                        | _ => false
-                        },
-                      state.loc,
-                      Token.length(tok),
-                      tips(tok),
+    p.is_space
+      ? []
+      : Block.flatten(p.block)
+        |> Chain.fold_left_map(
+             line =>
+               line
+               |> List.fold_left_map(
+                    (state: L.State.t, tok) => {
+                      let len = Token.length(tok);
+                      let sil = mk_tok(~font, state.loc, tok);
+                      let state = L.State.map(Loc.shift(len), state);
+                      (state, sil);
+                    },
+                    p.state,
+                  ),
+             (state, n, line) => {
+               let state = L.State.return(state, n);
+               let ind_sil = mk_ind(~font, Loc.shift(- n, state.loc), n);
+               let (state, sils) =
+                 line
+                 |> List.fold_left_map(
+                      (state: L.State.t, tok) => {
+                        let len = Token.length(tok);
+                        let sil = mk_tok(~font, state.loc, tok);
+                        let state = L.State.map(Loc.shift(len), state);
+                        (state, sil);
+                      },
+                      state,
                     );
-                  let state =
-                    L.State.map(Loc.shift(Token.length(tok)), state);
-                  (state, sil);
-                },
-                p.state,
-              ),
-         (state, n, line) => {
-           let state = L.State.return(state, n);
-           let (state, sils) =
-             line
-             |> List.fold_left_map(
-                  (state: L.State.t, tok) => {
-                    let sil =
-                      T.mk_silhouette(
-                        ~font,
-                        ~inner=
-                          switch (p.style) {
-                          | Inner => true
-                          | _ => false
-                          },
-                        state.loc,
-                        Token.length(tok),
-                        tips(tok),
-                      );
-                    let state =
-                      L.State.map(Loc.shift(Token.length(tok)), state);
-                    (state, sil);
-                  },
-                  state,
-                );
-           (state, (), sils);
-         },
-       )
-    |> snd
-    |> Chain.loops
-    |> List.concat;
+               (state, [ind_sil], sils);
+             },
+           )
+        |> snd
+        |> Chain.to_list(Fun.id, Fun.id)
+        |> List.concat;
   };
 };
 
@@ -129,12 +159,12 @@ module Outer = {
              (s, rect);
            },
            (state, ind, line) => {
-             let state = L.State.return(state, ind);
+             let state = L.State.return(state, 0);
              let min = point_of_loc(state.loc);
-             let len = Block.Line.len(line);
-             let s = L.State.map(Loc.shift(len), state);
+             let width = ind + Block.Line.len(line);
+             let s = L.State.map(Loc.shift(width), state);
              let rect =
-               Rect.{min, width: Float.of_int(len), height: 1.}
+               Rect.{min, width: Float.of_int(width), height: 1.}
                |> Rect.pad(~x=0.55, ~y=0.075);
              (s, (), rect);
            },

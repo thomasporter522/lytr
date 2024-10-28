@@ -121,7 +121,7 @@
   fill: var(--outer-silhouette-color);
   filter: url(#silhouette-outer-blur);
 }
-.silhouette.inner {
+.silhouette.inner, .silhouette.space {
   fill: var(--inner-silhouette-color);
   filter: url(#silhouette-inner-blur);
   transform-origin: center;

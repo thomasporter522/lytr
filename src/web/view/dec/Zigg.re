@@ -64,7 +64,7 @@ module Profile = {
 
              let sil =
                Silhouette.Inner.Profile.mk(
-                 ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
+                 ~is_space=Mtrl.is_space(LTerr.sort(terr)),
                  ~state,
                  LTerr.L.flatten(terr),
                );
@@ -87,7 +87,7 @@ module Profile = {
       let eq = List.(mem(-1, eqs_l), mem(-1, eqs_r));
       let sil =
         Silhouette.Inner.Profile.mk(
-          ~style=Mtrl.is_space(LWald.sort(zigg.top)) ? Space : Inner,
+          ~is_space=Mtrl.is_space(LWald.sort(zigg.top)),
           ~state,
           LWald.flatten(~flatten=LCell.flatten, zigg.top),
         );
@@ -110,7 +110,7 @@ module Profile = {
 
              let sil =
                Silhouette.Inner.Profile.mk(
-                 ~style=Mtrl.is_space(LTerr.sort(terr)) ? Space : Inner,
+                 ~is_space=Mtrl.is_space(LTerr.sort(terr)),
                  ~state,
                  LTerr.R.flatten(terr),
                );
