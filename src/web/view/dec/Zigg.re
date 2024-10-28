@@ -91,7 +91,8 @@ module Profile = {
           ~state,
           LWald.flatten(~flatten=LCell.flatten, zigg.top),
         );
-      let (state, p) = W.Profile.mk(~whole, ~state, ~null, ~eq, zigg.top);
+      let (state, p) =
+        W.Profile.mk(~sil=true, ~whole, ~state, ~null, ~eq, zigg.top);
       (state, (p, sil));
     };
     let (_, dn) =

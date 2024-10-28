@@ -20,6 +20,7 @@ module Profile = {
     // let state = eq ? state : L.State.push_ind(state);
     let (state, wald) =
       W.Profile.mk(
+        ~sil=true,
         ~whole,
         ~state,
         ~null=(null, Mtrl.is_space(LCell.sort(terr.cell))),
@@ -50,6 +51,7 @@ module Profile = {
       );
     let (state, wald) =
       W.Profile.mk(
+        ~sil=true,
         ~whole,
         ~state=s_mid,
         ~null=(Mtrl.is_space(LCell.sort(terr.cell)), null),

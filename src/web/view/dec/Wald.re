@@ -13,13 +13,14 @@ module Profile = {
 
   let mk =
       (
+        ~sil=false,
         ~whole,
         ~state: L.State.t,
         ~null: (bool, bool),
         ~eq: (bool, bool),
         W(w): LWald.t,
       ) => {
-    let state = fst(eq) ? state : L.State.push_ind(state);
+    let state = fst(eq) ? L.State.pop_ind(state) : L.State.push_ind(state);
     let ind = L.Indent.curr(state.ind);
     // let ind = state.ind + state.rel;
     let n = Chain.length(w);
@@ -28,7 +29,7 @@ module Profile = {
     |> Chain.fold_left_map(
          b_tok => {
            let null = (fst(null), n == 1 && snd(null));
-           let t = T.Profile.mk(~loc=state.loc, ~null, b_tok);
+           let t = T.Profile.mk(~sil, ~loc=state.loc, ~null, b_tok);
            let state = L.State.jump_tok(state, ~over=b_tok);
            (state, t);
          },
@@ -43,7 +44,7 @@ module Profile = {
              );
            let state = L.State.jump_cell(state, ~over=cell);
            let null = (n == 1 && fst(null), snd(null));
-           let t = T.Profile.mk(~loc=state.loc, ~null, b_tok);
+           let t = T.Profile.mk(~sil, ~loc=state.loc, ~null, b_tok);
            let state = L.State.jump_tok(state, ~over=b_tok);
            (state, c, t);
          },

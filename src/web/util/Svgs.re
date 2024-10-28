@@ -1,14 +1,19 @@
 open Virtual_dom.Vdom;
 open Stds;
+open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
 
 module Point = {
+  [@deriving (show({with_path: false}), sexp, yojson)]
   type t = {
     x: float,
     y: float,
   };
+  let move = (~x=0., ~y=0., p: t) => {x: p.x +. x, y: p.y +. y};
 };
 
 module Vector = {
+  [@deriving (show({with_path: false}), sexp, yojson)]
   type t = {
     dx: float,
     dy: float,
@@ -16,6 +21,7 @@ module Vector = {
 };
 
 module Rect = {
+  [@deriving (show({with_path: false}), sexp, yojson)]
   type t = {
     min: Point.t,
     width: float,
