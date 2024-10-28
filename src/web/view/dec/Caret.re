@@ -58,11 +58,12 @@ let path = (shape: Shape.t) => {
     | Some(L) => -. T.tip_width
     | Some(R) => T.tip_width
     };
+  let rise = 0.5 -. T.v_trunc;
   List.concat([
     [M({x: run, y: 0.5})],
     // adjust scale of caret to account for rounded linecap/join
-    [L_({dx: -. run, dy: (-0.5)}), L_({dx: run, dy: 0.5})] |> scale(0.64),
-    [L_({dx: -. run, dy: 0.5}), L_({dx: run, dy: (-0.5)})] |> scale(0.64),
+    [L_({dx: -. run, dy: -. rise}), L_({dx: run, dy: rise})] |> scale(0.9),
+    [L_({dx: -. run, dy: rise}), L_({dx: run, dy: -. rise})] |> scale(0.9),
   ])
   |> transpose({dx: adj(shape), dy: 0.});
 };
