@@ -50,8 +50,6 @@ module Inner = {
   let v_trunc = T.v_trunc -. 0.06;
 
   let mk = (~font, p: Profile.t) => {
-    open Stds;
-    P.log("--- Inner.mk");
     p.is_space
       ? []
       : Block.flatten(p.block)
@@ -63,11 +61,9 @@ module Inner = {
                let rect =
                  Rect.{min, width: Float.of_int(len), height: 1.}
                  |> Rect.pad(~x=h_pad, ~y=-. v_trunc);
-               P.show("line", Rect.show(rect));
                (s, rect);
              },
              (s, ind, line) => {
-               open Stds;
                let state = L.State.return(s, 0);
                let glue_rect = {
                  let intersection =
@@ -90,7 +86,6 @@ module Inner = {
                let line_rect =
                  Rect.{min, width: Float.of_int(width), height: 1.}
                  |> Rect.pad(~x=h_pad, ~y=-. v_trunc);
-               P.show("line", Rect.show(line_rect));
                (s, glue_rect, line_rect);
              },
            )
