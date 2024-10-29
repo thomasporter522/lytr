@@ -33,6 +33,15 @@ module Rect = {
     width: width +. 2. *. x,
     height: height +. 2. *. y,
   };
+
+  let pad_left = (~x=0., r: t): t => {
+    min: {
+      x: r.min.x -. x,
+      y: r.min.y,
+    },
+    width: r.width +. x,
+    height: r.height,
+  };
 };
 
 module Path = {

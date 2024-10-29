@@ -14,13 +14,21 @@ module Profile = {
   let tokens = (p: t) => W.Profile.tokens(p.wald);
   let cells = (p: t) => [p.cell, ...W.Profile.cells(p.wald)];
 
-  let mk_l = (~whole: LCell.t, ~state: L.State.t, ~eq, ~null, terr: LTerr.t) => {
+  let mk_l =
+      (
+        ~sil=false,
+        ~whole: LCell.t,
+        ~state: L.State.t,
+        ~eq,
+        ~null,
+        terr: LTerr.t,
+      ) => {
     let ind = L.Indent.curr(state.ind);
     // let (null_l, null_r) = ;
     // let state = eq ? state : L.State.push_ind(state);
     let (state, wald) =
       W.Profile.mk(
-        ~sil=true,
+        ~sil,
         ~whole,
         ~state,
         ~null=(null, Mtrl.is_space(LCell.sort(terr.cell))),
@@ -39,10 +47,19 @@ module Profile = {
     (state, {cell, wald});
   };
 
-  let mk_r = (~whole: LCell.t, ~state: L.State.t, ~null, ~eq, terr: LTerr.t) => {
+  let mk_r =
+      (
+        ~sil=false,
+        ~whole: LCell.t,
+        ~state: L.State.t,
+        ~null,
+        ~eq,
+        terr: LTerr.t,
+      ) => {
     let s_mid = L.State.jump_cell(state, ~over=terr.cell);
     let cell =
       Child.Profile.mk(
+        ~sil,
         ~whole,
         ~ind=L.Indent.curr(s_mid.ind),
         ~loc=state.loc,
@@ -51,7 +68,7 @@ module Profile = {
       );
     let (state, wald) =
       W.Profile.mk(
-        ~sil=true,
+        ~sil,
         ~whole,
         ~state=s_mid,
         ~null=(Mtrl.is_space(LCell.sort(terr.cell)), null),

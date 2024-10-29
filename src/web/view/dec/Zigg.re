@@ -69,7 +69,7 @@ module Profile = {
                  LTerr.L.flatten(terr),
                );
              let (state, p) =
-               T.Profile.mk_l(~whole, ~state, ~eq, ~null, terr);
+               T.Profile.mk_l(~sil=true, ~whole, ~state, ~eq, ~null, terr);
 
              let state = L.State.jump_cell(state, ~over=p_r);
 
@@ -116,7 +116,7 @@ module Profile = {
                  LTerr.R.flatten(terr),
                );
              let (state, p) =
-               T.Profile.mk_r(~whole, ~state, ~eq, ~null, terr);
+               T.Profile.mk_r(~sil=true, ~whole, ~state, ~eq, ~null, terr);
 
              (state, (p, sil));
            },

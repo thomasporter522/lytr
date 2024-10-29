@@ -118,7 +118,8 @@ module Outer = {
              let s = L.State.map(Loc.shift(len), state);
              let rect =
                Rect.{min, width: Float.of_int(len), height: 1.}
-               |> Rect.pad(~x=0.55, ~y=0.075);
+               |> Rect.pad(~x=0.55, ~y=0.075)
+               |> Rect.pad_left(~x=0.05);
              (s, rect);
            },
            (state, ind, line) => {
@@ -128,7 +129,8 @@ module Outer = {
              let s = L.State.map(Loc.shift(width), state);
              let rect =
                Rect.{min, width: Float.of_int(width), height: 1.}
-               |> Rect.pad(~x=0.55, ~y=0.075);
+               |> Rect.pad(~x=0.55, ~y=0.075)
+               |> Rect.pad_left(~x=0.05);
              (s, (), rect);
            },
          )
@@ -139,7 +141,7 @@ module Outer = {
 
   let mk = (~font, p: Profile.t) => {
     p
-    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.7, 0.3))
+    |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.65, 0.25))
     |> Util.Svgs.Path.view
     |> Util.Nodes.add_classes(["silhouette", "outer"])
     |> Stds.Lists.single

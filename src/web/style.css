@@ -119,7 +119,7 @@
 
 .silhouette.outer {
   fill: var(--outer-silhouette-color);
-  filter: url(#silhouette-outer-blur);
+  /* filter: url(#silhouette-outer-blur); */
 }
 .silhouette.inner, .silhouette.space {
   fill: var(--inner-silhouette-color);
@@ -131,11 +131,15 @@
 }
 .silhouette.glue {
   fill: var(--inner-silhouette-color);
-  filter: url(#silhouette-inner-blur);
+  /* filter: url(#silhouette-inner-blur); */
   transform-origin: center;
   transform-box: fill-box;
   /* transform: scale(1, 1.25) translate(0, 2%); */
   /* transform: translate(0, 2%); */
+}
+.silhouette.child-line {
+  stroke: var(--inner-silhouette-color);
+  stroke-width: 4.5;
 }
 
 #page {

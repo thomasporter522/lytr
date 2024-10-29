@@ -37,20 +37,23 @@ module Profile = {
     // whether the child lacks a delimiter on its left and right, in which case
     // decorations will depend on the metrics of the first/last rows of the child
     no_delim: (option(row_metrics), option(row_metrics)),
+    // whether to add a selection silhouette
+    sil: bool,
   };
 
-  let mk = (~whole, ~ind, ~loc: Loc.t, ~null as (l, r), lc: LCell.t) => {
+  let mk =
+      (~sil=false, ~whole, ~ind, ~loc: Loc.t, ~null as (l, r), lc: LCell.t) => {
     let dims = Dims.of_block(LCell.flatten(lc));
     let l = l ? Some(L.nth_line(whole, loc.row)) : None;
     let r = r ? Some(L.nth_line(whole, loc.row + dims.height)) : None;
-    {ind, loc, dims, sort: LCell.sort(lc), no_delim: (l, r)};
+    {ind, loc, dims, sort: LCell.sort(lc), no_delim: (l, r), sil};
   };
 };
 
 let h_trunc = 0.2;
 let v_trunc = 0.15;
 
-let v_line_offset = 0.3;
+let v_line_offset = 0.15;
 
 let includes_all_but_padding =
     (~side: Dir.t, col: Loc.Col.t, (ind, line): Profile.row_metrics) => {
@@ -119,11 +122,23 @@ let mk = (~font, p: Profile.t) => {
           |> cmdfudge(~x=r_closed ? -. T.concave_adj -. h_trunc : 0.),
         ];
 
-  hd_line
-  @ body_line
-  @ ft_line
-  |> Util.Svgs.Path.view
-  |> Util.Nodes.add_classes(["child-line", ...sort_clss(p.sort)])
-  |> Stds.Lists.single
-  |> Box.mk(~font, ~loc={row: 0, col: 0});
+  let line =
+    hd_line
+    @ body_line
+    @ ft_line
+    |> Util.Svgs.Path.view
+    |> Util.Nodes.add_classes(["child-line", ...sort_clss(p.sort)])
+    |> Stds.Lists.single;
+  let sil =
+    p.sil
+      ? [
+        hd_line
+        @ body_line
+        @ ft_line
+        // |> List.map(Util.Svgs.Path.cmdfudge(~x=0.1))
+        |> Util.Svgs.Path.view
+        |> Util.Nodes.add_classes(["child-line", "silhouette"]),
+      ]
+      : [];
+  Box.mk(~font, ~loc={row: 0, col: 0}, sil @ line);
 };

@@ -36,6 +36,7 @@ module Profile = {
          (state, cell, b_tok) => {
            let c =
              Child.Profile.mk(
+               ~sil,
                ~whole,
                ~ind,
                ~loc=state.loc,
