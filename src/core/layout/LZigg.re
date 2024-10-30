@@ -8,3 +8,9 @@ let flatten = (zigg: t) =>
     LWald.flatten(~flatten=LCell.flatten, zigg.top),
     LSlope.Dn.flatten(zigg.dn),
   ]);
+
+let roll = (~l, ~r, zigg: t) => {
+  let (l, up) = Stds.Lists.split_n(zigg.up, l);
+  let (r, dn) = Stds.Lists.split_n(zigg.dn, r);
+  (LSlope.Up.roll(l), {...zigg, up, dn}, LSlope.Dn.roll(r));
+};

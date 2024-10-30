@@ -174,6 +174,49 @@ let pull = (~side as d: Dir.t, zigg: t): (Token.t, option(t)) => {
   };
 };
 
+let unlink = (~side: Dir.t, zigg: t) => {
+  open Stds.Options.Syntax;
+  let (s_d, top, s_b) = orient(side, zigg);
+  let/ () = {
+    let+ (tok, cell, s_d) = Slope.unlink(s_d);
+    (tok, cell, unorient(side, (s_d, top, s_b)));
+  };
+  assert(s_d == []);
+  let+ (tok, cell, top) = Result.to_option(Wald.unlink(top));
+  (tok, (cell, Rel.Eq()), unorient(side, (s_d, top, s_b)));
+};
+
+// count terraces on each side that take precedence over the given bounds
+let roll_bounds = (~l=Delim.root, ~r=Delim.root, zigg: Base.t(_)) => {
+  let l =
+    switch (l) {
+    | Root => (List.length(zigg.up), Rel.Neq())
+    | Node(tok) =>
+      switch (push(~side=L, tok, zigg)) {
+      | Error(_) => (List.length(zigg.up), Rel.Neq())
+      | Ok(z) =>
+        switch (unlink(~side=L, z)) {
+        | None => (0, Rel.Eq())
+        | Some((_, (cell, rel), _)) => (Cell.height(~side=L, cell), rel)
+        }
+      }
+    };
+  let r =
+    switch (r) {
+    | Root => (List.length(zigg.dn), Rel.Neq())
+    | Node(tok) =>
+      switch (push(~side=R, tok, zigg)) {
+      | Error(_) => (List.length(zigg.dn), Rel.Neq())
+      | Ok(z) =>
+        switch (unlink(~side=R, z)) {
+        | None => (0, Rel.Eq())
+        | Some((_, (cell, rel), _)) => (Cell.height(~side=R, cell), rel)
+        }
+      }
+    };
+  (l, r);
+};
+
 let grow = (~side: Dir.t, tok: Token.t, zigg: t) =>
   switch (push(~side, tok, zigg)) {
   | Ok(zigg) => zigg

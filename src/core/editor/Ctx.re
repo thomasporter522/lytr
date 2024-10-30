@@ -60,6 +60,12 @@ let pull = (~from: Dir.t, ctx: t): (Delim.t, t) => {
   };
 };
 let face = (~side: Dir.t, ctx) => fst(pull(~from=side, ctx));
+let rec nonspace_face = (~side: Dir.t, ctx: t) =>
+  switch (pull(~from=side, ctx)) {
+  | (Node(tok), ctx) when Mtrl.is_space(tok.mtrl) =>
+    nonspace_face(~side, ctx)
+  | (face, _) => face
+  };
 
 let peel = (~from: Dir.t, tok: Token.t, ctx: t) =>
   switch (pull(~from, ctx)) {

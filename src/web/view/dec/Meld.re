@@ -23,7 +23,7 @@ module Profile = {
   let mk = (~whole: LCell.t, ~state: L.State.t, lm: LMeld.t) => {
     let M(lc_l, lw, lc_r) = lm;
     let (p_l, lc_l) = LCell.depad(~side=L, lc_l);
-    let (_, lc_r) = LCell.depad(~side=R, lc_r);
+    let (p_r, lc_r) = LCell.depad(~side=R, lc_r);
     let null =
       Mtrl.(is_space(LCell.sort(lc_l)), is_space(LCell.sort(lc_r)));
     let s_init = state |> L.State.jump_cell(~over=p_l);
@@ -48,7 +48,9 @@ module Profile = {
         ~null=(false, true),
         lc_r,
       );
-    Chain.consnoc(~hd=l, w, ~ft=r);
+    let state =
+      state |> L.State.jump_cell(~over=lc_r) |> L.State.jump_cell(~over=p_r);
+    (state, Chain.consnoc(~hd=l, w, ~ft=r));
   };
 };
 

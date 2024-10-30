@@ -112,7 +112,7 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
   let- () =
     // first try removing grout and continuing
     switch (Slope.unlink(r.slope)) {
-    | Some((tok, cell, up)) when Token.Grout.is(tok) =>
+    | Some((tok, (cell, _), up)) when Token.Grout.is(tok) =>
       Effects.remove(tok);
       let up = Slope.cat(snd(Slope.Up.unroll(cell)), up);
       let r = {...r, slope: up};

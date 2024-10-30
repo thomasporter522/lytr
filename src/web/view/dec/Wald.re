@@ -53,3 +53,7 @@ module Profile = {
     |> Stds.Tuples.map_fst(snd(eq) ? Fun.id : L.State.pop_ind);
   };
 };
+
+let mk = (~font, p: Profile.t) =>
+  List.map(T.mk(~font), Profile.tokens(p))
+  @ List.map(Child.mk(~font), Profile.cells(p));

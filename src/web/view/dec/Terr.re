@@ -11,9 +11,6 @@ module Profile = {
     wald: W.Profile.t,
   };
 
-  let tokens = (p: t) => W.Profile.tokens(p.wald);
-  let cells = (p: t) => [p.cell, ...W.Profile.cells(p.wald)];
-
   let mk_l =
       (
         ~sil=false,
@@ -79,6 +76,7 @@ module Profile = {
   };
 };
 
-let mk = (~font, p: Profile.t) =>
-  List.map(T.mk(~font), Profile.tokens(p))
-  @ List.map(Child.mk(~font), Profile.cells(p));
+let mk = (~font, p: Profile.t) => [
+  Child.mk(~font, p.cell),
+  ...W.mk(~font, p.wald),
+];

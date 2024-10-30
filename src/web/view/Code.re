@@ -44,11 +44,17 @@ let cursor = (~font, z: Zipper.t) => {
     switch (ind_lc.meld) {
     | None => []
     | Some(lm) =>
-      Dec.Meld.Profile.mk(~whole=lc, ~state, lm) |> Dec.Meld.mk(~font)
+      Dec.Meld.Profile.mk(~whole=lc, ~state, lm) |> snd |> Dec.Meld.mk(~font)
     }
   | Select(ind_zigg) =>
+    let sel = Option.get(Cursor.get_select(z.cur));
+    let rolled =
+      Zigg.roll_bounds(
+        ~l=Ctx.nonspace_face(~side=L, z.ctx),
+        sel.range,
+        ~r=Ctx.nonspace_face(~side=R, z.ctx),
+      );
     let null = {
-      let sel = Option.get(Cursor.get_select(z.cur));
       let (dn, up) = Ctx.hd(z.ctx);
       let l = Zigg.is_null(~side=L, ~slope=dn, sel.range);
       let r = Zigg.is_null(sel.range, ~slope=up, ~side=R);
@@ -59,7 +65,7 @@ let cursor = (~font, z: Zipper.t) => {
       fst(List.split(snd(ind_lz.eqs))),
     );
     ind_zigg
-    |> Dec.Zigg.Profile.mk(~whole=lc, ~state, ~null, ~eqs)
+    |> Dec.Zigg.Profile.mk(~whole=lc, ~state, ~null, ~eqs, ~rolled)
     |> Dec.Zigg.mk(~font);
   };
 };

@@ -94,6 +94,12 @@ let put_cursor = (cur: Path.Cursor.t, cell: t) => {
 
 let face = (~side: Dir.t, c: t) => Option.map(Meld.face(~side), c.meld);
 
+let rec height = (~side: Dir.t, c: t) =>
+  switch (c.meld) {
+  | None => 0
+  | Some(M(l, _, r)) => 1 + height(~side, Dir.pick(side, (l, r)))
+  };
+
 // let flatten = (cell: t) =>
 //   cell.meld |> Option.map(Meld.flatten) |> Option.to_list |> List.flatten;
 

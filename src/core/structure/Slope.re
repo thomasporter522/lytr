@@ -35,12 +35,12 @@ let unlink =
   | [] => None
   | [hd, ...tl] => {
       let (tok, cell, rest) = Terr.unlink(hd);
-      let rest =
+      let (rest, rel) =
         switch (rest) {
-        | None => tl
-        | Some(hd) => [hd, ...tl]
+        | None => (tl, Rel.Neq())
+        | Some(hd) => ([hd, ...tl], Eq())
         };
-      Some((tok, cell, rest));
+      Some((tok, (cell, rel), rest));
     };
 
 let face =
