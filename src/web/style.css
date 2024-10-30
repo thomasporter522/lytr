@@ -41,7 +41,8 @@
   --caret-anchor-color: #ffa760;
 
   --outer-silhouette-color: #ffdf00;
-  --inner-silhouette-color: #fff9d5;
+  /* --inner-silhouette-color: #fff9d5; */
+  --inner-silhouette-color: var(--light-page-color);
 
   --exp-bg-color: #ebdfc5; /*#dbf6de;*/
   --exp-shadow-color: #c4b599;/*#329f43;*/
