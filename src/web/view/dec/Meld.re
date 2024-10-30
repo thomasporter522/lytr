@@ -20,7 +20,7 @@ module Profile = {
     | [hd, ..._] => hd.style |> Option.map((style: T.Style.t) => style.sort)
     };
 
-  let mk = (~whole: LCell.t, ~state: L.State.t, lm: LMeld.t) => {
+  let mk = (~sil=false, ~whole: LCell.t, ~state: L.State.t, lm: LMeld.t) => {
     let M(lc_l, lw, lc_r) = lm;
     let (p_l, lc_l) = LCell.depad(~side=L, lc_l);
     let (p_r, lc_r) = LCell.depad(~side=R, lc_r);
@@ -31,6 +31,7 @@ module Profile = {
 
     let l =
       Child.Profile.mk(
+        ~sil,
         ~whole,
         ~ind=L.Indent.curr(s_tok.ind),
         ~loc=s_init.loc,
@@ -39,9 +40,10 @@ module Profile = {
       );
     let state = L.State.jump_cell(s_init, ~over=lc_l);
     let (state, w) =
-      W.Profile.mk(~whole, ~state, ~null, ~eq=(false, false), lw);
+      W.Profile.mk(~sil, ~whole, ~state, ~null, ~eq=(false, false), lw);
     let r =
       Child.Profile.mk(
+        ~sil,
         ~whole,
         ~ind=L.Indent.curr(state.ind),
         ~loc=state.loc,

@@ -79,7 +79,7 @@ module Profile = {
             ~state,
             LMeld.flatten(~flatten=LCell.flatten, m),
           );
-        let (state, p) = M.Profile.mk(~whole, ~state, m);
+        let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
         (state, (Some(p), [sil]));
       };
     let (state, (up, up_sil)) =
@@ -172,7 +172,7 @@ module Profile = {
             ~state,
             LMeld.flatten(~flatten=LCell.flatten, m),
           );
-        let (state, p) = M.Profile.mk(~whole, ~state, m);
+        let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
         (state, (Some(p), [sil]));
       };
     let sil =
