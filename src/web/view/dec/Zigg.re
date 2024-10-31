@@ -47,13 +47,13 @@ module Profile = {
       | Left () =>
         let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
         (state, (Some(Either.Left(p)), []));
-      | Right(neighbor) =>
+      | Right((s_neighbor, neighbor)) =>
         let s_post = L.State.jump_cell(state, ~over=rolled);
         let s_tok = Dir.pick(side, (s_post, state));
         let sil =
           Silhouette.Inner.Profile.mk(
             ~is_space=Mtrl.is_space(LMeld.sort(m)),
-            ~state,
+            ~state=Dir.pick(side, (state, s_neighbor)),
             // merge this silhouette with the neighbor silhouette in rest of
             // unrolled zigg
             (LMeld.flatten(~flatten=LCell.flatten, m), neighbor)
@@ -114,13 +114,15 @@ module Profile = {
     |> Tuples.map_snd(List.split);
   };
 
-  let mk_dn = (~whole, ~state, ~null, ~eqs, ~unrolled, dn) => {
+  let mk_dn =
+      (~whole, ~state, ~null, ~eqs, ~unrolled, ~state_before_right_hd, dn) => {
     let r_bound =
       switch (unrolled) {
       | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) =>
         LSlope.height(unrolled) - 2
       | _ => LSlope.height(unrolled) - 1
       };
+    let len = List.length(dn);
     // reverse to get top-down index which matches eqs
     List.rev(dn)
     |> List.mapi((i, t) => (i, t))
@@ -128,6 +130,10 @@ module Profile = {
     // |> Lists.take_while(~f=((i, _)) => i < dn_len - snd(rolled))
     |> List.fold_left_map(
          (state, (i, terr: LTerr.t)) => {
+           if (i == len - 1) {
+             state_before_right_hd := state;
+           };
+
            let null = i >= r_bound && null;
            let eq = List.mem(i, eqs);
 
@@ -175,15 +181,10 @@ module Profile = {
       switch (snd(r_l)) {
       | Eq ()
       | Neq(Dir.R) => Either.Left()
-      | Neq(L) => Right(LZigg.hd_block(~side=L, rolled_z))
+      | Neq(L) =>
+        // this state doesn't matter, just to satisfy types
+        Right((state, LZigg.hd_block(~side=L, rolled_z)))
       };
-    let rel_r =
-      switch (snd(r_r)) {
-      | Eq ()
-      | Neq(Dir.L) => Either.Left()
-      | Neq(R) => Right(LZigg.hd_block(~side=R, rolled_z))
-      };
-
     let (state, (m_l, m_l_sil)) =
       mk_rolled(~side=L, ~whole, ~state, ~rel=rel_l, rolled_l);
     let (state, (up, up_sil)) =
@@ -195,6 +196,11 @@ module Profile = {
         ~unrolled=zigg.up,
         rolled_z.up,
       );
+
+    let state_before_right_hd = ref(L.State.init);
+    if (List.length(zigg.dn) == 0) {
+      state_before_right_hd := state;
+    };
 
     let (state, (top, top_sil)) = {
       let null = (
@@ -220,8 +226,16 @@ module Profile = {
         ~null=null_r,
         ~eqs=eqs_r,
         ~unrolled=zigg.dn,
+        ~state_before_right_hd,
         rolled_z.dn,
       );
+    let rel_r =
+      switch (snd(r_r)) {
+      | Eq ()
+      | Neq(Dir.L) => Either.Left()
+      | Neq(R) =>
+        Right((state_before_right_hd^, LZigg.hd_block(~side=R, rolled_z)))
+      };
     let (_state, (m_r, m_r_sil)) =
       mk_rolled(~side=R, ~whole, ~state, ~rel=rel_r, rolled_r);
 

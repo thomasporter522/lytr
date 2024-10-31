@@ -61,22 +61,19 @@ module Inner = {
              line => {
                let min = point_of_loc(p.state.loc);
                let len = Block.Line.len(line);
-               let s = L.State.map(Loc.shift(len), p.state);
+               let s_eol = L.State.map(Loc.shift(len), p.state);
                let rect =
                  Rect.{min, width: Float.of_int(len), height: 1.}
                  |> Rect.pad(~x=h_pad, ~y=-. v_trunc);
-               (s, rect);
+               (s_eol, rect);
              },
              (s, ind, line) => {
-               let state = L.State.return(s, 0);
+               let s_sol = L.State.return(s, 0);
+               let width = ind + Block.Line.len(line);
                let glue_rect = {
-                 let intersection =
-                   min(
-                     s.loc.col - state.loc.col,
-                     ind + Block.Line.len(line),
-                   );
+                 let intersection = min(s.loc.col - s_sol.loc.col, width);
                  Rect.{
-                   min: point_of_loc(state.loc),
+                   min: point_of_loc(s_sol.loc),
                    width: Float.of_int(intersection),
                    height: 0.,
                  }
@@ -84,13 +81,12 @@ module Inner = {
                  // lines as the orthogonal polygon contour algorithm can be finicky
                  |> Rect.pad(~x=h_pad, ~y=v_trunc +. 0.1);
                };
-               let min = point_of_loc(state.loc);
-               let width = ind + Block.Line.len(line);
-               let s = L.State.map(Loc.shift(width), state);
+               let min = point_of_loc(s_sol.loc);
+               let s_eol = L.State.map(Loc.shift(width), s_sol);
                let line_rect =
                  Rect.{min, width: Float.of_int(width), height: 1.}
                  |> Rect.pad(~x=h_pad, ~y=-. v_trunc);
-               (s, glue_rect, line_rect);
+               (s_eol, glue_rect, line_rect);
              },
            )
         |> snd
