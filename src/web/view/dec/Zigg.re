@@ -198,7 +198,7 @@ module Profile = {
       );
 
     let state_before_right_hd = ref(L.State.init);
-    if (List.length(zigg.dn) == 0) {
+    if (List.length(rolled_z.dn) == 0) {
       state_before_right_hd := state;
     };
 
