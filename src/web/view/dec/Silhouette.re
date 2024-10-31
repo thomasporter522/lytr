@@ -1,3 +1,6 @@
+open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
+
 open Virtual_dom.Vdom;
 open Util.Svgs;
 
@@ -22,6 +25,7 @@ let point_of_loc = (loc: Loc.t) =>
 
 module Inner = {
   module Profile = {
+    [@deriving (show({with_path: false}), sexp, yojson)]
     type t = {
       is_space: bool,
       state: L.State.t,

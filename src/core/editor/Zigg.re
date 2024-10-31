@@ -12,22 +12,21 @@ module Base = {
     dn,
   };
   let of_tok = tok => mk(Wald.of_tok(tok));
+  let orient = (d: Dir.t, {up, top, dn}: t(_)) => {
+    let (s_d, s_b) = Dir.order(d, (up, dn));
+    let top = Dir.pick(d, (Fun.id, Wald.rev), top);
+    (s_d, top, s_b);
+  };
+  let unorient = (d: Dir.t, (s_d, top, s_b)) => {
+    let (up, dn) = Dir.order(d, (s_d, s_b));
+    let top = Dir.pick(d, (Fun.id, Wald.rev), top);
+    mk(~up, top, ~dn);
+  };
 };
 include Base;
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t = Base.t(Token.t);
-
-let orient = (d: Dir.t, {up, top, dn}: t) => {
-  let (s_d, s_b) = Dir.order(d, (up, dn));
-  let top = Dir.pick(d, (Fun.id, Wald.rev), top);
-  (s_d, top, s_b);
-};
-let unorient = (d: Dir.t, (s_d, top, s_b)) => {
-  let (up, dn) = Dir.order(d, (s_d, s_b));
-  let top = Dir.pick(d, (Fun.id, Wald.rev), top);
-  mk(~up, top, ~dn);
-};
 
 let tokens = ({up, top, dn}: t) =>
   List.concat([
@@ -190,27 +189,34 @@ let unlink = (~side: Dir.t, zigg: t) => {
 let roll_bounds = (~l=Delim.root, ~r=Delim.root, zigg: Base.t(_)) => {
   let l =
     switch (l) {
-    | Root => (List.length(zigg.up), Rel.Neq())
+    | Root => (List.length(zigg.up), Rel.Neq(Dir.L))
     | Node(tok) =>
       switch (push(~side=L, tok, zigg)) {
-      | Error(_) => (List.length(zigg.up), Rel.Neq())
+      | Error(_) => (List.length(zigg.up), Rel.Neq(L))
       | Ok(z) =>
         switch (unlink(~side=L, z)) {
+        // possible when caret in middle of token and delim is duplicated token
         | None => (0, Rel.Eq())
-        | Some((_, (cell, rel), _)) => (Cell.height(~side=L, cell), rel)
+        | Some((_, (cell, rel), _)) => (
+            Cell.height(~side=L, cell),
+            Rel.map_neq(Fun.const(Dir.R), rel),
+          )
         }
       }
     };
   let r =
     switch (r) {
-    | Root => (List.length(zigg.dn), Rel.Neq())
+    | Root => (List.length(zigg.dn), Rel.Neq(Dir.R))
     | Node(tok) =>
       switch (push(~side=R, tok, zigg)) {
-      | Error(_) => (List.length(zigg.dn), Rel.Neq())
+      | Error(_) => (List.length(zigg.dn), Rel.Neq(R))
       | Ok(z) =>
         switch (unlink(~side=R, z)) {
         | None => (0, Rel.Eq())
-        | Some((_, (cell, rel), _)) => (Cell.height(~side=R, cell), rel)
+        | Some((_, (cell, rel), _)) => (
+            Cell.height(~side=R, cell),
+            Rel.map_neq(Fun.const(Dir.L), rel),
+          )
         }
       }
     };

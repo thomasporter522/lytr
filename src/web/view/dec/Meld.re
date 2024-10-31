@@ -1,3 +1,6 @@
+open Sexplib.Std;
+open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
+
 // to keep a reference to token dec
 module T = Token;
 module W = Wald;
@@ -8,11 +11,14 @@ module L = Layout;
 
 module Profile = {
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type t = Chain.t(Child.Profile.t, T.Profile.t);
+  type t = {
+    chain: Chain.t(Child.Profile.t, T.Profile.t),
+    sil: option(Silhouette.Inner.Profile.t),
+  };
   exception No_tokens;
 
-  let cells = p => Chain.loops(p);
-  let tokens = p => Chain.links(p);
+  let cells = p => Chain.loops(p.chain);
+  let tokens = p => Chain.links(p.chain);
 
   let sort = (p: t) =>
     switch (tokens(p)) {
@@ -24,10 +30,23 @@ module Profile = {
     let M(lc_l, lw, lc_r) = lm;
     let (p_l, lc_l) = LCell.depad(~side=L, lc_l);
     let (p_r, lc_r) = LCell.depad(~side=R, lc_r);
+    let lm = LMeld.mk(~l=lc_l, lw, ~r=lc_r);
     let null =
       Mtrl.(is_space(LCell.sort(lc_l)), is_space(LCell.sort(lc_r)));
+
     let s_init = state |> L.State.jump_cell(~over=p_l);
     let s_tok = L.State.jump_cell(s_init, ~over=lc_l);
+
+    let silhouette =
+      sil
+        ? Some(
+            Silhouette.Inner.Profile.mk(
+              ~is_space=Mtrl.is_space(LMeld.sort(lm)),
+              ~state=s_init,
+              LMeld.flatten(~flatten=LCell.flatten, lm),
+            ),
+          )
+        : None;
 
     let l =
       Child.Profile.mk(
@@ -52,10 +71,16 @@ module Profile = {
       );
     let state =
       state |> L.State.jump_cell(~over=lc_r) |> L.State.jump_cell(~over=p_r);
-    (state, Chain.consnoc(~hd=l, w, ~ft=r));
+    let p = {chain: Chain.consnoc(~hd=l, w, ~ft=r), sil: silhouette};
+    (state, p);
   };
 };
 
 let mk = (~font, p: Profile.t) =>
-  List.map(T.mk(~font), Profile.tokens(p))
-  @ List.map(Child.mk(~font), Profile.cells(p));
+  List.concat([
+    p.sil
+    |> Option.map(Silhouette.Inner.mk(~font))
+    |> Option.value(~default=[]),
+    List.map(T.mk(~font), Profile.tokens(p)),
+    List.map(Child.mk(~font), Profile.cells(p)),
+  ]);

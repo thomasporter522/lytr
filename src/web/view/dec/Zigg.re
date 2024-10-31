@@ -19,11 +19,11 @@ module Sil = {
 
 module Profile = {
   type t = {
-    l: option(M.Profile.t),
+    l: option(Either.t(M.Profile.t, Child.Profile.t)),
     up: list(T.Profile.t),
     top: W.Profile.t,
     dn: list(T.Profile.t),
-    r: option(M.Profile.t),
+    r: option(Either.t(M.Profile.t, Child.Profile.t)),
     sil: Sil.t,
   };
 
@@ -38,11 +38,125 @@ module Profile = {
   //   @ snd(top)
   //   @ List.concat_map(T.Profile.cells, dn);
 
+  let mk_rolled =
+      (~side: Dir.t, ~whole, ~state, ~rel: Either.t(_), rolled: LCell.t) => {
+    switch (rolled.meld) {
+    | None => (state, (None, []))
+    | Some(m) =>
+      switch (rel) {
+      | Left () =>
+        let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
+        (state, (Some(Either.Left(p)), []));
+      | Right(neighbor) =>
+        let s_post = L.State.jump_cell(state, ~over=rolled);
+        let s_tok = Dir.pick(side, (s_post, state));
+        let sil =
+          Silhouette.Inner.Profile.mk(
+            ~is_space=Mtrl.is_space(LMeld.sort(m)),
+            ~state,
+            // merge this silhouette with the neighbor silhouette in rest of
+            // unrolled zigg
+            (LMeld.flatten(~flatten=LCell.flatten, m), neighbor)
+            |> Dir.order(side)
+            |> Funs.uncurry(Block.hcat),
+          );
+        let p =
+          Child.Profile.mk(
+            ~sil=true,
+            ~whole,
+            ~ind=L.Indent.curr(s_tok.ind),
+            ~loc=state.loc,
+            ~null=Dir.pick(side, ((true, false), (false, true))),
+            rolled,
+          );
+        (s_post, (Some(Either.Right(p)), [sil]));
+      }
+    };
+  };
+
+  let mk_up = (~whole, ~state, ~null, ~eqs, ~unrolled: LSlope.t, up: LSlope.t) => {
+    let l_bound =
+      switch (unrolled) {
+      | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) =>
+        LSlope.height(unrolled) - 2
+      | _ => LSlope.height(unrolled) - 1
+      };
+    // reverse to get top-down index which matches eqs
+    List.rev(up)
+    |> List.mapi((i, t) => (i, t))
+    // drop rolled terraces
+    // |> Lists.take_while(~f=((i, _)) => i < up_len - fst(rolled))
+    // reverse back to go left to right
+    |> List.rev
+    |> List.fold_left_map(
+         (state, (i, terr: LTerr.t)) => {
+           let null = i >= l_bound && null;
+           let eq = List.mem(i, eqs);
+
+           let (p_r, cell) = LCell.depad(terr.cell, ~side=R);
+           let terr = {...terr, cell};
+
+           let sil =
+             Silhouette.Inner.Profile.mk(
+               ~is_space=Mtrl.is_space(LTerr.sort(terr)),
+               ~state,
+               LTerr.L.flatten(terr),
+             );
+           let (state, p) =
+             T.Profile.mk_l(~sil=true, ~whole, ~state, ~eq, ~null, terr);
+
+           let state = L.State.jump_cell(state, ~over=p_r);
+
+           (state, (p, sil));
+         },
+         state,
+       )
+    |> Tuples.map_snd(List.split);
+  };
+
+  let mk_dn = (~whole, ~state, ~null, ~eqs, ~unrolled, dn) => {
+    let r_bound =
+      switch (unrolled) {
+      | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) =>
+        LSlope.height(unrolled) - 2
+      | _ => LSlope.height(unrolled) - 1
+      };
+    // reverse to get top-down index which matches eqs
+    List.rev(dn)
+    |> List.mapi((i, t) => (i, t))
+    // drop rolled terraces
+    // |> Lists.take_while(~f=((i, _)) => i < dn_len - snd(rolled))
+    |> List.fold_left_map(
+         (state, (i, terr: LTerr.t)) => {
+           let null = i >= r_bound && null;
+           let eq = List.mem(i, eqs);
+
+           let (p_l, cell) = LCell.depad(~side=L, terr.cell);
+           let terr = {...terr, cell};
+
+           let state = L.State.jump_cell(state, ~over=p_l);
+
+           let sil =
+             Silhouette.Inner.Profile.mk(
+               ~is_space=Mtrl.is_space(LTerr.sort(terr)),
+               ~state,
+               LTerr.R.flatten(terr),
+             );
+           let (state, p) =
+             T.Profile.mk_r(~sil=true, ~whole, ~state, ~eq, ~null, terr);
+
+           (state, (p, sil));
+         },
+         state,
+       )
+    |> Tuples.map_snd(List.split);
+  };
+
   let mk =
       (
         ~whole: LCell.t,
         ~state: L.State.t,
-        ~null: (bool, bool),
+        ~null as (null_l, null_r): (bool, bool),
         // indices into the slopes indicating which have delim-matching counterparts
         // in the surrounding context. indices assume slopes in top-down order. -1
         // is used to indicate that the top wald matches. matching info is needed
@@ -53,73 +167,39 @@ module Profile = {
       ) => {
     let outer_sil = Silhouette.Outer.Profile.mk(~state, LZigg.flatten(zigg));
 
-    let (up_len, dn_len) = List.(length(zigg.up), length(zigg.dn));
-    let l_bound =
-      switch (zigg.up) {
-      | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) => up_len - 2
-      | _ => up_len - 1
-      };
-    let r_bound =
-      switch (zigg.dn) {
-      | [t, ..._] when Mtrl.is_space(LTerr.sort(t)) => dn_len - 2
-      | _ => dn_len - 1
-      };
-
     let (r_l, r_r) = rolled;
     let (rolled_l, rolled_z, rolled_r) =
       LZigg.roll(~l=fst(r_l), ~r=fst(r_r), zigg);
 
-    let (state, (m_l, m_l_sil)) =
-      switch (rolled_l.meld) {
-      | None => (state, (None, []))
-      | Some(m) =>
-        let sil =
-          Silhouette.Inner.Profile.mk(
-            ~is_space=Mtrl.is_space(LMeld.sort(m)),
-            ~state,
-            LMeld.flatten(~flatten=LCell.flatten, m),
-          );
-        let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
-        (state, (Some(p), [sil]));
+    let rel_l =
+      switch (snd(r_l)) {
+      | Eq ()
+      | Neq(Dir.R) => Either.Left()
+      | Neq(L) => Right(LZigg.hd_block(~side=L, rolled_z))
       };
+    let rel_r =
+      switch (snd(r_r)) {
+      | Eq ()
+      | Neq(Dir.L) => Either.Left()
+      | Neq(R) => Right(LZigg.hd_block(~side=R, rolled_z))
+      };
+
+    let (state, (m_l, m_l_sil)) =
+      mk_rolled(~side=L, ~whole, ~state, ~rel=rel_l, rolled_l);
     let (state, (up, up_sil)) =
-      // reverse to get top-down index which matches eqs
-      List.rev(rolled_z.up)
-      |> List.mapi((i, t) => (i, t))
-      // drop rolled terraces
-      // |> Lists.take_while(~f=((i, _)) => i < up_len - fst(rolled))
-      // reverse back to go left to right
-      |> List.rev
-      |> List.fold_left_map(
-           (state, (i, terr: LTerr.t)) => {
-             let null = i >= l_bound && fst(null);
-             let eq = List.mem(i, eqs_l);
+      mk_up(
+        ~whole,
+        ~state,
+        ~null=null_l,
+        ~eqs=eqs_l,
+        ~unrolled=zigg.up,
+        rolled_z.up,
+      );
 
-             let (p_r, cell) = LCell.depad(terr.cell, ~side=R);
-             let terr = {...terr, cell};
-
-             let sil =
-               Silhouette.Inner.Profile.mk(
-                 ~is_space=Mtrl.is_space(LTerr.sort(terr)),
-                 ~state,
-                 LTerr.L.flatten(terr),
-               );
-             let (state, p) =
-               T.Profile.mk_l(~sil=true, ~whole, ~state, ~eq, ~null, terr);
-
-             let state = L.State.jump_cell(state, ~over=p_r);
-
-             (state, (p, sil));
-           },
-           state,
-         )
-      |> Tuples.map_snd(List.split);
     let (state, (top, top_sil)) = {
       let null = (
-        List.for_all(t => Mtrl.is_space(LTerr.sort(t)), zigg.up)
-        && fst(null),
-        List.for_all(t => Mtrl.is_space(LTerr.sort(t)), zigg.dn)
-        && snd(null),
+        List.for_all(t => Mtrl.is_space(LTerr.sort(t)), zigg.up) && null_l,
+        List.for_all(t => Mtrl.is_space(LTerr.sort(t)), zigg.dn) && null_r,
       );
       let eq = List.(mem(-1, eqs_l), mem(-1, eqs_r));
       let sil =
@@ -132,49 +212,19 @@ module Profile = {
         W.Profile.mk(~sil=true, ~whole, ~state, ~null, ~eq, rolled_z.top);
       (state, (p, sil));
     };
+
     let (state, (dn, dn_sil)) =
-      // reverse to get top-down index which matches eqs
-      List.rev(rolled_z.dn)
-      |> List.mapi((i, t) => (i, t))
-      // drop rolled terraces
-      // |> Lists.take_while(~f=((i, _)) => i < dn_len - snd(rolled))
-      |> List.fold_left_map(
-           (state, (i, terr: LTerr.t)) => {
-             let null = i >= r_bound && snd(null);
-             let eq = List.mem(i, eqs_r);
-
-             let (p_l, cell) = LCell.depad(~side=L, terr.cell);
-             let terr = {...terr, cell};
-
-             let state = L.State.jump_cell(state, ~over=p_l);
-
-             let sil =
-               Silhouette.Inner.Profile.mk(
-                 ~is_space=Mtrl.is_space(LTerr.sort(terr)),
-                 ~state,
-                 LTerr.R.flatten(terr),
-               );
-             let (state, p) =
-               T.Profile.mk_r(~sil=true, ~whole, ~state, ~eq, ~null, terr);
-
-             (state, (p, sil));
-           },
-           state,
-         )
-      |> Tuples.map_snd(List.split);
+      mk_dn(
+        ~whole,
+        ~state,
+        ~null=null_r,
+        ~eqs=eqs_r,
+        ~unrolled=zigg.dn,
+        rolled_z.dn,
+      );
     let (_state, (m_r, m_r_sil)) =
-      switch (rolled_r.meld) {
-      | None => (state, (None, []))
-      | Some(m) =>
-        let sil =
-          Silhouette.Inner.Profile.mk(
-            ~is_space=Mtrl.is_space(LMeld.sort(m)),
-            ~state,
-            LMeld.flatten(~flatten=LCell.flatten, m),
-          );
-        let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
-        (state, (Some(p), [sil]));
-      };
+      mk_rolled(~side=R, ~whole, ~state, ~rel=rel_r, rolled_r);
+
     let sil =
       Sil.{
         outer: outer_sil,
@@ -188,9 +238,21 @@ let mk = (~font, p: Profile.t) =>
   List.concat([
     [Silhouette.Outer.mk(~font, p.sil.outer)],
     List.concat_map(Silhouette.Inner.mk(~font), p.sil.inner),
-    p.l |> Option.map(M.mk(~font)) |> Option.value(~default=[]),
+    p.l
+    |> Option.map(
+         fun
+         | Either.Left(p) => M.mk(~font, p)
+         | Right(p) => [Child.mk(~font, p)],
+       )
+    |> Option.value(~default=[]),
     List.concat_map(T.mk(~font), p.up),
     W.mk(~font, p.top),
     List.concat_map(T.mk(~font), p.dn),
-    p.r |> Option.map(M.mk(~font)) |> Option.value(~default=[]),
+    p.r
+    |> Option.map(
+         fun
+         | Either.Left(p) => M.mk(~font, p)
+         | Right(p) => [Child.mk(~font, p)],
+       )
+    |> Option.value(~default=[]),
   ]);

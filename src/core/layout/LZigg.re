@@ -14,3 +14,11 @@ let roll = (~l, ~r, zigg: t) => {
   let (r, dn) = Stds.Lists.split_n(zigg.dn, r);
   (LSlope.Up.roll(l), {...zigg, up, dn}, LSlope.Dn.roll(r));
 };
+
+let hd_block = (~side: Dir.t, zigg: t) => {
+  let (s_d, _, _) = orient(side, zigg);
+  switch (s_d) {
+  | [hd, ..._] => Dir.pick(side, LTerr.(L.flatten, R.flatten), hd)
+  | [] => LWald.flatten(~flatten=LCell.flatten, zigg.top)
+  };
+};
