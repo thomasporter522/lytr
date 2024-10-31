@@ -115,6 +115,8 @@ module Exp = {
   let mult_op = op_alt(["*", "*.", "/", "/."]);
   let neg_op = op_alt(["-", "-."]);
 
+  let fn_ap = seq([exp, brc(L, "("), comma_sep(exp), brc(R, ")")]);
+
   let tbl = [
     //case
     p(case),
@@ -140,7 +142,7 @@ module Exp = {
     p(~a=L, seq([exp, mult_op, exp])),
     p(seq([neg_op, exp])),
     //ap
-    p(seq([exp, brc(L, "("), exp, brc(R, ")")])),
+    p(fn_ap),
     p(operand),
   ];
 };
