@@ -278,14 +278,12 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   let* () = Options.of_bool(String.starts_with(~prefix=" ", s));
   let (face, rest) = Ctx.pull(~from=L, z.ctx);
   let* tok = Delim.is_tok(face);
+  // if expandable, consider all expandable const labels
   let* expanded = expand(tok);
   let ((l, r), tl) = Ctx.unlink_stacks(rest);
   let* (t, grouted, rest) = Molder.mold(l, expanded);
-  if (t.mtrl == Space(Unmolded)) {
+  if (t.mtrl == Space(Unmolded) || t.mtrl == tok.mtrl) {
     None;
-  } else if (t.mtrl == tok.mtrl) {
-    let ctx = z.ctx |> Ctx.push(~onto=L, Token.space());
-    return(Zipper.mk(ctx));
   } else {
     let connected = Stack.connect(t, grouted, rest);
     tl
@@ -296,6 +294,7 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
             Frame.Open.cat(Stack.(to_slope(connected), to_slope(r))),
           )
     )
+    |> Ctx.push(~onto=L, Token.space())
     |> finalize(~mode=Inserting(" "), ~fill=Cell.point(~dirty=true, Focus))
     |> return;
   };
@@ -432,9 +431,9 @@ let insert = (s: string, z: Zipper.t) => {
   open Options.Syntax;
   let z = delete_sel(L, z);
 
+  let- () = try_expand(s, z);
   let- () = try_move(s, z);
   let- () = try_extend(s, z);
-  let- () = try_expand(s, z);
 
   let (toks, ctx) = relabel(s, z.ctx);
   let (molded, fill) =
