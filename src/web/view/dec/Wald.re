@@ -26,14 +26,15 @@ module Profile = {
     let n = Chain.length(w);
     // logic below assumes w won't be space
     w
+    |> Chain.mapi_loop((i, b) => (i, b))
     |> Chain.fold_left_map(
-         b_tok => {
+         ((_, b_tok)) => {
            let null = (fst(null), n == 1 && snd(null));
            let t = T.Profile.mk(~sil, ~loc=state.loc, ~null, b_tok);
            let state = L.State.jump_tok(state, ~over=b_tok);
            (state, t);
          },
-         (state, cell, b_tok) => {
+         (state, cell, (i, b_tok)) => {
            let c =
              Child.Profile.mk(
                ~sil,
@@ -44,7 +45,7 @@ module Profile = {
                cell,
              );
            let state = L.State.jump_cell(state, ~over=cell);
-           let null = (n == 1 && fst(null), snd(null));
+           let null = (false, i == n - 1 && snd(null));
            let t = T.Profile.mk(~sil, ~loc=state.loc, ~null, b_tok);
            let state = L.State.jump_tok(state, ~over=b_tok);
            (state, c, t);
