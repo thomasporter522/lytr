@@ -395,7 +395,22 @@ let delete_sel = (d: Dir.t, z: Zipper.t): Zipper.t => {
            fill => (ctx, fill),
            ((ctx, fill), tok, next_fill) =>
              switch (mold(ctx, ~fill, tok)) {
-             | Some(ctx) => (ctx, next_fill)
+             | Some(ctx) =>
+               let (face, rest) = Ctx.pull(~from=L, ctx);
+               switch (face, next_fill.marks.cursor) {
+               | (Node(molded), Some(Point({hand, path: []})))
+                   when Token.length(molded) > Token.Unmolded.length(tok) =>
+                 let marks = {...next_fill.marks, cursor: None};
+                 let next_fill = {...next_fill, marks};
+                 let molded =
+                   Token.put_cursor(
+                     Point(Caret.mk(hand, Token.Unmolded.length(tok))),
+                     molded,
+                   );
+                 let ctx = Ctx.push(~onto=L, molded, ~fill=Cell.dirty, rest);
+                 (ctx, next_fill);
+               | _ => (ctx, next_fill)
+               };
              | None =>
                let next_fill =
                  Option.is_some(fill.marks.cursor)
@@ -442,7 +457,22 @@ let insert = (s: string, z: Zipper.t) => {
          fill => (ctx, fill),
          ((ctx, fill), tok, next_fill) =>
            switch (mold(ctx, ~fill, tok)) {
-           | Some(ctx) => (ctx, next_fill)
+           | Some(ctx) =>
+             let (face, rest) = Ctx.pull(~from=L, ctx);
+             switch (face, next_fill.marks.cursor) {
+             | (Node(molded), Some(Point({hand, path: []})))
+                 when Token.length(molded) > Token.Unmolded.length(tok) =>
+               let marks = {...next_fill.marks, cursor: None};
+               let next_fill = {...next_fill, marks};
+               let molded =
+                 Token.put_cursor(
+                   Point(Caret.mk(hand, Token.Unmolded.length(tok))),
+                   molded,
+                 );
+               let ctx = Ctx.push(~onto=L, molded, ~fill=Cell.dirty, rest);
+               (ctx, next_fill);
+             | _ => (ctx, next_fill)
+             };
            | None =>
              let next_fill =
                Option.is_some(fill.marks.cursor)

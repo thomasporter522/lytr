@@ -137,8 +137,8 @@ let push_opt =
   };
 };
 
-let push = (~onto: Dir.t, tok: Token.t, ctx) =>
-  switch (push_opt(~onto, tok, ctx)) {
+let push = (~onto: Dir.t, ~fill=Cell.empty, tok: Token.t, ctx) =>
+  switch (push_opt(~onto, tok, ~fill, ctx)) {
   | Some(ctx) => ctx
   | None => raise(Invalid_argument("Ctx.push"))
   };

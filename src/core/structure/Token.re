@@ -254,6 +254,7 @@ module Unmolded = {
   type t = Base.t(Mtrl.t(Space.T.t, unit, list(Label.t)));
   let mk = (~id=?, ~text="", ~marks=?, mtrl: Mtrl.t(_)): t =>
     Base.mk(~id?, ~text, ~marks?, mtrl);
+  let length = (tok: t) => Utf8.length(tok.text);
   let defer = (tok: t): Molded.t =>
     Molded.mk(~id=tok.id, ~text=tok.text, Space(Unmolded));
   let has_lbl = (lbl: Label.t, tok: t) =>
@@ -344,11 +345,12 @@ module Grout = {
   let in_ = (~id=?) => mk(~id?, (Conc, Conc));
 };
 module Tile = {
-  let is_ghost = (tok: t) =>
+  let is_ghost = (~require_empty=false, tok: t) =>
     switch (tok.mtrl) {
     | Space(_)
     | Grout(_) => None
     | Tile((lbl, _) as t) =>
-      Label.is_complete(tok.text, lbl) ? None : Some(t)
+      !Label.is_complete(tok.text, lbl) && (!require_empty || tok.text == "")
+        ? Some(t) : None
     };
 };

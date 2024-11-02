@@ -94,7 +94,8 @@ let connect_eq =
   }
   and rm_ghost_and_go = (onto, fill) =>
     switch (Terr.unlink(onto)) {
-    | (hd, cell, Some(tl)) when Option.is_some(Token.Tile.is_ghost(hd)) =>
+    | (hd, cell, Some(tl))
+        when Option.is_some(Token.Tile.is_ghost(~require_empty=true, hd)) =>
       go(tl, [cell, ...fill]) |> Effects.perform_if(Remove(hd))
     | _ => None
     };
