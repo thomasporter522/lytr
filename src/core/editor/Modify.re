@@ -28,7 +28,7 @@ let relabel =
   // push left face back if its labeling remains unchanged
   let (labeled, rest, pushed_back_left) =
     switch (labeled) {
-    | [hd, ...tl] when hd.text == s_l && s_l != "" =>
+    | [hd, ...tl] when hd.text == s_l && s_l != "" && !merges =>
       let ctx =
         Delim.is_tok(l)
         |> Option.map(t => Ctx.push(~onto=L, t, rest))
