@@ -140,6 +140,7 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
         };
     let r_tl = {...r, slope: tl_up};
     let (hd_w, tl_w) = Wald.uncons(hd_up.wald);
+    // tl_w unrolled to up slope
     let unrolled = () =>
       Chain.Affix.uncons(tl_w)
       |> Option.map(((cell, (ts, cs))) =>
@@ -170,12 +171,16 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
       };
     | Some((t, grouted, rest)) =>
       let connected = Stack.connect(t, grouted, rest);
+      // check if connection changed the stack bound
       if (connected.bound == l.bound) {
+        // if not, then nearest bidelimited container is preserved
         tl
         |> Ctx.link_stacks((connected, r_tl))
         |> Ctx.map_hd(Frame.Open.cat(([], unrolled())))
         |> remold;
       } else {
+        // otherwise, break down bidelimited container and add right side to
+        // remolding queue (the suffix of the ctx)
         let open_ =
           Stack.(to_slope(connected), unrolled() @ to_slope(r_tl));
         tl |> Ctx.map_hd(Frame.Open.cat(open_)) |> remold;
