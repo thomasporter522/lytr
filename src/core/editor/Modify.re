@@ -133,10 +133,29 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
         ? (l, fill)
         : {
           let bounds = (l.bound, r.bound);
-          let cell =
-            Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill);
-          let (fill, slope) = Slope.Dn.unroll(cell);
-          ({...l, slope}, fill);
+          let (cell, effs) =
+            Effects.dry_run(
+              () => Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill),
+              (),
+            );
+          // hack(?) to avoid completion if no new ghosts are generated. if only
+          // grout are generated, then we can generated them later at the end of
+          // remolding. better to delay their generation bc there may be grout in
+          // the suffix whose relative position around neighboring whitespace we
+          // want to preserve.
+          effs
+          |> List.for_all(
+               fun
+               | Effects.Insert(tok) =>
+                 Mtrl.(is_grout(tok.mtrl) || is_space(tok.mtrl))
+               | Remove(_) => true,
+             )
+            ? (l, fill)
+            : {
+              Effects.commit(effs);
+              let (fill, slope) = Slope.Dn.unroll(cell);
+              ({...l, slope}, fill);
+            };
         };
     let r_tl = {...r, slope: tl_up};
     let (hd_w, tl_w) = Wald.uncons(hd_up.wald);
