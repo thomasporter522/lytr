@@ -165,7 +165,8 @@ let connect =
   let neqs = Dir.pick(d, ([neq_d, neq_b], [neq_b, neq_d]));
   [eq, ...neqs]
   |> Oblig.Delta.minimize(~to_zero=!repair, f => f())
-  |> Option.value(~default=Error(complete_terr(~onto=d, ~fill, onto)));
+  // use get here instead of value to avoid spurious effects
+  |> Options.get(() => Error(complete_terr(~onto=d, ~fill, onto)));
 };
 
 let rec push =
