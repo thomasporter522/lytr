@@ -98,11 +98,7 @@ let of_dn = dn =>
 let of_up = up =>
   Stds.Lists.Framed.ft(up)
   |> Option.map(((up, t: Terr.t)) =>
-       mk(
-         ~up=List.rev(up),
-         Wald.rev(t.wald),
-         ~dn=snd(Slope.Up.unroll(t.cell)),
-       )
+       mk(~up=List.rev(up), t.wald, ~dn=snd(Slope.Dn.unroll(t.cell)))
      );
 
 let roll = (~l=Cell.empty, ~r=Cell.empty, {up, top, dn}: t) =>
@@ -190,6 +186,7 @@ let roll_bounds = (~l=Delim.root, ~r=Delim.root, zigg: Base.t(_)) => {
   let l =
     switch (l) {
     | Root => (List.length(zigg.up), Rel.Neq(Dir.L))
+    | Node(tok) when Token.merges(tok, face(~side=L, zigg)) => (0, Rel.Eq())
     | Node(tok) =>
       switch (push(~side=L, tok, zigg)) {
       | Error(_) => (List.length(zigg.up), Rel.Neq(L))
@@ -207,6 +204,7 @@ let roll_bounds = (~l=Delim.root, ~r=Delim.root, zigg: Base.t(_)) => {
   let r =
     switch (r) {
     | Root => (List.length(zigg.dn), Rel.Neq(Dir.R))
+    | Node(tok) when Token.merges(tok, face(~side=R, zigg)) => (0, Rel.Eq())
     | Node(tok) =>
       switch (push(~side=R, tok, zigg)) {
       | Error(_) => (List.length(zigg.dn), Rel.Neq(R))

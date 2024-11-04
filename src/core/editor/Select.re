@@ -90,7 +90,7 @@ let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
     Zipper.mk(~cur=Select(sel), ctx);
   } else {
     // points always grow, only selections can shrink.
-    // d points toward selection anchor.
+    // d points from selection focus toward anchor.
     let sel = Option.get(Cursor.get_select(z.cur));
     let sites = Option.get(Cursor.get_select(cur_site));
     let (_site_foc, site_anc) = Dir.order(sel.focus, sites);
