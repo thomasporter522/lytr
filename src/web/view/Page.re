@@ -205,6 +205,26 @@ let view = (~inject, model: Model.t) => {
           Util.Dom.get_elem_by_id("page")##focus;
           Effect.Prevent_default;
         }),
+        Attr.on_copy(_ => {
+          print_endline("TODO: copying");
+          //JsUtil.copy(Printer.to_string_selection(editor));
+          Effect.Ignore;
+        }),
+        Attr.on_cut(_ => {
+          print_endline("TODO: cutting");
+          //JsUtil.copy(Printer.to_string_selection(editor));
+          //inject(UpdateAction.PerformAction(Destruct(Left)));
+          Effect.Ignore;
+        }),
+        Attr.on_paste(evt => {
+          print_endline("TODO: pasting");
+          open Js_of_ocaml;
+          let pasted_text =
+            Js.to_string(evt##.clipboardData##getData(Js.string("text")));
+          //|> Util.StringUtil.trim_leading;
+          Dom.preventDefault(evt);
+          inject(Update.PerformAction(Insert(pasted_text)));
+        }),
         ...on_key(~inject, ~model),
       ],
     [

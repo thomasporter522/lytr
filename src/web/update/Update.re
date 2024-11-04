@@ -102,7 +102,6 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
     switch (key) {
     | "z" => now_save_u(Undo)
     // | "x" => now(Pick_up)
-    | "v" => now(Insert(LocalStorage.get_from_clipboard()))
     | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
     // | _ when is_digit(key) => [SwitchEditor(int_of_string(key))]
     | "ArrowLeft" => now(Move(Skip(H(L))))
@@ -115,7 +114,6 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
     switch (key) {
     | "z" => now_save_u(Undo)
     // | "x" => now(Pick_up)
-    | "v" => now(Insert("blahblahblah"))
     | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
     // | _ when is_digit(key) => [SwitchEditor(int_of_string(key))]
     | "ArrowLeft" => now(Move(Skip(H(L))))

@@ -10,11 +10,7 @@ let insert: (Zipper.t, string) => Zipper.t =
     };
   };
 
-let parse = (str: string): Zipper.t =>
-  str
-  |> Labeler.label
-  |> List.map((x: Token.Unmolded.t) => x.text)
-  |> List.fold_left(insert, Zipper.empty);
+let parse = insert(Zipper.empty);
 
 let serialize = z => z |> Zipper.sexp_of_t |> Sexplib.Sexp.to_string;
 
