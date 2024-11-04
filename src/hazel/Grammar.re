@@ -126,6 +126,8 @@ module Exp = {
   let add_op = op_alt(["+", "+.", "-", "-.", "@", "++"]);
   let mult_op = op_alt(["*", "*.", "/", "/."]);
   let neg_op = op_alt(["-", "-."]);
+  let comp_op_int = op_alt(["<", "<=", ">", ">=", "==", "!="]);
+  let comp_op_float = op_alt(["<.", "<=.", ">", ">=.", "==", "!="]);
 
   let fn_ap = seq([exp, brc(L, "("), comma_sep(exp), brc(R, ")")]);
 
@@ -154,6 +156,9 @@ module Exp = {
     p(~a=L, seq([exp, add_op, exp])),
     p(~a=L, seq([exp, mult_op, exp])),
     p(seq([neg_op, exp])),
+    //Comparison
+    p(~a=L, seq([exp, comp_op_int, exp])),
+    p(~a=L, seq([exp, comp_op_float, exp])),
     //ap
     p(fn_ap),
     //Reverse-ap
