@@ -98,11 +98,7 @@ let of_dn = dn =>
 let of_up = up =>
   Stds.Lists.Framed.ft(up)
   |> Option.map(((up, t: Terr.t)) =>
-       mk(
-         ~up=List.rev(up),
-         Wald.rev(t.wald),
-         ~dn=snd(Slope.Up.unroll(t.cell)),
-       )
+       mk(~up=List.rev(up), t.wald, ~dn=snd(Slope.Dn.unroll(t.cell)))
      );
 
 let roll = (~l=Cell.empty, ~r=Cell.empty, {up, top, dn}: t) =>
