@@ -77,7 +77,7 @@ module Pat = {
     //ap
     p(seq([pat, brc(L, "("), pat, brc(R, ")")])),
     //bare tuple
-    p(~a=L, seq([pat, c(","), pat])),
+    //p(~a=L, seq([pat, c(","), pat])),
     p(operand),
   ];
 };
@@ -156,6 +156,8 @@ module Exp = {
     p(seq([neg_op, exp])),
     //ap
     p(fn_ap),
+    //Reverse-ap
+    p(~a=L, seq([exp, c("|>"), exp])),
     p(operand),
   ];
 };
