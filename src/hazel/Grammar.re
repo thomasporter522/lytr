@@ -100,6 +100,16 @@ module Exp = {
       exp,
     ]);
 
+  let type_def =
+    seq([
+      kw("type", ~space=(false, true)),
+      nt(Typ.sort),
+      op("="),
+      exp,
+      kw("in", ~break=(false, true), ~indent=false),
+      exp,
+    ]);
+
   let operand =
     alt([
       t(Int_lit),
@@ -122,6 +132,7 @@ module Exp = {
     p(case),
     //let
     p(let_),
+    p(type_def),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
