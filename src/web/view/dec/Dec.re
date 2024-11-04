@@ -1,5 +1,7 @@
 module DecUtil = DecUtil;
 
+module Layers = Layers;
+
 module Token = Token;
 module Meld = Meld;
 module Zigg = Zigg;

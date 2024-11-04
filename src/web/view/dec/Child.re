@@ -70,7 +70,7 @@ let includes_all_but_padding =
   };
 };
 
-let mk = (~font, p: Profile.t) => {
+let view = (~font, p: Profile.t) => {
   let end_loc: Loc.t = Dims.skip(p.loc, ~over=p.dims, ~ind=p.ind);
   let Dims.{height, widths: (hd, _)} = p.dims;
 
