@@ -97,7 +97,7 @@ let mold =
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
   let+ (tok, grouted, l) = Molder.mold(l, ~fill, tok);
   let connected = Stack.connect(tok, grouted, l);
-  connected.bound == r.bound
+  connected.bound == l.bound
     ? Ctx.link_stacks((connected, r), rest)
     : Ctx.map_hd(
         Frame.Open.cat(Stack.(to_slope(connected), to_slope(r))),
