@@ -20,7 +20,7 @@ type t =
   // | FailedInput(FailedInput.reason) //TODO(andrew): refactor as failure?
   | Undo
   | Redo
-  | Reset;
+  | Reset(int);
 
 let is_f_key = s => Re.Str.(string_match(regexp("^F[0-9][0-9]*$"), s, 0));
 
@@ -44,12 +44,9 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
   //   }
   | {key: D(key), sys: _, shift: Down, meta: Up, ctrl: Up, alt: Up}
       when is_f_key(key) =>
-    switch (key) {
-    | "F1" =>
-      print_endline("F1: Resetting Model");
-      now_save_u(Reset);
-    | _ => []
-    }
+    let index = int_of_string(String.sub(key, 1, 1)) - 1;
+    print_endline("F key pressed: index: " ++ string_of_int(index));
+    now_save_u(Reset(index));
   | {key: D(key), sys: _, shift, meta: Up, ctrl: Up, alt: Up} =>
     switch (shift, key) {
     | (Up, "ArrowLeft") => now(Move(Step(H(L))))
@@ -230,7 +227,12 @@ let apply =
     | None => Error(CantRedo)
     | Some((zipper, history)) => Ok({...model, zipper, history})
     }
-  | Reset => Ok({...model, zipper: Zipper.empty, history: History.empty})
+  | Reset(n) =>
+    Ok({
+      ...model,
+      zipper: Store.load_default_syntax(n),
+      history: History.empty,
+    })
   // | Set(s_action) =>
   //   Ok({...model, settings: update_settings(s_action, model.settings)})
   // | LoadInit =>

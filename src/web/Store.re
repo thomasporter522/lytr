@@ -1,5 +1,17 @@
 open Tylr_core;
 
+let insert: (Zipper.t, string) => Zipper.t =
+  (z, str) => {
+    switch (Edit.perform(Insert(str), z)) {
+    | None =>
+      print_endline("WARNING: Store.insert failed");
+      z;
+    | Some(r) => r
+    };
+  };
+
+let parse: string => Zipper.t = insert(Zipper.empty);
+
 let serialize = z => z |> Zipper.sexp_of_t |> Sexplib.Sexp.to_string;
 
 let deserialize = (str: string): Zipper.t =>
@@ -13,30 +25,36 @@ let save_syntax_key: int => string =
 let save_syntax = (save_idx: int, z: Zipper.t) =>
   LocalStorage.set(save_syntax_key(save_idx), z |> serialize);
 
-let editor_defaults = [serialize(Zipper.empty)];
+let editor_defaults = [
+  serialize(Zipper.empty),
+  serialize(parse("2")),
+  serialize(parse("3 + 3")),
+  serialize(parse("(4)")),
+  serialize(parse("(5 + 5) * 5")),
+  serialize(parse("6")),
+  serialize(parse("7")),
+  serialize(parse("8")),
+  serialize(parse("9")),
+  serialize(parse("0")),
+  //serialize(parse("let x = 3 in x")),
+  //serialize(parse("let f = fun x -> 4 in f(4)")),
+  //serialize(parse("case 5 | x => 5")),
+];
+
+let load_default_syntax: int => Zipper.t =
+  save_idx =>
+    switch (List.nth_opt(editor_defaults, save_idx)) {
+    | None => Zipper.empty
+    | Some(str) => deserialize(str)
+    };
 
 let load_syntax: int => Zipper.t =
   save_idx =>
     switch (LocalStorage.get(save_syntax_key(save_idx))) {
-    | None =>
-      switch (List.nth_opt(editor_defaults, save_idx)) {
-      | Some(str) => deserialize(str)
-      | None => Zipper.empty
-      }
+    | None => load_default_syntax(save_idx)
     | Some(str) => deserialize(str)
     };
 
-let insert: (Zipper.t, string) => Zipper.t =
-  (z, str) => {
-    switch (Edit.perform(Insert(str), z)) {
-    | None =>
-      print_endline("WARNING: Store.insert failed");
-      z;
-    | Some(r) => r
-    };
-  };
-
-let parse: string => Zipper.t = insert(Zipper.empty);
 //let unparse: Zipper.t => string = z => z |> Zipper.zip |> Cell.tokens;
 
 let _editor_defaults = [
