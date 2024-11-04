@@ -19,7 +19,10 @@ type t =
   | PerformAction(Edit.t)
   // | FailedInput(FailedInput.reason) //TODO(andrew): refactor as failure?
   | Undo
-  | Redo;
+  | Redo
+  | Reset;
+
+let is_f_key = s => Re.Str.(string_match(regexp("^F[0-9][0-9]*$"), s, 0));
 
 let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
   // let zipper = model.zipper;
@@ -39,22 +42,14 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
   //   | "Alt" => [SetShowBackpackTargets(false)]
   //   | _ => [UpdateDoubleTap(None)]
   //   }
-  // | {key: D(key), sys: _, shift: Down, meta: Up, ctrl: Up, alt: Up}
-  //     when is_f_key(key) =>
-  //   switch (key) {
-  //   | "F1" => print(Log.get_json_update_log_string())
-  //   | "F2" => print(Zipper.show(zipper))
-  //   | "F3" => toggle(Log.debug_update)
-  //   | "F4" => toggle(Log.debug_keystoke)
-  //   | "F5" => toggle(Log.debug_zipper)
-  //   | "F6" => [Load]
-  //   | "F7" => []
-  //   | "F8" => []
-  //   | "F10" =>
-  //     Log.reset_json_log();
-  //     [];
-  //   | _ => []
-  //   }
+  | {key: D(key), sys: _, shift: Down, meta: Up, ctrl: Up, alt: Up}
+      when is_f_key(key) =>
+    switch (key) {
+    | "F1" =>
+      print_endline("F1: Resetting Model");
+      now_save_u(Reset);
+    | _ => []
+    }
   | {key: D(key), sys: _, shift, meta: Up, ctrl: Up, alt: Up} =>
     switch (shift, key) {
     | (Up, "ArrowLeft") => now(Move(Step(H(L))))
@@ -110,7 +105,7 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
     switch (key) {
     | "z" => now_save_u(Undo)
     // | "x" => now(Pick_up)
-    // | "v" => now(Put_down)
+    | "v" => now(Insert(LocalStorage.get_from_clipboard()))
     | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
     // | _ when is_digit(key) => [SwitchEditor(int_of_string(key))]
     | "ArrowLeft" => now(Move(Skip(H(L))))
@@ -123,7 +118,7 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
     switch (key) {
     | "z" => now_save_u(Undo)
     // | "x" => now(Pick_up)
-    // | "v" => now(Put_down)
+    | "v" => now(Insert("blahblahblah"))
     | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
     // | _ when is_digit(key) => [SwitchEditor(int_of_string(key))]
     | "ArrowLeft" => now(Move(Skip(H(L))))
@@ -235,6 +230,7 @@ let apply =
     | None => Error(CantRedo)
     | Some((zipper, history)) => Ok({...model, zipper, history})
     }
+  | Reset => Ok({...model, zipper: Zipper.empty, history: History.empty})
   // | Set(s_action) =>
   //   Ok({...model, settings: update_settings(s_action, model.settings)})
   // | LoadInit =>
