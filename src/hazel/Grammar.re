@@ -76,6 +76,8 @@ module Pat = {
     p(~a=R, seq([pat, c("::"), pat])),
     //ap
     p(seq([pat, brc(L, "("), pat, brc(R, ")")])),
+    //bare tuple
+    p(~a=L, seq([pat, c(","), pat])),
     p(operand),
   ];
 };
