@@ -330,6 +330,50 @@ let states = (~init: State.t, m: LMeld.t) =>
 let nth_line = (tree: LCell.t, r: Loc.Row.t) =>
   Block.nth_line(LCell.flatten(tree), r);
 
+let unroll = (~ctx=Ctx.empty, side: Dir.t, cell: LCell.t) => {
+  let f_open =
+    side == L
+      ? ([], LSlope.Up.unroll(cell)) : (LSlope.Dn.unroll(cell), []);
+  Ctx.map_hd(Frame.Open.cat(f_open), ctx);
+};
+let rec unzip_point =
+        (~side: Dir.t, ~ctx=LCtx.empty, car: Path.Caret.t, c: LCell.t): LCtx.t => {
+  let hd = Path.Caret.hd(car);
+  switch (hd) {
+  | Error(_) =>
+    assert(Option.is_none(c.meld));
+    ctx;
+  | Ok(step) =>
+    let tl = Option.get(Path.Caret.peel(step, car));
+    let m = Options.get_exn(Marks.Invalid, c.meld);
+    switch (LMeld.unzip(step, m)) {
+    | Loop((pre, cell, suf)) =>
+      let ctx = LCtx.add((pre, suf), ctx);
+      unzip_point(~side, ~ctx, tl, cell);
+    | Link((pre, tok, suf)) =>
+      let put_tok_l = () => {
+        let pre = Chain.Affix.cons(tok, pre);
+        let (cell, suf) = Chain.uncons(suf);
+        let ctx = LCtx.add((pre, suf), ctx);
+        unroll(L, cell, ~ctx);
+      };
+      let put_tok_r = () => {
+        let (cell, pre) = Chain.uncons(pre);
+        let suf = Chain.Affix.cons(tok, suf);
+        let ctx = LCtx.add((pre, suf), ctx);
+        unroll(R, cell, ~ctx);
+      };
+      switch (side, tl) {
+      | (L, {path: [char_step, ..._], _}) when char_step >= Block.len(tok) =>
+        put_tok_r()
+      | (L, _) => put_tok_l()
+      | (R, {path: [char_step, ..._], _}) when char_step <= 0 => put_tok_r()
+      | (R, _) => put_tok_l()
+      };
+    };
+  };
+};
+
 let rec unzip = (~ctx=LCtx.empty, cur: Path.Cursor.t, c: LCell.t): LZipper.t => {
   let hd = Path.Cursor.hd(cur);
   switch (hd) {
@@ -342,16 +386,13 @@ let rec unzip = (~ctx=LCtx.empty, cur: Path.Cursor.t, c: LCell.t): LZipper.t => 
   | Ok(step) =>
     let tl = Option.get(Path.Cursor.peel(step, cur));
     let m = Options.get_exn(Marks.Invalid, c.meld);
-    switch (Meld.Base.unzip(step, m)) {
+    switch (LMeld.unzip(step, m)) {
     | Loop((pre, cell, suf)) =>
       let ctx = LCtx.add((pre, suf), ctx);
       unzip(~ctx, tl, cell);
-    // | Link((pre, tok, suf)) =>
-    //   // if caret points to token, then take the entire meld as focused cell
-    //   let cur = Cursor.map(Caret.map(Fun.const()), Fun.id, cur);
-    //   (cur, c, frame);
     | Link((pre, tok, suf)) =>
       switch (cur) {
+      // if caret points to token, then take the entire meld as focused cell
       | Point(_) => LZipper.mk(Cursor.Point(c), ctx)
       | Select(_) =>
         let (l, pre) = Chain.uncons(pre);
@@ -380,8 +421,8 @@ and unzip_select = (~ctx, sel: Path.Selection.t, meld: LMeld.t) => {
     let (hd_pre, tl_pre) = Chain.uncons(pre);
     let l_tl =
       l_hd mod 2 == 0 ? List.tl(l) : LCell.end_path(hd_pre, ~side=R);
-    let z = unzip(Point(Caret.focus(l_tl)), hd_pre);
-    let (eqs, flat) = LCtx.flatten(z.ctx);
+    let ctx = unzip_point(~side=L, Caret.focus(l_tl), hd_pre);
+    let (eqs, flat) = LCtx.flatten(ctx);
     let eqs =
       Chain.Affix.is_empty(tl_pre)
         ? eqs : [(0, (-1)), ...LEqs.incr(~side=L, 1, eqs)];
@@ -397,8 +438,8 @@ and unzip_select = (~ctx, sel: Path.Selection.t, meld: LMeld.t) => {
     let (hd_suf, tl_suf) = Chain.uncons(suf);
     let r_tl =
       r_hd mod 2 == 0 ? List.tl(r) : LCell.end_path(~side=L, hd_suf);
-    let z = unzip(Point(Caret.focus(r_tl)), hd_suf);
-    let (eqs, flat) = LCtx.flatten(z.ctx);
+    let ctx = unzip_point(~side=R, Caret.focus(r_tl), hd_suf);
+    let (eqs, flat) = LCtx.flatten(ctx);
     let eqs =
       Chain.Affix.is_empty(tl_suf)
         ? eqs : [((-1), 0), ...LEqs.incr(~side=R, 1, eqs)];
