@@ -186,6 +186,7 @@ let roll_bounds = (~l=Delim.root, ~r=Delim.root, zigg: Base.t(_)) => {
   let l =
     switch (l) {
     | Root => (List.length(zigg.up), Rel.Neq(Dir.L))
+    | Node(tok) when Token.merges(tok, face(~side=L, zigg)) => (0, Rel.Eq())
     | Node(tok) =>
       switch (push(~side=L, tok, zigg)) {
       | Error(_) => (List.length(zigg.up), Rel.Neq(L))
@@ -203,6 +204,7 @@ let roll_bounds = (~l=Delim.root, ~r=Delim.root, zigg: Base.t(_)) => {
   let r =
     switch (r) {
     | Root => (List.length(zigg.dn), Rel.Neq(Dir.R))
+    | Node(tok) when Token.merges(tok, face(~side=R, zigg)) => (0, Rel.Eq())
     | Node(tok) =>
       switch (push(~side=R, tok, zigg)) {
       | Error(_) => (List.length(zigg.dn), Rel.Neq(R))
