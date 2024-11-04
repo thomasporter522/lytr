@@ -44,7 +44,9 @@ let cursor = (~font, z: Zipper.t) => {
     switch (ind_lc.meld) {
     | None => []
     | Some(lm) =>
-      Dec.Meld.Profile.mk(~whole=lc, ~state, lm) |> snd |> Dec.Meld.mk(~font)
+      Dec.Meld.Profile.mk(~whole=lc, ~state, lm)
+      |> snd
+      |> Dec.Layers.view(~font)
     }
   | Select(ind_zigg) =>
     let sel = Option.get(Cursor.get_select(z.cur));
@@ -66,23 +68,9 @@ let cursor = (~font, z: Zipper.t) => {
     );
     ind_zigg
     |> Dec.Zigg.Profile.mk(~whole=lc, ~state, ~null, ~eqs, ~rolled)
-    |> Dec.Zigg.mk(~font);
+    |> Dec.Layers.view(~font);
   };
 };
-
-// let cursor = (~font, z: Zipper.t) =>
-//   switch (z.cur) {
-//   | Select(_) => []
-//   | Point(_) =>
-//     let tree = Layout.mk_cell(Zipper.zip(~save_cursor=true, z));
-//     let (cell, ctx) = Zipper.zip_indicated(z);
-//     switch (Cell.get(cell)) {
-//     | None => []
-//     | Some(m) =>
-//       let path = Zipper.path_of_ctx(ctx);
-//       m |> Dec.Meld.Profile.mk(~tree, ~path) |> Dec.Meld.mk(~font);
-//     };
-//   };
 
 let view = (~font: Model.Font.t, ~zipper: Zipper.t): Node.t => {
   // print_endline("--- Code.view ---");

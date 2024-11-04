@@ -53,7 +53,7 @@ module Inner = {
   let h_pad = 0.1;
   let v_trunc = T.v_trunc -. 0.06;
 
-  let mk = (~font, p: Profile.t) => {
+  let view = (~font, p: Profile.t) => {
     p.is_space
       ? []
       : Block.flatten(p.block)
@@ -103,6 +103,7 @@ module Inner = {
 module Outer = {
   module Profile = {
     open Util.Svgs;
+    [@deriving (show({with_path: false}), sexp, yojson)]
     type t = list(Rect.t);
     let mk = (~state: L.State.t, block: Block.t) => {
       Block.flatten(block)
@@ -134,7 +135,7 @@ module Outer = {
     };
   };
 
-  let mk = (~font, p: Profile.t) => {
+  let view = (~font, p: Profile.t) => {
     p
     |> Util.Svgs.OrthogonalPolygon.mk(~corner_radii=(0.35, 0.15))
     |> Util.Svgs.Path.view

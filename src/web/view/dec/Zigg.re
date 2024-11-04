@@ -8,45 +8,16 @@ open Tylr_core;
 
 module L = Layout;
 
-module Sil = {
-  type t = {
-    // total selection silhouette
-    outer: Silhouette.Outer.Profile.t,
-    // parsed inner silhouettes
-    inner: list(Silhouette.Inner.Profile.t),
-  };
-};
-
 module Profile = {
-  type t = {
-    l: option(Either.t(M.Profile.t, Child.Profile.t)),
-    up: list(T.Profile.t),
-    top: W.Profile.t,
-    dn: list(T.Profile.t),
-    r: option(Either.t(M.Profile.t, Child.Profile.t)),
-    sil: Sil.t,
-  };
-
-  // let tokens = ({up, top, dn, _}: t) =>
-  //   List.concat([
-  //     List.concat_map(T.Profile.tokens, up),
-  //     fst(top),
-  //     List.concat_map(T.Profile.tokens, dn),
-  //   ]);
-  // let cells = ({up, top, dn, _}: t) =>
-  //   List.concat_map(T.Profile.cells, up)
-  //   @ snd(top)
-  //   @ List.concat_map(T.Profile.cells, dn);
+  type t = Layers.t;
 
   let mk_rolled =
       (~side: Dir.t, ~whole, ~state, ~rel: Either.t(_), rolled: LCell.t) => {
     switch (rolled.meld) {
-    | None => (state, (None, []))
+    | None => (state, Layers.empty)
     | Some(m) =>
       switch (rel) {
-      | Left () =>
-        let (state, p) = M.Profile.mk(~sil=true, ~whole, ~state, m);
-        (state, (Some(Either.Left(p)), []));
+      | Left () => M.Profile.mk(~sil=true, ~whole, ~state, m)
       | Right((s_neighbor, neighbor)) =>
         let s_post = L.State.jump_cell(state, ~over=rolled);
         let s_tok = Dir.pick(side, (s_post, state));
@@ -60,7 +31,7 @@ module Profile = {
             |> Dir.order(side)
             |> Funs.uncurry(Block.hcat),
           );
-        let p =
+        let cell =
           Child.Profile.mk(
             ~sil=true,
             ~whole,
@@ -69,7 +40,8 @@ module Profile = {
             ~null=Dir.pick(side, ((true, false), (false, true))),
             rolled,
           );
-        (s_post, (Some(Either.Right(p)), [sil]));
+        let p = Layers.mk(~inner=[sil], ~cells=[cell], ());
+        (s_post, p);
       }
     };
   };
@@ -96,22 +68,16 @@ module Profile = {
            let (p_r, cell) = LCell.depad(terr.cell, ~side=R);
            let terr = {...terr, cell};
 
-           let sil =
-             Silhouette.Inner.Profile.mk(
-               ~is_space=Mtrl.is_space(LTerr.sort(terr)),
-               ~state,
-               LTerr.L.flatten(terr),
-             );
            let (state, p) =
              T.Profile.mk_l(~sil=true, ~whole, ~state, ~eq, ~null, terr);
 
            let state = L.State.jump_cell(state, ~over=p_r);
 
-           (state, (p, sil));
+           (state, p);
          },
          state,
        )
-    |> Tuples.map_snd(List.split);
+    |> Tuples.map_snd(Layers.concat);
   };
 
   let mk_dn =
@@ -141,21 +107,14 @@ module Profile = {
            let terr = {...terr, cell};
 
            let state = L.State.jump_cell(state, ~over=p_l);
-
-           let sil =
-             Silhouette.Inner.Profile.mk(
-               ~is_space=Mtrl.is_space(LTerr.sort(terr)),
-               ~state,
-               LTerr.R.flatten(terr),
-             );
            let (state, p) =
              T.Profile.mk_r(~sil=true, ~whole, ~state, ~eq, ~null, terr);
 
-           (state, (p, sil));
+           (state, p);
          },
          state,
        )
-    |> Tuples.map_snd(List.split);
+    |> Tuples.map_snd(Layers.concat);
   };
 
   let mk =
@@ -185,9 +144,9 @@ module Profile = {
         // this state doesn't matter, just to satisfy types
         Right((state, LZigg.hd_block(~side=L, rolled_z)))
       };
-    let (state, (m_l, m_l_sil)) =
+    let (state, m_l) =
       mk_rolled(~side=L, ~whole, ~state, ~rel=rel_l, rolled_l);
-    let (state, (up, up_sil)) =
+    let (state, up) =
       mk_up(
         ~whole,
         ~state,
@@ -202,24 +161,16 @@ module Profile = {
       state_before_right_hd := state;
     };
 
-    let (state, (top, top_sil)) = {
+    let (state, top) = {
       let null = (
         List.for_all(t => Mtrl.is_space(LTerr.sort(t)), zigg.up) && null_l,
         List.for_all(t => Mtrl.is_space(LTerr.sort(t)), zigg.dn) && null_r,
       );
       let eq = List.(mem(-1, eqs_l), mem(-1, eqs_r));
-      let sil =
-        Silhouette.Inner.Profile.mk(
-          ~is_space=Mtrl.is_space(LWald.sort(rolled_z.top)),
-          ~state,
-          LWald.flatten(~flatten=LCell.flatten, rolled_z.top),
-        );
-      let (state, p) =
-        W.Profile.mk(~sil=true, ~whole, ~state, ~null, ~eq, rolled_z.top);
-      (state, (p, sil));
+      W.Profile.mk(~sil=true, ~whole, ~state, ~null, ~eq, rolled_z.top);
     };
 
-    let (state, (dn, dn_sil)) =
+    let (state, dn) =
       mk_dn(
         ~whole,
         ~state,
@@ -236,37 +187,8 @@ module Profile = {
       | Neq(R) =>
         Right((state_before_right_hd^, LZigg.hd_block(~side=R, rolled_z)))
       };
-    let (_state, (m_r, m_r_sil)) =
+    let (_state, m_r) =
       mk_rolled(~side=R, ~whole, ~state, ~rel=rel_r, rolled_r);
-
-    let sil =
-      Sil.{
-        outer: outer_sil,
-        inner: List.concat([m_l_sil, up_sil, [top_sil], dn_sil, m_r_sil]),
-      };
-    {l: m_l, up, top, dn, r: m_r, sil};
+    {...Layers.concat([m_l, up, top, dn, m_r]), outer: [outer_sil]};
   };
 };
-
-let mk = (~font, p: Profile.t) =>
-  List.concat([
-    [Silhouette.Outer.mk(~font, p.sil.outer)],
-    List.concat_map(Silhouette.Inner.mk(~font), p.sil.inner),
-    p.l
-    |> Option.map(
-         fun
-         | Either.Left(p) => M.mk(~font, p)
-         | Right(p) => [Child.mk(~font, p)],
-       )
-    |> Option.value(~default=[]),
-    List.concat_map(T.mk(~font), p.up),
-    W.mk(~font, p.top),
-    List.concat_map(T.mk(~font), p.dn),
-    p.r
-    |> Option.map(
-         fun
-         | Either.Left(p) => M.mk(~font, p)
-         | Right(p) => [Child.mk(~font, p)],
-       )
-    |> Option.value(~default=[]),
-  ]);

@@ -37,16 +37,16 @@ module Profile = {
     let s_init = state |> L.State.jump_cell(~over=p_l);
     let s_tok = L.State.jump_cell(s_init, ~over=lc_l);
 
-    let silhouette =
+    let inner =
       sil
-        ? Some(
-            Silhouette.Inner.Profile.mk(
-              ~is_space=Mtrl.is_space(LMeld.sort(lm)),
-              ~state=s_init,
-              LMeld.flatten(~flatten=LCell.flatten, lm),
-            ),
-          )
-        : None;
+        ? [
+          Silhouette.Inner.Profile.mk(
+            ~is_space=Mtrl.is_space(LMeld.sort(lm)),
+            ~state=s_init,
+            LMeld.flatten(~flatten=LCell.flatten, lm),
+          ),
+        ]
+        : [];
 
     let l =
       Child.Profile.mk(
@@ -71,16 +71,8 @@ module Profile = {
       );
     let state =
       state |> L.State.jump_cell(~over=lc_r) |> L.State.jump_cell(~over=p_r);
-    let p = {chain: Chain.consnoc(~hd=l, w, ~ft=r), sil: silhouette};
+    let p = {...w, inner, cells: [l] @ w.cells @ [r]};
+    // let p = {chain: Chain.consnoc(~hd=l, w, ~ft=r), sil: silhouette};
     (state, p);
   };
 };
-
-let mk = (~font, p: Profile.t) =>
-  List.concat([
-    p.sil
-    |> Option.map(Silhouette.Inner.mk(~font))
-    |> Option.value(~default=[]),
-    List.map(T.mk(~font), Profile.tokens(p)),
-    List.map(Child.mk(~font), Profile.cells(p)),
-  ]);

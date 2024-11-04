@@ -295,6 +295,7 @@ let expand = (tok: Token.t) =>
 let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
   let* () = Options.of_bool(String.starts_with(~prefix=" ", s));
+  // todo: check if in middle of token
   let (face, rest) = Ctx.pull(~from=L, z.ctx);
   let* tok = Delim.is_tok(face);
   // if expandable, consider all expandable const labels
@@ -314,6 +315,7 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
           )
     )
     |> Ctx.push(~onto=L, Token.space())
+    |> Ctx.trim_space(~side=R)
     |> finalize(~mode=Inserting(" "), ~fill=Cell.point(~dirty=true, Focus))
     |> return;
   };
