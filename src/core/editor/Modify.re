@@ -139,10 +139,10 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
               (),
             );
           // hack(?) to avoid completion if no new ghosts are generated. if only
-          // grout are generated, then we can generated them later at the end of
-          // remolding. better to delay their generation bc there may be grout in
-          // the suffix whose relative position around neighboring whitespace we
-          // want to preserve.
+          // grout are generated, then we can generate them later as needed at the
+          // end of remolding. better to delay their generation bc there may already
+          // be grout in the suffix whose relative position around neighboring
+          // whitespace we want to preserve.
           effs
           |> List.for_all(
                fun

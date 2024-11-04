@@ -290,10 +290,9 @@ module Space = {
           let shift = 2 * List.length(Meld.tokens(m));
           Marks.map_paths(
             fun
-            | [] => {
-                assert(r.meld == None);
-                [shift];
-              }
+            | [] =>
+              // assert(r.meld == None);
+              [shift]
             | [hd, ...tl] => [hd + shift, ...tl],
           );
         }
