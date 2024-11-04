@@ -128,7 +128,7 @@ module Sil = {
   };
 };
 
-let mk = (prof: Profile.t) =>
+let view = (prof: Profile.t) =>
   prof.style
   |> Option.map((style: Style.t) =>
        (style.sil ? [Sil.mk(prof.len, style.shape)] : [])
