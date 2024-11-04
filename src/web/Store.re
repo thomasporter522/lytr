@@ -10,7 +10,11 @@ let insert: (Zipper.t, string) => Zipper.t =
     };
   };
 
-let parse: string => Zipper.t = insert(Zipper.empty);
+let parse = (str: string): Zipper.t =>
+  str
+  |> Labeler.label
+  |> List.map((x: Token.Unmolded.t) => x.text)
+  |> List.fold_left(insert, Zipper.empty);
 
 let serialize = z => z |> Zipper.sexp_of_t |> Sexplib.Sexp.to_string;
 
@@ -31,10 +35,10 @@ let editor_defaults = [
   serialize(parse("3 + 3")),
   serialize(parse("(4)")),
   serialize(parse("(5 + 5) * 5")),
-  serialize(parse("6")),
-  serialize(parse("7")),
-  serialize(parse("8")),
-  serialize(parse("9")),
+  serialize(parse("let x = 6 in x")),
+  serialize(parse("case 7\n| x => 7")),
+  serialize(parse("let (a, b) =\n(8*9<6, 17==6) in\n(a,(a, b))")),
+  serialize(parse("let f = fun z -> 9 in f(9)")),
   serialize(parse("0")),
   //serialize(parse("let x = 3 in x")),
   //serialize(parse("let f = fun x -> 4 in f(4)")),
