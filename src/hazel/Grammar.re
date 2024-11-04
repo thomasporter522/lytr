@@ -137,6 +137,8 @@ module Exp = {
     //let
     p(let_),
     p(type_def),
+    //Reverse-ap
+    p(~a=L, seq([exp, c("|>"), exp])),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
@@ -152,17 +154,15 @@ module Exp = {
         exp,
       ]),
     ),
+    //Comparison
+    p(~a=L, seq([exp, comp_op_int, exp])),
+    p(~a=L, seq([exp, comp_op_float, exp])),
     //Math operations
     p(~a=L, seq([exp, add_op, exp])),
     p(~a=L, seq([exp, mult_op, exp])),
     p(seq([neg_op, exp])),
-    //Comparison
-    p(~a=L, seq([exp, comp_op_int, exp])),
-    p(~a=L, seq([exp, comp_op_float, exp])),
     //ap
     p(fn_ap),
-    //Reverse-ap
-    p(~a=L, seq([exp, c("|>"), exp])),
     p(operand),
   ];
 };
