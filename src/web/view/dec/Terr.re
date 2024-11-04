@@ -23,6 +23,16 @@ module Profile = {
     let ind = L.Indent.curr(state.ind);
     // let (null_l, null_r) = ;
     // let state = eq ? state : L.State.push_ind(state);
+    let inner =
+      sil
+        ? [
+          Silhouette.Inner.Profile.mk(
+            ~is_space=Mtrl.is_space(LTerr.sort(terr)),
+            ~state,
+            LTerr.L.flatten(terr),
+          ),
+        ]
+        : [];
     let (state, wald) =
       W.Profile.mk(
         ~sil,
@@ -41,7 +51,8 @@ module Profile = {
         terr.cell,
       );
     let state = L.State.jump_cell(state, ~over=terr.cell);
-    (state, {cell, wald});
+    let p = {...wald, inner, cells: wald.cells @ [cell]};
+    (state, p);
   };
 
   let mk_r =
@@ -53,6 +64,17 @@ module Profile = {
         ~eq,
         terr: LTerr.t,
       ) => {
+    let inner =
+      sil
+        ? [
+          Silhouette.Inner.Profile.mk(
+            ~is_space=Mtrl.is_space(LTerr.sort(terr)),
+            ~state,
+            LTerr.R.flatten(terr),
+          ),
+        ]
+        : [];
+
     let s_mid = L.State.jump_cell(state, ~over=terr.cell);
     let cell =
       Child.Profile.mk(
@@ -72,11 +94,7 @@ module Profile = {
         ~eq=(false, eq),
         Wald.rev(terr.wald),
       );
-    (state, {cell, wald});
+    let p = {...wald, inner, cells: [cell] @ wald.cells};
+    (state, p);
   };
 };
-
-let mk = (~font, p: Profile.t) => [
-  Child.mk(~font, p.cell),
-  ...W.mk(~font, p.wald),
-];
