@@ -90,7 +90,7 @@ let relabel =
   (normalized, Ctx.button(rest));
 };
 
-// None means token was removed
+// None means token was removed. Some(ctx) means token was molded (or deferred and tagged as an unmolded space), ctx includes the molded token.
 let mold =
     (ctx: Ctx.t, ~fill=Cell.dirty, tok: Token.Unmolded.t): option(Ctx.t) => {
   open Options.Syntax;
@@ -481,6 +481,8 @@ let insert = (s: string, z: Zipper.t) => {
            | Some(ctx) =>
              let (face, rest) = Ctx.pull(~from=L, ctx);
              switch (face, next_fill.marks.cursor) {
+             // if molded token is longer than original, then move cursor out of
+             // next_fill and into molded token at the end of its text
              | (Node(molded), Some(Point({hand, path: []})))
                  when Token.length(molded) > Token.Unmolded.length(tok) =>
                let marks = {...next_fill.marks, cursor: None};
