@@ -43,20 +43,20 @@ let complete_wald = (~side: Dir.t, ~fill=Cell.empty, w: Wald.t): Terr.t => {
 let complete_terr = (~onto: Dir.t, ~fill=Cell.empty, terr: Terr.t): Cell.t => {
   let orient = Dir.pick(onto, (Meld.rev, Fun.id));
   let exited = Walker.exit(~from=onto, Node(Terr.face(terr).mtrl));
-  let baked = Grouter.pick(~repair=true, ~from=onto, [fill], exited);
+  let grouted = Grouter.pick(~repair=true, ~from=onto, [fill], exited);
   // exited
   // |> Oblig.Delta.minimize(Baker.bake(~from=onto, ~fill=Fill.unit(fill)));
-  switch (baked) {
-  | Some(baked) => Cell.put(orient(Grouted.complete_terr(baked, terr)))
+  switch (grouted) {
+  | Some(grouted) => Cell.put(orient(Grouted.complete_terr(grouted, terr)))
   | None =>
     assert(!Cell.is_empty(fill));
     print_endline("warning: dropping fill " ++ Cell.show(fill));
     // walker bug if no exits
     // let exited = List.hd(exited);
-    let baked =
+    let grouted =
       Grouter.pick(~repair=true, ~from=onto, [], exited)
-      |> Options.get_fail("bug: expected bake to succeed sans fill");
-    Cell.put(orient(Grouted.complete_terr(baked, terr)));
+      |> Options.get_fail("bug: expected grouter to succeed sans fill");
+    Cell.put(orient(Grouted.complete_terr(grouted, terr)));
   };
 };
 let complete_slope = (~onto: Dir.t, ~fill=Cell.empty) =>

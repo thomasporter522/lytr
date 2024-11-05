@@ -73,8 +73,6 @@ let link = (~cell=Cell.empty, t: Token.t, M(l, W(w), r): t) =>
 
 let map_cell = (_, _) => failwith("todo Meld.map_cell");
 
-let rev = (M(l, W(w), r): t) => mk(~l=r, W(Chain.rev(w)), ~r=l);
-
 let face = (~side: Dir.t, M(_, w, _): t) => Wald.face(~side, w);
 
 let map_cells = (f, M(l, W((toks, cells)), r): t) => {

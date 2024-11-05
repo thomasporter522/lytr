@@ -384,8 +384,47 @@ let delete_toks =
          );
        },
      )
+  |> Chain.map_loop(Cell.mark_degrouted(~side=L))
   // finally, unmold the tokens (only relabeling the last token)
   |> Chain.mapi_link(i => Token.unmold(~relabel=i - 1 / 2 == n - 1));
+};
+
+// mold each token against the ctx, using each preceding cell as its fill, and
+// return the total ctx and the final remaining fill to be used when subsequently
+// remolding
+let insert_toks =
+    (toks: Chain.t(Cell.t, Token.Unmolded.t), ctx: Ctx.t): (Ctx.t, Cell.t) => {
+  toks
+  |> Chain.fold_left(
+       fill => (ctx, fill),
+       ((ctx, fill), tok, next_fill) =>
+         switch (mold(ctx, ~fill, tok)) {
+         | Some(ctx) =>
+           let (face, rest) = Ctx.pull(~from=L, ctx);
+           switch (face, next_fill.marks.cursor) {
+           // if molded token is longer than original, then move cursor out of
+           // next_fill and into molded token at the end of its text
+           | (Node(molded), Some(Point({hand, path: []})))
+               when Token.length(molded) > Token.Unmolded.length(tok) =>
+             let marks = {...next_fill.marks, cursor: None};
+             let next_fill = {...next_fill, marks};
+             let molded =
+               Token.put_cursor(
+                 Point(Caret.mk(hand, Token.Unmolded.length(tok))),
+                 molded,
+               );
+             let ctx = Ctx.push(~onto=L, molded, ~fill=Cell.dirty, rest);
+             (ctx, next_fill);
+           | _ => (ctx, next_fill)
+           };
+         | None =>
+           // removed empty token
+           let next_fill =
+             Option.is_some(fill.marks.cursor)
+               ? Cell.mark_ends_dirty(fill) : next_fill;
+           (ctx, next_fill);
+         },
+     );
 };
 
 // delete_sel clears the textual content of the current selection (doing nothing if
@@ -413,39 +452,7 @@ let delete_sel = (d: Dir.t, z: Zipper.t): Zipper.t => {
           : Fun.id
       )
       |> delete_toks(d);
-    let (molded, fill) =
-      deleted_toks
-      // remold each token against the ctx, using each preceding cell as its fill,
-      // and return the total ctx and the final remaining fill to be used when
-      // subsequently remolding
-      |> Chain.fold_left(
-           fill => (ctx, fill),
-           ((ctx, fill), tok, next_fill) =>
-             switch (mold(ctx, ~fill, tok)) {
-             | Some(ctx) =>
-               let (face, rest) = Ctx.pull(~from=L, ctx);
-               switch (face, next_fill.marks.cursor) {
-               | (Node(molded), Some(Point({hand, path: []})))
-                   when Token.length(molded) > Token.Unmolded.length(tok) =>
-                 let marks = {...next_fill.marks, cursor: None};
-                 let next_fill = {...next_fill, marks};
-                 let molded =
-                   Token.put_cursor(
-                     Point(Caret.mk(hand, Token.Unmolded.length(tok))),
-                     molded,
-                   );
-                 let ctx = Ctx.push(~onto=L, molded, ~fill=Cell.dirty, rest);
-                 (ctx, next_fill);
-               | _ => (ctx, next_fill)
-               };
-             | None =>
-               let next_fill =
-                 Option.is_some(fill.marks.cursor)
-                   ? Cell.mark_ends_dirty(fill) : next_fill;
-               (ctx, next_fill);
-             },
-         );
-    // Mode.set(Deleting(d));
+    let (molded, fill) = insert_toks(deleted_toks, ctx);
     finalize(~mode=Deleting(d), ~fill, molded);
   };
 };
@@ -478,36 +485,6 @@ let insert = (s: string, z: Zipper.t) => {
   let- () = try_extend(s, z);
 
   let (toks, ctx) = relabel(s, z.ctx);
-  let (molded, fill) =
-    toks
-    |> Chain.fold_left(
-         fill => (ctx, fill),
-         ((ctx, fill), tok, next_fill) =>
-           switch (mold(ctx, ~fill, tok)) {
-           | Some(ctx) =>
-             let (face, rest) = Ctx.pull(~from=L, ctx);
-             switch (face, next_fill.marks.cursor) {
-             // if molded token is longer than original, then move cursor out of
-             // next_fill and into molded token at the end of its text
-             | (Node(molded), Some(Point({hand, path: []})))
-                 when Token.length(molded) > Token.Unmolded.length(tok) =>
-               let marks = {...next_fill.marks, cursor: None};
-               let next_fill = {...next_fill, marks};
-               let molded =
-                 Token.put_cursor(
-                   Point(Caret.mk(hand, Token.Unmolded.length(tok))),
-                   molded,
-                 );
-               let ctx = Ctx.push(~onto=L, molded, ~fill=Cell.dirty, rest);
-               (ctx, next_fill);
-             | _ => (ctx, next_fill)
-             };
-           | None =>
-             let next_fill =
-               Option.is_some(fill.marks.cursor)
-                 ? Cell.mark_ends_dirty(fill) : next_fill;
-             (ctx, next_fill);
-           },
-       );
+  let (molded, fill) = insert_toks(toks, ctx);
   finalize(~mode=Inserting(s), ~fill, molded);
 };

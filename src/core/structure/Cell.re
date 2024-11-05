@@ -24,6 +24,8 @@ module Meld = {
   let length = (M(_, W(w), _): t(_)) => Chain.length(w) + 2;
   let tokens = (M(_, W((toks, _)), _): t(_)) => toks;
 
+  let rev = (M(l, W(w), r): t(_)) => mk(~l=r, W(Chain.rev(w)), ~r=l);
+
   let to_chain = (M(l, W((ts, cs)), r): t(_)) => ([l, ...cs] @ [r], ts);
   let of_chain = ((cs, ts): Chain.t('cell, 'tok)) => {
     let get = Options.get_exn(Invalid_argument("Meld.of_chain"));
@@ -124,7 +126,7 @@ let pop_marks = (cell: t) => (cell.marks, clear_marks(cell));
 let rec mark_degrouted = (~side: Dir.t, c: t) =>
   switch (c.meld) {
   | None =>
-    let marks = {...c.marks, degrouted: true};
+    let marks = {...c.marks, degrouted: Path.Map.singleton(Path.empty, ())};
     {...c, marks};
   | Some(M(l, w, r)) =>
     switch (side) {
@@ -260,7 +262,7 @@ module Space = {
   let is_space = c => Option.is_some(get(c));
 
   let unmark_degrouted = (c: t) => {
-    let marks = {...c.marks, degrouted: false};
+    let marks = {...c.marks, degrouted: Path.Map.empty};
     {...c, marks};
   };
 
@@ -270,23 +272,50 @@ module Space = {
     | _ => put(Meld.of_chain((cs, ts)))
     };
 
-  let split = (c: t) => {
+  // returns split-off cell first (regardless of side), rest of cell second
+  let split = (~side as d: Dir.t, c: t) => {
     open Options.Syntax;
     assert(is_space(c));
     let* m = g(c);
-    let (cs, ts) = Meld.to_chain(m);
-    let (cs_l, cs_r) =
-      cs |> Lists.split_while(~f=(c: t) => !c.marks.degrouted);
-    switch (cs_l, cs_r) {
-    | ([], _) =>
-      let cs = List.map(unmark_degrouted, cs);
-      Some((empty, put(Meld.of_chain((cs, ts)))));
+    let (cs, ts) = m |> Dir.pick(d, (Fun.id, Meld.rev)) |> Meld.to_chain;
+    let (cs_d, cs_b) =
+      cs
+      |> Lists.split_while(~f=(c: t) => Path.Map.is_empty(c.marks.degrouted));
+    switch (cs_d, cs_b) {
     | (_, []) => None
-    | ([_, ..._], [_, ..._]) =>
-      let (ts_l, ts_r) = Lists.split_n(ts, List.length(cs_l));
-      let cs_l = List.map(unmark_degrouted, cs_l) @ [empty];
-      let cs_r = List.map(unmark_degrouted, cs_r);
-      Some((mk(cs_l, ts_l), mk(cs_r, ts_r)));
+    | ([], [b_hd, ...b_tl]) =>
+      let b_hd_dup = {
+        ...b_hd,
+        marks: {
+          ...b_hd.marks,
+          cursor: None,
+        },
+      };
+      let rest =
+        Meld.of_chain(([b_hd_dup, ...b_tl], ts))
+        |> Dir.pick(d, (Fun.id, Meld.rev))
+        |> put;
+      Some((b_hd, rest));
+    | ([_, ..._], [b_hd, ...b_tl]) =>
+      let (ts_d, ts_b) = Lists.split_n(ts, List.length(cs_d));
+      let cs_d = cs_d @ [b_hd];
+      let b_hd_dup = {
+        ...b_hd,
+        marks: {
+          ...b_hd.marks,
+          cursor: None,
+        },
+      };
+      let cs_b = [b_hd_dup, ...b_tl];
+      let split =
+        (cs_d, ts_d)
+        |> Dir.pick(d, (Fun.id, c => Chain.rev(c)))
+        |> Funs.uncurry(mk);
+      let rest =
+        (cs_b, ts_b)
+        |> Dir.pick(d, (Fun.id, c => Chain.rev(c)))
+        |> Funs.uncurry(mk);
+      Some((split, rest));
     };
   };
 

@@ -30,16 +30,17 @@ module Cell = {
     cursor: option(Path.Cursor.t),
     // todo: unify this with Oblig module
     obligs: Path.Map.t(Mtrl.T.t),
+    // cells for linter to inspect
     dirty: Path.Map.t(unit),
-    // TODO: add degrouted field
-    degrouted: bool,
+    // cells for grouter to prioritize as regrouting spots
+    degrouted: Path.Map.t(unit),
   };
   let mk =
       (
         ~cursor=?,
         ~obligs=Path.Map.empty,
         ~dirty=Path.Map.empty,
-        ~degrouted=false,
+        ~degrouted=Path.Map.empty,
         (),
       ) => {
     cursor,
@@ -54,22 +55,23 @@ module Cell = {
       Fmt.nop(out, marks);
     } else if (Option.is_none(cursor)
                && Path.Map.is_empty(dirty)
-               && !degrouted) {
+               && Path.Map.is_empty(degrouted)) {
       Fmt.pf(out, "obligs: %a", Path.Map.pp(Mtrl.T.pp), obligs);
     } else if (Path.Map.is_empty(obligs)
                && Path.Map.is_empty(dirty)
-               && !degrouted) {
+               && Path.Map.is_empty(degrouted)) {
       Fmt.pf(out, "cursor: %a", Path.Cursor.pp, Option.get(cursor));
     } else {
       Fmt.pf(
         out,
-        "cursor: %a,@ obligs: %a,@ dirty: %a,@ degrouted: %b",
+        "cursor: %a,@ obligs: %a,@ dirty: %a,@ degrouted: %a",
         Fmt.option(Path.Cursor.pp),
         cursor,
         Path.Map.pp(Mtrl.T.pp),
         obligs,
         Path.Map.pp(Fmt.sp),
         dirty,
+        Path.Map.pp(Fmt.sp),
         degrouted,
       );
     };
@@ -91,43 +93,52 @@ module Cell = {
   let dirty = mk(~dirty=Path.Map.singleton(Path.empty, ()), ());
   let mark_clean = marks => {...marks, dirty: Path.Map.empty};
 
+  // clear all temporary marks used by grouter/linter
+  let flush = marks => {
+    ...marks,
+    dirty: Path.Map.empty,
+    degrouted: Path.Map.empty,
+  };
+
   let map =
       (
-        f_cursor,
-        f_obligs,
-        f_dirty,
-        ~f_degrouted=Fun.const(false),
-        {cursor, obligs, dirty, degrouted},
+        ~cursor=Fun.id,
+        ~obligs=Fun.id,
+        ~dirty=Fun.id,
+        ~degrouted=Fun.id,
+        marks: t,
       ) => {
-    cursor: f_cursor(cursor),
-    obligs: f_obligs(obligs),
-    dirty: f_dirty(dirty),
-    degrouted: f_degrouted(degrouted),
+    cursor: cursor(marks.cursor),
+    obligs: obligs(marks.obligs),
+    dirty: dirty(marks.dirty),
+    degrouted: degrouted(marks.degrouted),
   };
   let cons = n =>
     map(
-      Option.map(Path.Cursor.cons(n)),
-      Path.Map.cons(n),
-      Path.Map.cons(n),
+      ~cursor=Option.map(Path.Cursor.cons(n)),
+      ~obligs=Path.Map.cons(n),
+      ~dirty=Path.Map.cons(n),
+      ~degrouted=Path.Map.cons(n),
     );
   let peel = n =>
     map(
-      Options.bind(~f=Path.Cursor.peel(n)),
-      Path.Map.peel(n),
-      Path.Map.peel(n),
+      ~cursor=Options.bind(~f=Path.Cursor.peel(n)),
+      ~obligs=Path.Map.peel(n),
+      ~dirty=Path.Map.peel(n),
+      ~degrouted=Path.Map.peel(n),
     );
   let map_paths = f =>
     map(
-      Option.map(Path.Cursor.map_paths(f)),
-      Path.Map.map_paths(f),
-      Path.Map.map_paths(f),
-      ~f_degrouted=Fun.id,
+      ~cursor=Option.map(Path.Cursor.map_paths(f)),
+      ~obligs=Path.Map.map_paths(f),
+      ~dirty=Path.Map.map_paths(f),
+      ~degrouted=Path.Map.map_paths(f),
     );
   let union = (l: t, r: t) => {
     cursor: Options.merge(~f=Path.Cursor.union, l.cursor, r.cursor),
     obligs: Path.Map.union((_, t, _) => Some(t), l.obligs, r.obligs),
     dirty: Path.Map.union((_, (), ()) => Some(), l.dirty, r.dirty),
-    degrouted: l.degrouted || r.degrouted,
+    degrouted: Path.Map.union((_, (), ()) => Some(), l.dirty, r.dirty),
   };
   let union_all = List.fold_left(union, empty);
 

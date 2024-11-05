@@ -4,28 +4,17 @@ open Stds;
 
 let rec split_cell_padding = (~side: Dir.t, c: Cell.t) =>
   switch (Cell.get(c)) {
-  | None => Cell.(empty, c, empty)
+  | None => Cell.(empty, c)
   | Some(m) when Option.is_some(Meld.Space.get(m)) =>
-    switch (side) {
-    | L =>
-      switch (Cell.Space.split(c)) {
-      | None => Cell.(c, empty, empty)
-      | Some((l, r)) => (l, r, Cell.empty)
-      }
-    | R =>
-      switch (Cell.Space.split(c)) {
-      | None => Cell.(empty, empty, c)
-      | Some((l, r)) => (Cell.empty, l, r)
-      }
-    }
+    Cell.Space.split(~side, c) |> Option.value(~default=(c, Cell.empty))
   | Some(M(l, w, r)) =>
     switch (side) {
     | L =>
-      let (p_l, l, _) = split_cell_padding(~side=L, l);
-      Cell.(p_l, put(M(l, w, r)), empty);
+      let (p_l, l) = split_cell_padding(~side=L, l);
+      Cell.(p_l, put(M(l, w, r)));
     | R =>
-      let (_, r, p_r) = split_cell_padding(r, ~side=R);
-      Cell.(empty, put(M(l, w, r)), p_r);
+      let (p_r, r) = split_cell_padding(r, ~side=R);
+      Cell.(p_r, put(M(l, w, r)));
     }
   };
 
@@ -72,14 +61,14 @@ module Cells = {
     let (l, cs) =
       switch (cs) {
       | [c, ...cs] =>
-        let (l, c, _) = split_cell_padding(~side=L, c);
+        let (l, c) = split_cell_padding(~side=L, c);
         (l, cons(c, cs));
       | [] => (Cell.empty, cs)
       };
     let (cs, r) =
       switch (Lists.Framed.ft(cs)) {
       | Some((cs, c)) =>
-        let (_, c, r) = split_cell_padding(c, ~side=R);
+        let (r, c) = split_cell_padding(~side=R, c);
         (List.rev(cons(c, cs)), r);
       | None => (cs, Cell.empty)
       };
