@@ -44,7 +44,7 @@ module Typ = {
   let tbl = [
     //Arrow
     //TODO: should the below be "ch" or c? (padding with horizontal spaces or none?)
-    p(seq([typ, op("->"), typ])),
+    p(~a=R, seq([typ, op("->"), typ])),
     //Ap
     p(seq([typ, brc(L, "("), typ, brc(R, ")")])),
     p(operand),
