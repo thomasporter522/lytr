@@ -61,6 +61,12 @@ type t = Base.t(Token.t);
 
 let mk = (~cur=Cursor.point(Caret.focus()), ctx) => Base.{cur, ctx};
 
+let empty =
+  mk(
+    ~cur=Point(Caret.focus()),
+    Ctx.unit(([], [Terr.of_tok(Token.Grout.op_(Sort.root))])),
+  );
+
 let unroll = (~ctx=Ctx.empty, side: Dir.t, cell: Cell.t) => {
   let f_open =
     side == L

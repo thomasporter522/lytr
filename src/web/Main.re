@@ -50,7 +50,11 @@ let restart_caret_animation = () =>
 let apply = (model, action, state, ~schedule_action): Model.t => {
   restart_caret_animation();
   switch (Update.apply(model, action, state, ~schedule_action)) {
-  | Ok(model) => model
+  | Ok(model) =>
+    print_endline("saving...");
+    Store.save_syntax(0, model.zipper);
+    print_endline("done saving.");
+    model;
   | Error(FailedToPerform) =>
     // TODO(andrew): refactor history
     print_endline(Update.Failure.show(FailedToPerform));
@@ -135,5 +139,5 @@ Incr_dom.Start_app.start(
   (module App),
   ~debug=false,
   ~bind_to_element_with_id="container",
-  ~initial_model=Model.init,
+  ~initial_model=Model.init_from_store(),
 );
