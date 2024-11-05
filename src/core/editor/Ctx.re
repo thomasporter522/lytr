@@ -167,6 +167,17 @@ let push_zigg = (~onto as d: Dir.t, zigg: Zigg.t, ~fill=Cell.empty, ctx: t) => {
   map_hd(Frame.Open.cat(rest), ctx);
 };
 
+let trim_space = (~side: Dir.t, ctx: t) =>
+  switch (pull(~from=side, ctx)) {
+  | (Node(tok), ctx) when Mtrl.is_space(tok.mtrl) =>
+    let tok =
+      Strings.chop_prefix(~prefix=" ", tok.text)
+      |> Option.map(text => {...tok, text})
+      |> Option.value(~default=tok);
+    Token.is_empty(tok) ? ctx : push(~onto=side, tok, ctx);
+  | _ => ctx
+  };
+
 let zip_toks = (~save_cursor=false, ctx: t): option((Meld.t, t)) => {
   let (hd, tl) = uncons(ctx);
   Frame.Open.zip_toks(~save_cursor, hd)
