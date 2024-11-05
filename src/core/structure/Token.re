@@ -256,7 +256,12 @@ module Unmolded = {
     Base.mk(~id?, ~text, ~marks?, mtrl);
   let length = (tok: t) => Utf8.length(tok.text);
   let defer = (tok: t): Molded.t =>
-    Molded.mk(~id=tok.id, ~text=tok.text, Space(Unmolded));
+    Molded.mk(
+      ~id=tok.id,
+      ~marks=?tok.marks,
+      ~text=tok.text,
+      Space(Unmolded),
+    );
   let has_lbl = (lbl: Label.t, tok: t) =>
     switch (tok.mtrl) {
     | Space(_)
