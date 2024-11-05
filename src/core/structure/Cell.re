@@ -278,54 +278,36 @@ module Space = {
   };
 
   let merge = (l: t, ~fill=empty, r: t) => {
-    if (!is_space(l) || !is_space(r)) {
+    if (!is_space(l) || Option.is_some(fill.meld) || !is_space(r)) {
       raise(Invalid_argument("Cell.Space.merge"));
     };
-    let marks =
-      r.marks
-      |> (
-        switch (l.meld) {
-        | None => Fun.id
-        | Some(m) =>
-          let shift = 2 * List.length(Meld.tokens(m));
-          Marks.map_paths(
-            fun
-            | [] =>
-              // assert(r.meld == None);
-              [shift]
-            | [hd, ...tl] => [hd + shift, ...tl],
-          );
-        }
-      )
-      |> Marks.union(
-           switch (l.meld) {
-           | Some(m) =>
-             let n = 2 * List.length(Meld.tokens(m));
-             Marks.cons(n, fill.marks);
-           | None => fill.marks
-           },
-         )
-      |> Marks.union(l.marks);
-    let meld =
-      Options.merge(
-        l.meld,
-        r.meld,
-        ~f=(Meld.M(l, w_l, m_l), Meld.M(m_r, w_r, r)) => {
-          let m = {
-            ...fill,
-            marks:
-              Marks.mk(
-                ~degrouted=
-                  m_l.marks.degrouted
-                  || fill.marks.degrouted
-                  || m_r.marks.degrouted,
-                (),
-              ),
-          };
-          Meld.M(l, Wald.append(w_l, m, w_r), r);
-        },
-      );
-    Base.{marks, meld};
+    switch (g(l), g(r)) {
+    | (None, None) =>
+      let marks = Marks.union_all([l.marks, fill.marks, r.marks]);
+      Base.mk(~marks, ());
+    | (None, Some(_)) =>
+      let marks =
+        Marks.(union_all([cons(0, l.marks), cons(0, fill.marks), r.marks]));
+      {...r, marks};
+    | (Some(m_l), None) =>
+      let shift = 2 * List.length(Meld.tokens(m_l));
+      let marks =
+        Marks.(
+          union_all([
+            l.marks,
+            cons(shift, fill.marks),
+            cons(shift, r.marks),
+          ])
+        );
+      {...l, marks};
+    | (Some(M(c_l, w_l, c_m_l)), Some(M(c_m_r, w_r, c_r))) =>
+      assert(c_m_l.meld == None && c_m_r.meld == None);
+      let c_m = {
+        ...fill,
+        marks: Marks.union_all([c_m_l.marks, fill.marks, c_m_r.marks]),
+      };
+      put(M(c_l, Wald.append(w_l, c_m, w_r), c_r));
+    };
   };
 };
 
