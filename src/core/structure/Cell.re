@@ -58,6 +58,19 @@ include Base;
 [@deriving (sexp, yojson)]
 type t = Base.t(Token.t);
 
+let rec flatten: Base.t(Token.t) => list('a) =
+  c =>
+    switch (c.meld) {
+    | None => []
+    | Some(m) => flatten_meld(m)
+    }
+and flatten_wald = (W(wald): Wald.t(_)) =>
+  Chain.map(Fun.id, flatten, wald)
+  |> Chain.to_list(x => [x], Fun.id)
+  |> List.flatten
+and flatten_meld = (M(p_left, wald, p_right): Meld.t(_)) =>
+  flatten(p_left) @ flatten_wald(wald) @ flatten(p_right);
+
 let dirty = mk(~marks=Marks.dirty, ());
 let rec pp = (out, {marks, meld}: t) => {
   let pp_meld = Meld.pp(pp, Token.pp);
