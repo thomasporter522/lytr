@@ -210,11 +210,17 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
 
 let finalize = (~mode=Mode.Navigating, ~fill=Cell.dirty, ctx: Ctx.t): Zipper.t => {
   Mode.set(mode);
+  // P.log("--- finalize");
   let (remolded, ctx) = remold(~fill, ctx);
+  // P.show("remolded", Cell.show(remolded));
+  // P.show("ctx", Ctx.show(ctx));
   let (l, r) = Ctx.(face(~side=L, ctx), face(~side=R, ctx));
   let repadded = Linter.repad(~l, remolded, ~r);
+  // P.show("repadded", Cell.show(repadded));
+  let c = {...repadded, marks: Cell.Marks.flush(repadded.marks)};
+  // P.show("flushed", Cell.show(c));
   Mode.reset();
-  Zipper.unzip_exn(repadded, ~ctx);
+  Zipper.unzip_exn(c, ~ctx);
 };
 
 let try_move = (s: string, z: Zipper.t) =>
