@@ -76,6 +76,8 @@ module Pat = {
     p(~a=R, seq([pat, c("::"), pat])),
     //ap
     p(seq([pat, brc(L, "("), pat, brc(R, ")")])),
+    //bare tuple
+    p(~a=L, seq([pat, c(","), pat])),
     p(operand),
   ];
 };
@@ -94,6 +96,16 @@ module Exp = {
     seq([
       kw("let", ~space=(false, true)),
       nt(Pat.sort),
+      op("="),
+      exp,
+      kw("in", ~break=(false, true), ~indent=false),
+      exp,
+    ]);
+
+  let type_def =
+    seq([
+      kw("type", ~space=(false, true)),
+      nt(Typ.sort),
       op("="),
       exp,
       kw("in", ~break=(false, true), ~indent=false),
@@ -122,6 +134,7 @@ module Exp = {
     p(case),
     //let
     p(let_),
+    p(type_def),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
