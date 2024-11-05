@@ -30,10 +30,11 @@ module Typ = {
 
   let operand =
     alt([
-      c("Int"),
-      c("Float"),
-      c("Bool"),
-      c("String"),
+      // c("Int"),
+      // c("Float"),
+      // c("Bool"),
+      // c("String"),
+      t(Id_upper),
       //List type
       seq([c("list"), brc(L, "("), typ, brc(R, ")")]),
       //Tuple type
