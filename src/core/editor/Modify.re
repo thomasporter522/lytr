@@ -90,7 +90,8 @@ let relabel =
   (normalized, Ctx.button(rest));
 };
 
-// None means token was removed. Some(ctx) means token was molded (or deferred and tagged as an unmolded space), ctx includes the molded token.
+// None means token was removed. Some(ctx) means token was molded (or deferred and
+// tagged as an unmolded space), ctx includes the molded token.
 let mold =
     (ctx: Ctx.t, ~fill=Cell.dirty, tok: Token.Unmolded.t): option(Ctx.t) => {
   open Options.Syntax;
@@ -107,6 +108,9 @@ let mold =
 
 let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
   open Options.Syntax;
+  // P.log("--- remold");
+  // P.show("fill", Cell.show(fill));
+  // P.show("ctx", Ctx.show(ctx));
   let ((l, r), tl) = Ctx.unlink_stacks(ctx);
   let bounds = (l.bound, r.bound);
   let- () =
@@ -121,7 +125,11 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
     };
   switch (r.slope) {
   | [] =>
+    // P.log("--- remold/done");
+    // P.show("l", Stack.show(l));
+    // P.show("fill", Cell.show(fill));
     let cell = Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill);
+    // P.show("completed", Cell.show(cell));
     let ctx = Ctx.link_stacks(({...l, slope: []}, {...r, slope: []}), tl);
     (cell, ctx);
   | [hd_up, ...tl_up] =>
@@ -472,6 +480,8 @@ let delete = (d: Dir.t, z: Zipper.t) => {
   //     Move.perform(Step(H(d)), z)
   //   | _ => None
   //   };
+  // P.log("--- delete");
+  // P.show("z", Zipper.show(z));
   let+ z = Cursor.is_point(z.cur) ? Select.hstep(d, z) : return(z);
   delete_sel(d, z);
 };
@@ -480,11 +490,18 @@ let insert = (s: string, z: Zipper.t) => {
   open Options.Syntax;
   let z = delete_sel(L, z);
 
+  // P.log("--- insert");
   let- () = try_expand(s, z);
   let- () = try_move(s, z);
   let- () = try_extend(s, z);
 
+  // P.log("--- insert/molding");
+  // P.show("z.ctx", Ctx.show(z.ctx));
   let (toks, ctx) = relabel(s, z.ctx);
+  // P.show("toks", Chain.show(Cell.pp, Token.Unmolded.pp, toks));
+  // P.show("ctx", Ctx.show(ctx));
   let (molded, fill) = insert_toks(toks, ctx);
+  // P.sexp("molded", Ctx.sexp_of_t(molded));
+  // P.show("fill", Cell.show(fill));
   finalize(~mode=Inserting(s), ~fill, molded);
 };
