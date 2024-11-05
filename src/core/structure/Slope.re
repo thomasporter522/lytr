@@ -16,6 +16,7 @@ include Base;
 type t = Base.t(Token.t);
 
 let tokens = List.concat_map(Terr.tokens);
+
 // let link = (w: Wald.t, c: Rel.t(_), slope: t) =>
 //   switch (c) {
 //   | Neq(c) => [Terr.Base.{cell: c, wald: Wald.rev(w)}, ...slope]
@@ -124,16 +125,17 @@ let merge_hd = (~onto: Dir.t, t: Token.t, slope: t): option(t) =>
 module Dn = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = list(Terr.R.t);
-  // let flatten = List.concat_map(Terr.R.flatten);
   let roll = roll(~onto=L);
   let unroll = unroll(~from=L);
   let pull = pull(~from=L);
+  let flatten = slope => slope |> List.rev |> List.concat_map(Terr.R.flatten);
 };
 module Up = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = list(Terr.L.t);
-  // let flatten = List.concat_map(Terr.L.flatten);
+
   let roll = roll(~onto=R);
   let unroll = unroll(~from=R);
   let pull = pull(~from=R);
+  let flatten = List.concat_map(Terr.L.flatten);
 };

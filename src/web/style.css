@@ -589,3 +589,12 @@ svg {
     opacity: 0%;
   }
 }
+
+#clipboard-shim {
+  position: fixed;
+  opacity: 0.01;
+  width: 1em;
+  height: 1em;
+  top: -1em;
+  left: -1em;
+}

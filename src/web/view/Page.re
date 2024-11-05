@@ -194,6 +194,12 @@ let on_key = (~inject, ~model) => {
   ];
 };
 
+let copy = (cur: Tylr_core.Zipper.Cursor.Base.t('tok)) =>
+  switch (Tylr_core.Zipper.selection_str(cur)) {
+  | None => ()
+  | Some(str) => Util.Dom.copy(str)
+  };
+
 let view = (~inject, model: Model.t) => {
   div(
     ~attrs=
@@ -202,13 +208,31 @@ let view = (~inject, model: Model.t) => {
         // necessary to make cell focusable
         // tabindex(0),
         on_blur(_ => {
-          Util.Dom.get_elem_by_id("page")##focus;
+          //Util.Dom.get_elem_by_id("page")##focus;
+          Util.Dom.focus_clipboard_shim();
           Effect.Prevent_default;
+        }),
+        Attr.on_focus(_ => {
+          Util.Dom.focus_clipboard_shim();
+          Effect.Ignore;
+        }),
+        Attr.on_copy(_ => {
+          copy(model.zipper.cur);
+          Effect.Ignore;
+        }),
+        Attr.on_cut(_ => {
+          copy(model.zipper.cur);
+          inject(Update.PerformAction(Delete(L)));
+        }),
+        Attr.on_paste(evt => {
+          Js_of_ocaml.Dom.preventDefault(evt);
+          inject(Update.PerformAction(Insert(Util.Dom.paste(evt))));
         }),
         ...on_key(~inject, ~model),
       ],
     [
       FontSpecimen.view("font-specimen"),
+      Util.Dom.clipboard_shim,
       // FontSpecimen.view("logo-font-specimen"),
       Dec.Filters.all,
       // top_bar_view(~inject, model),

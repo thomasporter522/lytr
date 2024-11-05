@@ -35,12 +35,12 @@ let tokens = ({up, top, dn}: t) =>
     List.rev(Slope.tokens(dn)),
   ]);
 
-// let flatten = ({up, top, dn}: t) =>
-//   List.concat([
-//     Slope.Up.flatten(up),
-//     Wald.flatten(top),
-//     Slope.Dn.flatten(dn),
-//   ]);
+let flatten = ({up, top, dn}: t) =>
+  List.concat([
+    Slope.Up.flatten(up),
+    Cell.flatten_wald(top),
+    Slope.Dn.flatten(dn),
+  ]);
 
 let face = (~side: Dir.t, zigg: t) => {
   let (s_d, top, _) = orient(side, zigg);

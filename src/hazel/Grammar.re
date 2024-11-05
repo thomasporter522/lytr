@@ -77,7 +77,7 @@ module Pat = {
     //ap
     p(seq([pat, brc(L, "("), pat, brc(R, ")")])),
     //bare tuple
-    p(~a=L, seq([pat, c(","), pat])),
+    //p(~a=L, seq([pat, c(","), pat])),
     p(operand),
   ];
 };
@@ -126,6 +126,8 @@ module Exp = {
   let add_op = op_alt(["+", "+.", "-", "-.", "@", "++"]);
   let mult_op = op_alt(["*", "*.", "/", "/."]);
   let neg_op = op_alt(["-", "-."]);
+  let comp_op_int = op_alt(["<", "<=", ">", ">=", "==", "!="]);
+  let comp_op_float = op_alt(["<.", "<=.", ">", ">=.", "==", "!="]);
 
   let fn_ap = seq([exp, brc(L, "("), comma_sep(exp), brc(R, ")")]);
 
@@ -135,6 +137,8 @@ module Exp = {
     //let
     p(let_),
     p(type_def),
+    //Reverse-ap
+    p(~a=L, seq([exp, c("|>"), exp])),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
@@ -150,6 +154,9 @@ module Exp = {
         exp,
       ]),
     ),
+    //Comparison
+    p(~a=L, seq([exp, comp_op_int, exp])),
+    p(~a=L, seq([exp, comp_op_float, exp])),
     //Math operations
     p(~a=L, seq([exp, add_op, exp])),
     p(~a=L, seq([exp, mult_op, exp])),

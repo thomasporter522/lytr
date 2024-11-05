@@ -76,13 +76,15 @@ module L = {
   // L2R: wald cell
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = Base.t(Token.t);
-  // let flatten = ({wald, cell}: t) =>
-  //   Wald.flatten(wald) @ Cell.flatten(cell);
+
+  let flatten = (terr: t) =>
+    Cell.flatten_wald(terr.wald) @ Cell.flatten(terr.cell);
 };
 module R = {
   // L2R: cell wald
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t = Base.t(Token.t);
-  // let flatten = ({cell, wald}: t) =>
-  //   Cell.flatten(cell) @ Wald.flatten(Wald.rev(wald));
+
+  let flatten = (terr: t) =>
+    Cell.flatten(terr.cell) @ Cell.flatten_wald(Wald.rev(terr.wald));
 };

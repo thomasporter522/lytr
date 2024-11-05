@@ -308,3 +308,14 @@ let mk_button = (~cur: Cursor.t, ctx) =>
     let ctx = Ctx.(button(cons((dn', up'), tl)));
     unzip_exn(cell, ~ctx);
   };
+
+let selection_str = (cur: Cursor.Base.t('tok)): option(string) =>
+  switch (cur) {
+  | Point(_) => None
+  | Select({range, _}) =>
+    range
+    |> Zigg.flatten
+    |> List.map((x: Token.t) => x.text)
+    |> String.concat("")
+    |> Option.some
+  };
