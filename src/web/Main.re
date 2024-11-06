@@ -49,11 +49,10 @@ let restart_caret_animation = () =>
 
 let apply = (model, action, state, ~schedule_action): Model.t => {
   restart_caret_animation();
+  print_endline("Apply:" ++ Update.show(action));
   switch (Update.apply(model, action, state, ~schedule_action)) {
   | Ok(model) =>
-    print_endline("saving...");
     Store.save_syntax(0, model.zipper);
-    print_endline("done saving.");
     model;
   | Error(FailedToPerform) =>
     // TODO(andrew): refactor history
