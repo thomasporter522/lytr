@@ -104,7 +104,10 @@
 .block, .section, .line, .indent {
   display: inline-block;
 }
-.tile .ghost,
+.tile .ghost {
+  position: relative;
+  opacity: 40%;
+}
 
 .grout {
   position: relative;
