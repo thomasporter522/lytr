@@ -23,7 +23,7 @@ let view_space = spc =>
 
 let grout = (~font, sort, shape) =>
   Node.span(
-    ~attrs=[Attr.classes(["grout-nu", Sort.to_str(sort)])],
+    ~attrs=[Attr.classes(["grout", Sort.to_str(sort)])],
     [
       Node.text("•"),
       Dec.Box.mk(

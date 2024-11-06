@@ -109,11 +109,12 @@
 .grout {
   position: relative;
   color: #0000;
-  /* filter: brightness(0.8) saturate(3); */
 }
+
 .grout svg {
   height: 100%;
 }
+
 .grout path {
   scale: 0.6;
   transform-origin: center;
