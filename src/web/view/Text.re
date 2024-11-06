@@ -22,17 +22,14 @@ let view_space = spc =>
   |> String.concat("");
 
 let grout = (~font, sort, shape) =>
-  Node.span(
-    ~attrs=[Attr.classes(["grout", Sort.to_str(sort)])],
-    [
-      Node.text("•"),
-      Dec.Box.mk(
-        ~font,
-        ~loc={row: 0, col: 0},
-        [Dec.Token.hexagon({sort, shape, sil: false}, 1)],
-      ),
-    ],
-  );
+  Node.span([
+    Node.text("•"),
+    Dec.Box.mk(
+      ~font,
+      ~loc={row: 0, col: 0},
+      [Dec.Token.hexagon({sort, shape, sil: false}, 1)],
+    ),
+  ]);
 
 let view_tok = (~font, tok: Token.t) => {
   let mtrl_clss =
