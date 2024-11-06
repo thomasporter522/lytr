@@ -145,25 +145,31 @@ let connect =
       t: Token.t,
     )
     : Result.t((Grouted.t, Terr.t), Cell.t) => {
-  let b = Dir.toggle(d);
+  // let b = Dir.toggle(d);
   let eq = () =>
     connect_eq(~repair, ~onto=d, onto, ~fill, t) |> Option.map(Result.ok);
   let neq_d = () =>
     connect_neq(~repair, ~onto=d, Node(onto), ~fill, t)
     |> Option.map(grouted => {(grouted, onto)})
     |> Option.map(Result.ok);
-  let neq_b = () => {
-    let (hd, tl) = Wald.uncons(onto.wald);
-    connect_neq(~repair, ~onto=b, Node(Terr.of_tok(t)), ~fill, hd)
-    |> Option.map(grouted => Stack.connect(hd, grouted, Stack.empty))
-    |> Option.map(Stack.to_slope)
-    |> Option.map(Slope.extend(tl))
-    |> Option.map(complete_slope(~onto=b, ~fill=onto.cell))
-    |> Option.map(Result.err);
-  };
+  // let neq_b = () => {
+  //   let (hd, tl) = Wald.uncons(onto.wald);
+  //   connect_neq(~repair, ~onto=b, Node(Terr.of_tok(t)), ~fill, hd)
+  //   |> Option.map(grouted => {
+  //        P.log("--- Melder.connect/neq_b");
+  //        P.show("t", Token.show(t));
+  //        P.show("grouted", Grouted.show(grouted));
+  //        P.show("onto", Terr.show(onto));
+  //        Stack.connect(hd, grouted, Stack.empty);
+  //      })
+  //   |> Option.map(Stack.to_slope)
+  //   |> Option.map(Slope.extend(tl))
+  //   |> Option.map(complete_slope(~onto=b, ~fill=onto.cell))
+  //   |> Option.map(Result.err);
+  // };
   // ensure consistent ordering
-  let neqs = Dir.pick(d, ([neq_d, neq_b], [neq_b, neq_d]));
-  [eq, ...neqs]
+  // let neqs = Dir.pick(d, ([neq_d, neq_b], [neq_b, neq_d]));
+  [eq, neq_d]
   |> Oblig.Delta.minimize(~to_zero=!repair, f => f())
   // use get here instead of value to avoid spurious effects
   |> Options.get(() => Error(complete_terr(~onto=d, ~fill, onto)));
