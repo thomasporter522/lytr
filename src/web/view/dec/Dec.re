@@ -11,3 +11,5 @@ module Silhouette = Silhouette;
 module Caret = Caret;
 
 module Filters = Filters;
+
+module Box = Box;

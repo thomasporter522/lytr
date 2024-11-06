@@ -3,10 +3,10 @@ open Node;
 open Tylr_core;
 open Stds;
 
-let view_text = (c: Cell.t) =>
+let view_text = (~font, c: Cell.t) =>
   Layout.mk_cell(c)
   |> LCell.flatten
-  |> Text.view_block
+  |> Text.view_block(~font)
   |> Lists.single
   |> Node.span(~attrs=[Attr.class_("code-text")]);
 
@@ -83,6 +83,6 @@ let view = (~font: Model.Font.t, ~zipper: Zipper.t): Node.t => {
   // print_endline("b = " ++ Block.show(b));
   div(
     ~attrs=[Attr.class_("code"), Attr.id("under-the-rail")],
-    [view_text(c), ...cursor(~font, zipper)] @ carets(~font, c),
+    [view_text(~font, c), ...cursor(~font, zipper)] @ carets(~font, c),
   );
 };

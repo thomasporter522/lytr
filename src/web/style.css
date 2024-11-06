@@ -52,8 +52,8 @@
   --pat-shadow-color: #90bdde; /*#268bd2;*/
   --pat-rail-color: #a1c4dd;
 
-  --typ-bg-color: #caccf4;
-  --typ-shadow-color: #6168d4;
+  --typ-bg-color: #ecdaff;
+  --typ-shadow-color: #c498fc;
 
   --rul-bg-color: #f3caf4;
   --rul-shadow-color: #d461d0;
@@ -105,8 +105,18 @@
   display: inline-block;
 }
 .tile .ghost,
+
 .grout {
-  opacity: 40%;
+  position: relative;
+  color: #0000;
+  /* filter: brightness(0.8) saturate(3); */
+}
+.grout svg {
+  height: 100%;
+}
+.grout path {
+  scale: 0.6;
+  transform-origin: center;
 }
 
 .unmolded {

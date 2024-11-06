@@ -65,6 +65,21 @@ let tip = (t: Tip.t): Path.t => [
   H_({dx: -. adj(t)}),
 ];
 
+let base_hexagon = (style: Style.t, length: int): Node.t =>
+  List.flatten([
+    Path.[m(~x=0, ~y=0) |> cmdfudge(~y=v_trunc), h(~x=length)],
+    tip(snd(style.shape)),
+    Path.[h(~x=0)],
+    Path.scale(-1., tip(fst(style.shape))),
+  ])
+  |> Util.Svgs.Path.view
+  |> Util.Nodes.add_classes([
+       "tile-path",
+       "raised",
+       "indicated",
+       Sort.to_str(style.sort),
+     ]);
+
 let hexagon = (style: Style.t, length: int): Node.t =>
   List.flatten([
     Path.[m(~x=0, ~y=0) |> cmdfudge(~y=v_trunc), h(~x=length)],
