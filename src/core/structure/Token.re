@@ -31,6 +31,11 @@ module Base = {
   let clear_marks = tok => put_marks(None, tok);
   let pop_marks = tok => (tok.marks, clear_marks(tok));
   let height = tok => Strings.count('\n', tok.text);
+  let has_anchor = (tok: t(_)) =>
+    switch (tok.marks) {
+    | Some(Point({hand: Anchor, _}) | Select(_)) => true
+    | _ => false
+    };
 };
 
 module Molded = {
