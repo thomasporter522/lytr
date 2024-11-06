@@ -36,7 +36,8 @@ module Typ = {
       // c("String"),
       t(Id_upper),
       //List type
-      seq([c("list"), brc(L, "("), typ, brc(R, ")")]),
+      seq([brc(L, "["), typ, brc(R, "]")]),
+      //seq([c("list"), brc(L, "("), typ, brc(R, ")")]),
       //Tuple type
       seq([brc(L, "("), comma_sep(typ), brc(R, ")")]),
     ]);
@@ -48,6 +49,8 @@ module Typ = {
     //Ap
     p(seq([typ, brc(L, "("), typ, brc(R, ")")])),
     p(operand),
+    //Sum type
+    p(~a=L, seq([typ, op("+"), typ])),
   ];
 };
 
@@ -108,7 +111,7 @@ module Exp = {
       kw("type", ~space=(false, true)),
       nt(Typ.sort),
       op("="),
-      exp,
+      Typ.typ,
       kw("in", ~break=(false, true), ~indent=false),
       exp,
     ]);
