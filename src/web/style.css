@@ -232,9 +232,11 @@
 }
 
 #code-container {
-  padding: 1em 6em 6em 6em;
-  height: calc(100vw - 18.2em);
-  overflow: scroll;
+  margin: 1em 6em 6em 6em;
+  cursor: text;
+  user-select: none;
+  /* height: calc(100vw - 18.2em);
+  overflow: scroll; */
 }
 #code-container:focus {
   outline: none;
@@ -629,6 +631,7 @@ svg {
 }
 
 #history {
+  z-index: 6;
   user-select: none;
   position: fixed;
   font-family: 'Source Code Pro';

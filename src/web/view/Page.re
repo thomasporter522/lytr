@@ -200,6 +200,28 @@ let copy = (cur: Tylr_core.Zipper.Cursor.Base.t('tok)) =>
   | Some(str) => Util.Dom.copy(str)
   };
 
+let get_goal = (~font: Model.Font.t, ~target_id, e): Tylr_core.Loc.t => {
+  let rect = Util.Dom.get_elem_by_id(target_id)##getBoundingClientRect;
+  let goal_x = float_of_int(e##.clientX);
+  let goal_y = float_of_int(e##.clientY);
+  print_endline(
+    "goal: row/col "
+    ++ string_of_float(goal_x)
+    ++ ", "
+    ++ string_of_float(goal_y),
+  );
+  print_endline(
+    "code-container: row/col "
+    ++ string_of_float(rect##.top)
+    ++ ", "
+    ++ string_of_float(rect##.left),
+  );
+  {
+    row: Float.to_int((goal_y -. rect##.top) /. font.row_height),
+    col: Float.(to_int(round((goal_x -. rect##.left) /. font.col_width))),
+  };
+};
+
 let view = (~inject, model: Model.t) => {
   div(
     ~attrs=
@@ -227,6 +249,18 @@ let view = (~inject, model: Model.t) => {
         Attr.on_paste(evt => {
           Js_of_ocaml.Dom.preventDefault(evt);
           inject(Update.PerformAction(Insert(Util.Dom.paste(evt))));
+        }),
+        Attr.on_mousedown(evt => {
+          Util.Dom.focus_clipboard_shim();
+          let loc =
+            get_goal(~font=model.font, ~target_id="code-container", evt);
+          print_endline(
+            "jumping to: "
+            ++ string_of_int(loc.row)
+            ++ ", "
+            ++ string_of_int(loc.col),
+          );
+          inject(PerformAction(Move(Jump(loc))));
         }),
         ...on_key(~inject, ~model),
       ],
