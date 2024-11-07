@@ -1,36 +1,27 @@
 open Stds;
 open Walk;
 
-let mtrlize_tile =
-  Memo.general(((l, r, s, from)) =>
-    Grammar.v
-    |> Sort.Map.find(s)
-    |> Prec.Table.mapi(((p, a), rgx) => {
-         let is_bounded =
-           Bound.(
-             l |> map(l => Prec.lt(~a, l, p)) |> get(~root=true),
-             r |> map(r => Prec.gt(~a, p, r)) |> get(~root=true),
-           );
-         // need to check for legal bounded entry from both sides
-         let enter_from = (from: Dir.t) =>
-           // currently filtering without assuming single operator form
-           // for each prec level. this may need to change.
-           RZipper.enter(~from, rgx)
-           |> List.filter_map(
-                fun
-                | Bound.Root => None
-                | Node((sym, _) as z) =>
-                  Dir.pick(from, is_bounded) || Sym.is_t(sym)
-                    ? Some(Tile.Sym.mk(s, p, z)) : None,
-              );
-         switch (enter_from(L), enter_from(R)) {
-         | ([], _)
-         | (_, []) => []
-         | ([_, ..._] as l, [_, ..._] as r) => Dir.pick(from, (l, r))
-         };
-       })
-    |> List.concat
-  );
+let debug = ref(false);
+
+let mtrlize_tile = ((l, r, s, from)) =>
+  Grammar.v
+  |> Sort.Map.find(s)
+  |> Prec.Table.mapi(((p, a), rgx) => {
+       let is_bounded =
+         Bound.(
+           l |> map(l => Prec.lt(~a, l, p)) |> get(~root=true),
+           r |> map(r => Prec.gt(~a, p, r)) |> get(~root=true),
+         );
+       RZipper.enter(~from, rgx)
+       |> List.filter_map(
+            fun
+            | Bound.Root => None
+            | Node((sym, _) as z) =>
+              Dir.pick(from, is_bounded) || Sym.is_t(sym)
+                ? Some(Tile.Sym.mk(s, p, z)) : None,
+          );
+     })
+  |> List.concat;
 let mtrlize_tile = (~l=Bound.Root, ~r=Bound.Root, s: Sort.t, ~from: Dir.t) =>
   mtrlize_tile((l, r, s, from));
 

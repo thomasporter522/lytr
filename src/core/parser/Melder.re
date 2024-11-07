@@ -153,19 +153,19 @@ let connect =
     |> Option.map(grouted => {(grouted, onto)})
     |> Option.map(Result.ok);
   let neq_b = () => {
-    let (hd, tl) = Wald.uncons(onto.wald);
+    let (hd, _tl) = Wald.uncons(onto.wald);
+    // we call connect_neq in b direction for the purpose of emitting token effects
+    // for subsequent oblig minimization, but don't need the result
     connect_neq(~repair, ~onto=b, Node(Terr.of_tok(t)), ~fill, hd)
-    |> Option.map(grouted => Stack.connect(hd, grouted, Stack.empty))
-    |> Option.map(Stack.to_slope)
-    |> Option.map(Slope.extend(tl))
-    |> Option.map(complete_slope(~onto=b, ~fill=onto.cell))
+    |> Option.map(_ => complete_terr(~onto=d, ~fill, onto))
     |> Option.map(Result.err);
   };
   // ensure consistent ordering
   let neqs = Dir.pick(d, ([neq_d, neq_b], [neq_b, neq_d]));
   [eq, ...neqs]
   |> Oblig.Delta.minimize(~to_zero=!repair, f => f())
-  // use get here instead of value to avoid spurious effects
+  // use get here instead of value to avoid spurious effects.
+  // default value covers incomparability.
   |> Options.get(() => Error(complete_terr(~onto=d, ~fill, onto)));
 };
 
