@@ -2,6 +2,8 @@ open Stds;
 
 exception Bug__failed_to_push_space;
 
+let debug = ref(true);
+
 let lt = (l: Wald.t, r: Wald.t) =>
   !
     Lists.is_empty(

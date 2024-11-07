@@ -29,8 +29,12 @@ let candidates = (t: Token.Unmolded.t): list(Token.t) =>
     | Tile(lbls) =>
       lbls
       |> List.concat_map(lbl =>
-           Molds.with_label(lbl) |> List.map(mold => Mtrl.Tile((lbl, mold)))
+           Molds.with_label(lbl) |> List.map(mold => (lbl, mold))
          )
+      |> List.stable_sort(((_, l: Mold.t), (_, r: Mold.t)) =>
+           Sort.compare(l.sort, r.sort)
+         )
+      |> List.map(Mtrl.tile)
     },
   );
 
