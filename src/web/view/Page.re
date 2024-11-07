@@ -238,6 +238,7 @@ let view = (~inject, model: Model.t) => {
       // top_bar_view(~inject, model),
       // editor_caption_view(model),
       editor_view(model),
+      History.view(model),
     ],
   );
 };
