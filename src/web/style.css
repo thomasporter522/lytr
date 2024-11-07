@@ -265,8 +265,8 @@
 }
 
 #history-button-container {
-    display: flex;
-    gap: 1em;
+  display: flex;
+  gap: 1em;
 }
 
 .history-button {
@@ -648,7 +648,7 @@ svg {
 
 #history .history-item:first-child {
   background-color: #bbae91;
-  color: white;
+  color: var(--light-page-color);
 }
 
 #history .history-item.error {
@@ -671,6 +671,7 @@ svg {
   align-items: center;
   width: 1em;
   justify-content: center;
+  color: var(--light-page-color);
 }
 
 #history-toggle {
