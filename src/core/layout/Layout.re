@@ -142,9 +142,13 @@ let step_of_loc =
   // traversed and updated loc
   |> Chain.fold_left(
        sec_len => {
+         let len_sol = 0;
+         let loc_sol = state.loc;
+         let len_eol = sec_len;
          let loc_eol = Loc.shift(sec_len, state.loc);
-         Loc.lt(loc_eol, target)
-           ? Error((sec_len, loc_eol)) : Ok(target.col - state.loc.col);
+         loc_eol.row < target.row
+           ? Error((len_eol, loc_eol))
+           : Ok(min(len_sol + max(0, target.col - loc_sol.col), len_eol));
        },
        (found, rel_indent, sec_len) => {
          open Result.Syntax;
@@ -155,9 +159,9 @@ let step_of_loc =
            Loc.return(loc, ~ind=Indent.peek(state.ind) + rel_indent);
          let len_eol = len_sol + sec_len;
          let loc_eol = Loc.shift(sec_len, loc_sol);
-         Loc.lt(loc_eol, target)
+         loc_eol.row < target.row
            ? Error((len_eol, loc_eol))
-           : Ok(len_sol + target.col - loc_sol.col);
+           : Ok(min(len_sol + max(0, target.col - loc_sol.col), len_eol));
        },
      )
   |> Result.map_error(~f=((_, loc)) => {...state, loc});
