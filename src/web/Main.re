@@ -47,26 +47,41 @@ let restart_caret_animation = () =>
   | _ => ()
   };
 
+let act_str = (action: Update.t) =>
+  switch (action) {
+  | SetFont(_) => "SetFont"
+  | PerformAction(edit) => Tylr_core.Edit.show(edit)
+  | _ => Update.show(action)
+  };
+
 let apply = (model, action, state, ~schedule_action): Model.t => {
   restart_caret_animation();
+  print_endline("Apply:" ++ Update.show(action));
   switch (Update.apply(model, action, state, ~schedule_action)) {
+  | exception exn when Update.catch_exns^ =>
+    prerr_endline(Printexc.to_string(exn));
+    {
+      ...model,
+      hist: [(act_str(action), Printexc.to_string(exn)), ...model.hist],
+    };
   | Ok(model) =>
-    print_endline("saving...");
     Store.save_syntax(0, model.zipper);
-    print_endline("done saving.");
-    model;
-  | Error(FailedToPerform) =>
-    // TODO(andrew): refactor history
-    print_endline(Update.Failure.show(FailedToPerform));
-    // {...model, history: History.failure(err, model.history)};
-    model;
-  // | Error(UnrecognizedInput(reason)) =>
-  //   // TODO(andrew): refactor history
-  //   print_endline(Update.Failure.show(UnrecognizedInput(reason)));
-  // {...model, history: History.just_failed(reason, model.history)};
+    {...model, hist: [(act_str(action), "✔"), ...model.hist]};
+  | Error(FailedToPerform as err) =>
+    prerr_endline(Update.Failure.show(FailedToPerform));
+    {
+      ...model,
+      hist: [(act_str(action), Update.Failure.show(err)), ...model.hist],
+    };
   | Error(err) =>
     print_endline(Update.Failure.show(err));
-    model;
+    {
+      ...model,
+      hist: [
+        (Update.show(action), Update.Failure.show(err)),
+        ...model.hist,
+      ],
+    };
   };
 };
 

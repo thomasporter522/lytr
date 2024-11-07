@@ -4,6 +4,8 @@ open Stds;
 open Tylr_core;
 open Model;
 
+let catch_exns = ref(false);
+
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
   // | Set(settings_action)
@@ -44,9 +46,15 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
   //   }
   | {key: D(key), sys: _, shift: Down, meta: Up, ctrl: Up, alt: Up}
       when is_f_key(key) =>
-    let index = int_of_string(String.sub(key, 1, 1)) - 1;
-    print_endline("F key pressed: index: " ++ string_of_int(index));
-    now_save_u(Load(index));
+    if (key == "F12") {
+      print_endline("Catch exceptions: " ++ string_of_bool(! catch_exns^));
+      catch_exns := ! catch_exns^;
+      [];
+    } else {
+      let index = int_of_string(String.sub(key, 1, 1)) - 1;
+      print_endline("F key pressed: index: " ++ string_of_int(index));
+      now_save_u(Load(index));
+    }
   | {key: D(key), sys: _, shift, meta: Up, ctrl: Up, alt: Up} =>
     switch (shift, key) {
     | (Up, "ArrowLeft") => now(Move(Step(H(L))))

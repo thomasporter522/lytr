@@ -52,8 +52,8 @@
   --pat-shadow-color: #90bdde; /*#268bd2;*/
   --pat-rail-color: #a1c4dd;
 
-  --typ-bg-color: #caccf4;
-  --typ-shadow-color: #6168d4;
+  --typ-bg-color: #ecdaff;
+  --typ-shadow-color: #c498fc;
 
   --rul-bg-color: #f3caf4;
   --rul-shadow-color: #d461d0;
@@ -104,9 +104,36 @@
 .block, .section, .line, .indent {
   display: inline-block;
 }
-.tile .ghost,
-.grout {
+.tile .ghost {
+  position: relative;
   opacity: 40%;
+}
+
+.grout {
+  position: relative;
+  color: #0000;
+}
+
+.grout svg {
+  height: 100%;
+}
+
+.grout path {
+  scale: 0.5;
+  transform-origin: center;
+}
+
+.grout path.tile-path.Exp {
+  fill: var(--exp-shadow-color);
+  opacity: 0.5;
+}
+.grout path.tile-path.Pat {
+  fill: var(--pat-shadow-color);
+  opacity: 0.5;
+}
+.grout path.tile-path.Typ {
+  fill: var(--typ-shadow-color);
+  opacity: 0.5;
 }
 
 .unmolded {
@@ -597,4 +624,56 @@ svg {
   height: 1em;
   top: -1em;
   left: -1em;
+}
+
+#history {
+  user-select: none;
+  position: fixed;
+  font-family: 'Source Code Pro';
+  /* font-size: 5pt; */
+  bottom: 0;
+  color: #bbae91;
+  width: 100%;
+  height: 1.2em;
+}
+
+#history .history-item {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+} 
+
+#history .history-item:first-child {
+  background-color: #bbae91;
+  color: white;
+}
+
+#history .history-item.error {
+  color: red;
+} 
+
+#history .history-item:first-child.error {
+  background-color: red;
+  color: white;
+}
+
+#history .history-item div:first-child {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+#history .history-item div:last-child {
+  font-size: 0.7em;
+  display: flex;
+  align-items: center;
+  width: 1em;
+  justify-content: center;
+}
+
+#history-toggle {
+  display: none;
+}
+
+#history-toggle:checked ~ #history {
+  height: auto;
 }
