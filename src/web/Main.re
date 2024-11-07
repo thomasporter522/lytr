@@ -58,15 +58,17 @@ let apply = (model, action, state, ~schedule_action): Model.t => {
   restart_caret_animation();
   print_endline("Apply:" ++ Update.show(action));
   switch (Update.apply(model, action, state, ~schedule_action)) {
-  | exception exn when Update.catch_exns^ => {
+  | exception exn when Update.catch_exns^ =>
+    prerr_endline(Printexc.to_string(exn));
+    {
       ...model,
       hist: [(act_str(action), Printexc.to_string(exn)), ...model.hist],
-    }
+    };
   | Ok(model) =>
     Store.save_syntax(0, model.zipper);
     {...model, hist: [(act_str(action), "✔"), ...model.hist]};
   | Error(FailedToPerform as err) =>
-    print_endline(Update.Failure.show(FailedToPerform));
+    prerr_endline(Update.Failure.show(FailedToPerform));
     {
       ...model,
       hist: [(act_str(action), Update.Failure.show(err)), ...model.hist],

@@ -125,12 +125,15 @@
 
 .grout path.tile-path.Exp {
   fill: var(--exp-shadow-color);
+  opacity: 0.5;
 }
 .grout path.tile-path.Pat {
   fill: var(--pat-shadow-color);
+  opacity: 0.5;
 }
 .grout path.tile-path.Typ {
   fill: var(--typ-shadow-color);
+  opacity: 0.5;
 }
 
 .unmolded {
