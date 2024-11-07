@@ -119,21 +119,22 @@
 }
 
 .grout path {
-  scale: 0.5;
   transform-origin: center;
+  /* transform-box: fill-box; */
+  transform: scale(0.4,0.375) translate(0, 5%);
 }
 
 .grout path.tile-path.Exp {
   fill: var(--exp-shadow-color);
-  opacity: 0.5;
+  /* opacity: 0.5; */
 }
 .grout path.tile-path.Pat {
   fill: var(--pat-shadow-color);
-  opacity: 0.5;
+  /* opacity: 0.5; */
 }
 .grout path.tile-path.Typ {
   fill: var(--typ-shadow-color);
-  opacity: 0.5;
+  /* opacity: 0.5; */
 }
 
 .unmolded {
@@ -643,7 +644,7 @@ svg {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
-} 
+}
 
 #history .history-item:first-child {
   background-color: #bbae91;
@@ -652,7 +653,7 @@ svg {
 
 #history .history-item.error {
   color: red;
-} 
+}
 
 #history .history-item:first-child.error {
   background-color: red;
