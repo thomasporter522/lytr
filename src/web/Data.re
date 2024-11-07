@@ -104,4 +104,140 @@ let update: (Model, Action) -> Model =
 in
 update(init, StampEmoji(1, 1))|};
 
-//fun ((grid, selectedEmoji, emojiList), action) ->
+let ep0 = {|type Emoji = None + Smile + Laugh in
+type Model = Emoji in
+type Action = StampEmoji in
+
+let init: Model = None in
+
+let update: (Model, Action) -> Model =
+  fun (model, action) ->
+    case action
+      | StampEmoji => Smile
+in
+
+update(init, StampEmoji)|};
+
+let ep1 = {|type Emoji = None + Smile + Laugh in
+type Model = (Emoji, Emoji) in
+type Action =
+  StampEmoji
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = (None, Smile)  in
+
+let update: (Model, Action) -> Model =
+  fun ((canvas, selectedEmoji), action) ->
+    case action
+      | SelectEmoji(emoji) =>
+      (canvas, emoji)
+      | StampEmoji =>
+      (selectedEmoji, selectedEmoji)
+in update(init, SelectEmoji(Laugh))|};
+
+let ep2 = {|type Emoji = None + Smile + Laugh in
+type Model = ([Emoji],Emoji) in
+type Action =
+  StampEmoji(Int)
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = ([None, None, None], Smile) in
+
+let update: (Model, Action) -> Model =
+  fun ((canvas, selectedEmoji), action) ->
+    case action
+      | StampEmoji(index) =>
+      let new_canvas =
+        List.mapi(
+          (fun (i, currentEmoji) ->
+            if i == index
+            then selectedEmoji
+          else currentEmoji),
+        canvas)
+      in (new_canvas, selectedEmoji)
+      | SelectEmoji(emoji) =>
+      (canvas, emoji)
+in
+update(init, StampEmoji(2))|};
+
+let ep3 = {|type Emoji = None + Smile + Laugh in
+type Model = ([Emoji],Emoji) in
+type Action =
+  StampEmoji(Int)
+  + ClearCell(Int)
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = ([Smile, None, None], Smile) in
+
+let update_canvas =
+  fun (index, emoji, canvas) ->
+    List.mapi(
+      (fun (i, currentEmoji) ->
+        if i == index
+        then emoji
+      else currentEmoji),
+    canvas)
+in
+
+let update: (Model, Action) -> Model =
+  fun ((canvas, selectedEmoji), action) ->
+    case action
+      | StampEmoji(index) =>
+      (update_canvas(index, selectedEmoji, canvas), selectedEmoji)
+      | ClearCell(index) =>
+      (update_canvas(index, None, canvas), selectedEmoji)
+      | SelectEmoji(emoji) =>
+      (canvas, emoji)
+in
+update(init, ClearCell(0))|};
+
+let ep4 = {|type Emoji = None + Smile + Laugh in
+type Model = ([[Emoji]],Emoji) in
+type Action =
+  StampEmoji(Int, Int)
+  + ClearCell(Int, Int)
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = (
+  [
+    [None, None, None],
+    [None, None, None],
+    [None, None, None]
+  ],
+Smile)
+in
+
+let update_row =
+  fun (target_col, emoji, row) ->
+    List.mapi(
+      (fun (col_index, col) ->
+      if col_index == target_col then emoji else col),
+row) in
+
+let update_canvas =
+  fun (target_row, target_col, emoji, canvas) ->
+    List.mapi(
+      (fun (row_index, row) ->
+        if row_index == target_row
+        then update_row(target_col, emoji, row)
+      else row),
+    canvas)
+in
+
+let update: (Model, Action) -> Model =
+  fun ((canvas, selectedEmoji), action) ->
+    case action
+      | StampEmoji(row, col) =>
+      (update_canvas(row, col, selectedEmoji, canvas), selectedEmoji)
+      | ClearCell(row, col) =>
+      (update_canvas(row, col, None, canvas), selectedEmoji)
+      | SelectEmoji(emoji) =>
+      (canvas, emoji)
+in
+update(init, StampEmoji(1, 1)) |};
+
+//let ep5 = {||};

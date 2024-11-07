@@ -28,6 +28,8 @@ module Typ = {
   let sort = Sort.of_str("Typ");
   let typ = nt(sort);
 
+  let cons_ap = seq([typ, brc(L, "("), comma_sep(typ), brc(R, ")")]);
+
   let operand =
     alt([
       // c("Int"),
@@ -51,6 +53,8 @@ module Typ = {
     p(operand),
     //Sum type
     p(~a=L, seq([typ, op("+"), typ])),
+    //Constructor def for sums
+    p(cons_ap),
   ];
 };
 
