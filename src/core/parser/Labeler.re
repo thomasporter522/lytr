@@ -22,7 +22,7 @@ let id_lower = [%sedlex.regexp?
   (alpha_lower | '_', Star(alpha | digit | '_'))
 ];
 let id_upper = [%sedlex.regexp?
-  (alpha_upper | '_', Star(alpha | digit | '_'))
+  (alpha_upper | '_', Star(alpha | digit | '_' | '.'))
 ];
 
 let round = [%sedlex.regexp? '(' | ')'];

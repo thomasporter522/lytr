@@ -52,3 +52,56 @@ let t3_modify = {|shapes
 |> map(dilate(5))
 |> map(rotate(pi / 4))
 |> map(translate(6, 7))|};
+
+let emoji_paint = {|type Emoji = None + Smile + Laugh in
+let Row = Int in
+let Col = Int in
+let Grid = [[Emoji]] in
+
+let Model = (
+  Grid,
+  Emoji,
+  [Emoji]
+  )
+in
+
+let Action =
+  StampEmoji(Row, Col)
+  + ClearCell(Row, Col)
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = (
+  [
+    [None, None, None],
+    [None,None,None],
+    [None,None,None]
+  ],
+  Smile,
+  [
+    Smile,
+    Laugh
+  ]) in
+
+let updateGrid: (Grid, Row, Col, Emoji) -> Grid =
+  fun (grid, row, col, emoji) ->
+    List.mapi(
+      fun (i, r) ->
+        if i == row
+        then List.mapi(fun (j, c) -> if j == col then emoji else c, r)
+        else r,
+     grid
+  ) in
+
+let update: (Model, Action) -> Model =
+    case action
+    | SelectEmoji(emoji) =>
+      (grid, emoji, emojiList)
+    | StampEmoji(row, col) =>
+      (updateGrid(grid, row, col, selectedEmoji), selectedEmoji, emojiList)
+    | ClearCell(row, col) =>
+      (updateGrid(grid, row, col, None), selectedEmoji, emojiList)
+in
+update(init, StampEmoji(1, 1))|};
+
+//fun ((grid, selectedEmoji, emojiList), action) ->

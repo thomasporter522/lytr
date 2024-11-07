@@ -37,6 +37,9 @@ let copy = (str: string) => {
   );
 };
 
+let trim_leading_whitespace =
+  Re.Str.global_replace(Re.Str.regexp("\n[ ]*"), "\n");
+
 let paste = evt =>
   Js.to_string(evt##.clipboardData##getData(Js.string("text")))
-  |> Re.Str.global_replace(Re.Str.regexp("\n[ ]*"), "\n");
+  |> trim_leading_whitespace;

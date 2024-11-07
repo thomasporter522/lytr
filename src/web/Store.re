@@ -32,8 +32,9 @@ let tasks = [
   Data.t1_modify,
   Data.t2_transcribe,
   Data.t2_modify,
-  Data.t3_transcribe,
-  Data.t3_modify,
+  // Data.t3_transcribe,
+  // Data.t3_modify,
+  Data.emoji_paint,
   // (("case 7\n| x => 7")),
   // (("let (a, b) =\n(8*9<6, 17==6) in\n(a,(a, b))")),
   // (("let f = fun z -> 9 in f(9)")),
@@ -41,7 +42,10 @@ let tasks = [
 
 let editor_defaults =
   [serialize(Zipper.empty)]
-  @ List.map(task => serialize(parse(task)), tasks);
+  @ List.map(
+      task => serialize(parse(Util.Dom.trim_leading_whitespace(task))),
+      tasks,
+    );
 
 let load_default_syntax: int => Zipper.t =
   save_idx =>

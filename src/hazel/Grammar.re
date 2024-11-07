@@ -59,6 +59,8 @@ module Pat = {
   let pat = nt(sort);
 
   let bool_lit = alt([c("true"), c("false")]);
+
+  let cons_ap = seq([pat, brc(L, "("), comma_sep(pat), brc(R, ")")]);
   let operand =
     alt([
       t(Int_lit),
@@ -82,6 +84,7 @@ module Pat = {
     p(seq([pat, brc(L, "("), pat, brc(R, ")")])),
     //bare tuple
     //p(~a=L, seq([pat, c(","), pat])),
+    p(cons_ap),
     p(operand),
   ];
 };
@@ -121,6 +124,7 @@ module Exp = {
       t(Int_lit),
       t(Float_lit),
       t(Id_lower),
+      t(Id_upper), // constructors
       bool_lit,
       seq([brc(L, "("), comma_sep(exp), brc(R, ")")]),
       seq([brc(L, "["), comma_sep(exp), brc(R, "]")]),
@@ -141,8 +145,8 @@ module Exp = {
     //let
     p(let_),
     p(type_def),
-    //Reverse-ap
-    p(~a=L, seq([exp, c("|>"), exp])),
+    //Reverse-ap (disabled for now as interferes with case rules)
+    //p(~a=L, seq([exp, c("|>"), exp])),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),

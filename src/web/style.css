@@ -233,6 +233,8 @@
 
 #code-container {
   padding: 1em 6em 6em 6em;
+  height: calc(100vw - 18.2em);
+  overflow: scroll;
 }
 #code-container:focus {
   outline: none;
