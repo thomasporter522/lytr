@@ -501,7 +501,7 @@ let insert = (s: string, z: Zipper.t) => {
   // P.show("toks", Chain.show(Cell.pp, Token.Unmolded.pp, toks));
   // P.show("ctx", Ctx.show(ctx));
   let (molded, fill) = insert_toks(toks, ctx);
-  // P.sexp("molded", Ctx.sexp_of_t(molded));
+  // P.show("molded", Ctx.show(molded));
   // P.show("fill", Cell.show(fill));
   finalize(~mode=Inserting(s), ~fill, molded);
 };
