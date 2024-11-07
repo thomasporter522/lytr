@@ -146,7 +146,7 @@ module Exp = {
     p(let_),
     p(type_def),
     //Reverse-ap (disabled for now as interferes with case rules)
-    //p(~a=L, seq([exp, c("|>"), exp])),
+    //p(~a=L, seq([exp, op("|>"), exp])),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
