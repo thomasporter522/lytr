@@ -137,7 +137,9 @@ let step_of_loc =
     (~state: State.t, ~block as B(b): Block.t, target: Loc.t)
     : Result.t(Step.t, State.t) =>
   b
-  |> Chain.map_loop(sec => Block.len(Block.sec(sec)))
+  |> Chain.map_loop(sec => {Block.len(Block.sec(sec))})
+  // accumulate result where Ok encodes found step and Error encodes number of chars
+  // traversed and updated loc
   |> Chain.fold_left(
        sec_len => {
          let loc_eol = Loc.shift(sec_len, state.loc);
@@ -147,13 +149,15 @@ let step_of_loc =
        (found, rel_indent, sec_len) => {
          open Result.Syntax;
          let/ (len, loc) = found;
+         // count newline
          let len_sol = len + 1;
          let loc_sol =
            Loc.return(loc, ~ind=Indent.peek(state.ind) + rel_indent);
          let len_eol = len_sol + sec_len;
          let loc_eol = Loc.shift(sec_len, loc_sol);
          Loc.lt(loc_eol, target)
-           ? Error((len_eol, loc_eol)) : Ok(len + target.col - loc_sol.col);
+           ? Error((len_eol, loc_eol))
+           : Ok(len_sol + target.col - loc_sol.col);
        },
      )
   |> Result.map_error(~f=((_, loc)) => {...state, loc});
@@ -190,7 +194,7 @@ let path_of_loc =
     : Result.t(Path.t, State.t) => {
   open Result.Syntax;
   let rec go = (~state, t: LCell.t) => {
-    let s_end = State.jump_block(state, ~over=LCell.flatten(t));
+    let s_end = State.jump_cell(state, ~over=t);
     if (Loc.lt(s_end.loc, target)) {
       Error({...s_end, ind: state.ind});
     } else if (Loc.eq(s_end.loc, target)) {
