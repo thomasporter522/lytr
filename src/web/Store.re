@@ -25,24 +25,25 @@ let save_syntax_key: int => string =
 let save_syntax = (save_idx: int, z: Zipper.t) =>
   LocalStorage.set(save_syntax_key(save_idx), z |> serialize);
 
-let tasks = []; // Data.ep0,
-// Data.ep1,
-// Data.ep2,
-// Data.ep3,
-// Data.ep4,
-// Data.t0_transcribe,
-// Data.t1_transcribe,
-// Data.t2_transcribe,
-// Data.t3_transcribe,
-// Data.emoji_paint,
-// Data.t0_modify,
-// Data.t1_modify,
-// Data.t2_modify,
-// Data.t3_modify,
-// (("case 7\n| x => 7")),
-// (("let (a, b) =\n(8*9<6, 17==6) in\n(a,(a, b))")),
-
-// (("let f = fun z -> 9 in f(9)")),
+let tasks = [
+  Data.ep0,
+  Data.ep1,
+  Data.ep2,
+  Data.ep3,
+  Data.ep4,
+  Data.t0_transcribe,
+  Data.t1_transcribe,
+  Data.t2_transcribe,
+  Data.t3_transcribe,
+  // Data.emoji_paint,
+  // Data.t0_modify,
+  // Data.t1_modify,
+  // Data.t2_modify,
+  // Data.t3_modify,
+  // (("case 7\n| x => 7")),
+  // (("let (a, b) =\n(8*9<6, 17==6) in\n(a,(a, b))")),
+  // (("let f = fun z -> 9 in f(9)")),
+];
 
 let editor_defaults =
   [serialize(Zipper.empty)]
