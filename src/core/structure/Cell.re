@@ -134,6 +134,10 @@ let rec mark_degrouted = (~side: Dir.t, c: t) =>
       {...c, meld: Some(M(l, w, r))};
     }
   };
+let unmark_degrouted = (c: t) => {
+  let marks = {...c.marks, degrouted: Path.Map.empty};
+  {...c, marks};
+};
 
 let rec end_path = (~sans_padding=false, ~side: Dir.t, c: t) =>
   switch (c.meld) {
@@ -256,11 +260,6 @@ module Space = {
     | Some(m) => Meld.get_space(m)
     };
   let is_space = c => Option.is_some(get(c));
-
-  let unmark_degrouted = (c: t) => {
-    let marks = {...c.marks, degrouted: Path.Map.empty};
-    {...c, marks};
-  };
 
   let mk = (cs: list(t), ts: list(Token.t)) =>
     switch (cs, ts) {
