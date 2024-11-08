@@ -73,7 +73,7 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
 // returns None if input token is empty
 let rec mold =
         (stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
-        : option((Token.t, Grouted.t, Stack.t)) =>
+        : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) =>
   switch (
     candidates(t)
     |> Oblig.Delta.minimize(tok =>
@@ -88,12 +88,12 @@ let rec mold =
     // P.show("grouted", Grouted.show(grouted));
     // P.show("stack", Stack.show(stack));
     Mtrl.is_tile(tok.mtrl) && tok.text == "" && Grouted.is_neq(grouted)
-      ? None : Some(molded)
+      ? Error(Cell.mark_degrouted(fill, ~side=R)) : Ok(molded)
   | None =>
     let deferred = Token.Unmolded.defer(t);
     Token.is_empty(deferred)
-      ? None
-      : Some(
+      ? Error(Cell.mark_degrouted(fill, ~side=R))
+      : Ok(
           {
             let (fill, slope) = Slope.Dn.unroll(fill);
             let stack = Stack.cat(slope, stack);
@@ -137,11 +137,11 @@ and remold =
          })
       |> Option.value(~default=Slope.Up.unroll(hd.cell));
     switch (mold(l, ~fill, Token.unmold(hd_w))) {
-    | None =>
+    | Error(fill) =>
       let (c, up) = unroll_tl_w_hd_cell();
       let fill = fill |> Cell.pad(~r=c) |> Cell.mark_ends_dirty;
       (l, r_tl) |> Stack.Frame.cat(([], up)) |> remold(~fill);
-    | Some((t, grouted, rest)) when t.mtrl == hd_w.mtrl =>
+    | Ok((t, grouted, rest)) when t.mtrl == hd_w.mtrl =>
       // fast path for when hd_w retains original meld
       let connected = Stack.connect(t, grouted, rest) |> Stack.extend(tl_w);
       if (connected.bound == l.bound) {
@@ -149,7 +149,7 @@ and remold =
       } else {
         Error((hd.cell, (connected, r_tl)));
       };
-    | Some((t, grouted, rest)) =>
+    | Ok((t, grouted, rest)) =>
       let connected = Stack.connect(t, grouted, rest);
       // check if connection changed the stack bound
       if (connected.bound == l.bound) {

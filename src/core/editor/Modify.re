@@ -93,8 +93,9 @@ let relabel =
 // None means token was removed. Some(ctx) means token was molded (or deferred and
 // tagged as an unmolded space), ctx includes the molded token.
 let mold =
-    (ctx: Ctx.t, ~fill=Cell.dirty, tok: Token.Unmolded.t): option(Ctx.t) => {
-  open Options.Syntax;
+    (ctx: Ctx.t, ~fill=Cell.dirty, tok: Token.Unmolded.t)
+    : Result.t(Ctx.t, Cell.t) => {
+  open Result.Syntax;
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
   // Grouter.dbg := true;
   let+ (tok, grouted, l) = Molder.mold(l, ~fill, tok);
@@ -240,7 +241,7 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   // if expandable, consider all expandable const labels
   let* expanded = expand(tok);
   let ((l, r), tl) = Ctx.unlink_stacks(rest);
-  let* (t, grouted, rest) = Molder.mold(l, expanded);
+  let* (t, grouted, rest) = Result.to_option(Molder.mold(l, expanded));
   if (t.mtrl == Space(Unmolded) || t.mtrl == tok.mtrl) {
     None;
   } else {
@@ -336,7 +337,7 @@ let insert_toks =
          //  P.show("fill", Cell.show(fill));
          //  P.show("tok", Token.Unmolded.show(tok));
          switch (mold(ctx, ~fill, tok)) {
-         | Some(ctx) =>
+         | Ok(ctx) =>
            //  P.show("molded tok", Ctx.show(ctx));
            let (face, rest) = Ctx.pull(~from=L, ctx);
            switch (face, next_fill.marks.cursor) {
@@ -355,11 +356,10 @@ let insert_toks =
              (ctx, next_fill);
            | _ => (ctx, next_fill)
            };
-         | None =>
+         | Error(fill) =>
            // removed empty token
            let next_fill =
-             Option.is_some(fill.marks.cursor)
-               ? Cell.mark_ends_dirty(fill) : next_fill;
+             Cell.mark_ends_dirty(Cell.Space.merge(fill, next_fill));
            (ctx, next_fill);
          }
        },
