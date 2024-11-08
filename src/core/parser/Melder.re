@@ -2,26 +2,22 @@ open Stds;
 
 exception Bug__failed_to_push_space;
 
-let debug = ref(true);
+let dbg = ref(true);
 
 // assumes w is already oriented toward side.
 // used to complete zigg top when it takes precedence over pushed wald.
 let complete_wald = (~side: Dir.t, ~fill=Cell.empty, w: Wald.t): Terr.t => {
   let from = Dir.toggle(side);
   let exited = Walker.exit(~from, Node(Wald.face(w).mtrl));
-  let baked = Grouter.pick(~repair=true, ~from, [fill], exited);
-  // exited |> Oblig.Delta.minimize(Baker.bake(~from, ~fill=Fill.unit(fill)));
-  switch (baked) {
-  | Some(baked) => Grouted.complete_wald(baked, w)
+  let grouted = Grouter.pick(~repair=true, ~from, [fill], exited);
+  switch (grouted) {
+  | Some(grouted) => Grouted.complete_wald(grouted, w)
   | None =>
     assert(!Cell.is_empty(fill));
     print_endline("warning: dropping fill " ++ Cell.show(fill));
     let baked =
       Grouter.pick(~repair=true, ~from, [], exited)
-      |> Options.get_fail("bug: expected bake to succeed sans fill");
-    // walker bug if no exits
-    // let exited = List.hd(exited);
-    // let baked = Baker.bake_sans_fill(~from, exited);
+      |> Options.get_fail("bug: expected grouter to succeed sans fill");
     Grouted.complete_wald(baked, w);
   };
 };
@@ -30,10 +26,25 @@ let complete_terr = (~onto: Dir.t, ~fill=Cell.empty, terr: Terr.t): Cell.t => {
   let orient = Dir.pick(onto, (Meld.rev, Fun.id));
   let exited = Walker.exit(~from=onto, Node(Terr.face(terr).mtrl));
   let grouted = Grouter.pick(~repair=true, ~from=onto, [fill], exited);
-  // exited
-  // |> Oblig.Delta.minimize(Baker.bake(~from=onto, ~fill=Fill.unit(fill)));
+  // if (dbg^) {
+  //   P.log("--- Melder.complete_terr");
+  //   P.show("onto", Dir.show(onto));
+  //   P.show("fill", Cell.show(fill));
+  //   P.show("terr", Terr.show(terr));
+  // };
   switch (grouted) {
-  | Some(grouted) => Cell.put(orient(Grouted.complete_terr(grouted, terr)))
+  | Some(grouted) =>
+    let m = Grouted.complete_terr(grouted, terr);
+    // if (dbg^) {
+    //   P.log("--- Melder.complete_terr/grouted");
+    //   P.show("grouted", Grouted.show(grouted));
+    //   P.show("completed meld", Meld.show(m));
+    //   P.show("oriented meld", Meld.show(orient(m)));
+    //   Cell.dbg := true;
+    //   P.show("oriented cell", Cell.show(Cell.put(orient(m))));
+    //   Cell.dbg := false;
+    // };
+    Cell.put(orient(m));
   | None =>
     assert(!Cell.is_empty(fill));
     print_endline("warning: dropping fill " ++ Cell.show(fill));
@@ -55,6 +66,10 @@ let complete_bounded =
   let fill = complete_slope(~onto, ~fill, slope);
   let fc_onto = bd_onto |> Bound.map(t => Terr.face(t).mtrl);
   let fc_from = bd_from |> Bound.map(t => Terr.face(t).mtrl);
+  // if (dbg^) {
+  //   P.log("--- Melder.complete_bounded");
+  //   P.show("completed slope", Cell.show(fill));
+  // };
   Walker.walk_eq(~from=onto, fc_onto, fc_from)
   |> Grouter.pick(~repair=true, [fill], ~from=onto)
   |> Option.map(grouted => snd(Chain.hd(grouted)))

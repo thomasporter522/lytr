@@ -1,7 +1,7 @@
 open Stds;
 open Walk;
 
-let debug = ref(false);
+let dbg = ref(false);
 
 let mtrlize_tile = ((l, r, s, from)) =>
   Grammar.v

@@ -2,6 +2,8 @@ open Sexplib.Std;
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
 open Stds;
 
+let dbg = ref(false);
+
 let rec split_cell_padding = (~side: Dir.t, c: Cell.t) =>
   switch (Cell.get(c)) {
   | None => Cell.(empty, c)
@@ -147,6 +149,12 @@ let fill_default =
 // assumes cs already squashed sans padding
 let fill_swing = (cs: Cells.t, sw: Walk.Swing.t, ~from: Dir.t) => {
   let cs = Dir.pick(from, (List.rev, Fun.id), cs);
+  // if (dbg^) {
+  //   P.log("--- Grouter.fill_swing");
+  //   P.show("from", Dir.show(from));
+  //   P.show("sw", Walk.Swing.show(sw));
+  //   P.show("cs", Cells.show(cs));
+  // };
   let (bot, top) = Walk.Swing.(bot(sw), top(sw));
   switch (bot) {
   | Space(nt) =>
@@ -195,10 +203,16 @@ let fill_swing = (cs: Cells.t, sw: Walk.Swing.t, ~from: Dir.t) => {
 };
 
 let fill_swings =
-    (~repair, ~from, cells: list(Cell.t), swings: list(Walk.Swing.t)) =>
+    (~repair, ~from, cells: list(Cell.t), swings: list(Walk.Swing.t)) => {
+  // if (dbg^) {
+  //   P.log("--- Grouter.fill_swings");
+  //   P.show("from", Dir.show(from));
+  //   P.show("cells", Cells.show(Dir.pick(from, (List.rev, Fun.id), cells)));
+  // };
   cells
   |> Dir.pick(from, (List.rev, Fun.id))
   |> (repair ? List.concat_map(degrout) : Fun.id)
+  // |> (dbg^ ? P.oshow("degrouted", Cells.show) : Fun.id)
   |> Dir.pick(from, (List.rev, Fun.id))
   |> Lists.split_bins(List.length(swings))
   |> Oblig.Delta.minimize(~to_zero=!repair, c_bins =>
@@ -210,6 +224,7 @@ let fill_swings =
           })
        |> Options.for_all
      );
+};
 
 let fill = (~repair, ~from, cs, (swings, stances): Walk.t) => {
   open Options.Syntax;
@@ -223,5 +238,16 @@ let fill = (~repair, ~from, cs, (swings, stances): Walk.t) => {
 // obligation delta. the given cells are expected to be oriented the same way as the
 // given walks according to from.
 let pick = (~repair=false, ~from: Dir.t, cs: list(Cell.t), ws: list(Walk.t)) => {
-  Oblig.Delta.minimize(~to_zero=!repair, fill(~repair, ~from, cs), ws);
+  // if (dbg^) {
+  //   P.log("--- Grouter.pick");
+  //   P.show("from", Dir.show(from));
+  //   P.show("cs", Cells.show(cs));
+  //   P.log("ws");
+  //   ws |> List.iter(w => P.show("w", Walk.show(w)));
+  // };
+  Oblig.Delta.minimize(
+    ~to_zero=!repair,
+    fill(~repair, ~from, cs),
+    ws,
+  );
 };

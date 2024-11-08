@@ -2,6 +2,8 @@ open Sexplib.Std;
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
 open Stds;
 
+let dbg = ref(false);
+
 module Wald = {
   [@deriving (sexp, yojson)]
   type t('tok, 'cell) =
@@ -93,12 +95,6 @@ let rec pp = (out, {marks, meld}: t) => {
 };
 let show = Fmt.to_to_string(pp);
 
-// module Wald = Meld.Wald;
-
-// include Meld.Cell;
-// [@deriving (show({with_path: false}), sexp, yojson)]
-// type t = Meld.Cell.t(Meld.t);
-// let empty = mk();
 let is_empty = (~require_unmarked=false, c: t) =>
   Option.is_none(c.meld) && (!require_unmarked || Marks.is_empty(c.marks));
 
@@ -138,6 +134,10 @@ let rec mark_degrouted = (~side: Dir.t, c: t) =>
       {...c, meld: Some(M(l, w, r))};
     }
   };
+let unmark_degrouted = (c: t) => {
+  let marks = {...c.marks, degrouted: Path.Map.empty};
+  {...c, marks};
+};
 
 let rec end_path = (~sans_padding=false, ~side: Dir.t, c: t) =>
   switch (c.meld) {
@@ -260,11 +260,6 @@ module Space = {
     | Some(m) => Meld.get_space(m)
     };
   let is_space = c => Option.is_some(get(c));
-
-  let unmark_degrouted = (c: t) => {
-    let marks = {...c.marks, degrouted: Path.Map.empty};
-    {...c, marks};
-  };
 
   let mk = (cs: list(t), ts: list(Token.t)) =>
     switch (cs, ts) {
