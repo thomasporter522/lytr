@@ -32,23 +32,24 @@ module Cells = {
     | [c, ..._] => Cell.face(~side, c)
     };
 
-  // combine adjacent space cells except for those on the ends
-  // if save_padding=true
-  let squash = (~save_padding=false, cs: t) =>
-    switch (cs |> List.mapi((i, c) => (i, c)) |> Lists.Framed.ft) {
+  // combine adjacent space cells
+  let squash = (cs: t) =>
+    switch (cs |> Lists.Framed.ft) {
     | None => []
-    | Some((pre, (_, ft))) =>
+    | Some((pre, ft)) =>
       pre
-      |> List.fold_left(
-           (acc, (i, c)) =>
-             switch (acc) {
-             | _ when !save_padding && Cell.Space.is_space(c) =>
-               Lists.map_hd(Cell.pad(~l=c), acc)
-             | [_, _, ..._] when i != 0 && Cell.Space.is_space(c) =>
-               Lists.map_hd(Cell.pad(~l=c), acc)
-             | _ => [c, ...acc]
-             },
-           [ft],
+      |> Lists.fold_left(~init=[ft], ~f=(acc, c) =>
+           switch (acc) {
+           | [hd, ...tl] when Cell.Space.is_space(hd) => [
+               Cell.pad(c, ~r=hd),
+               ...tl,
+             ]
+           | [hd, ...tl] when Cell.Space.is_space(c) => [
+               Cell.pad(~l=c, hd),
+               ...tl,
+             ]
+           | _ => [c, ...acc]
+           }
          )
     };
 
@@ -72,7 +73,7 @@ module Cells = {
         (List.rev(cons(c, cs)), r);
       | None => (cs, Cell.empty)
       };
-    (l, cs, r);
+    (l, squash(cs), r);
   };
 
   // output Some(b) if bounded, where b indicates whether pre/post grout needed
