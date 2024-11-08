@@ -96,21 +96,53 @@ let skip = (d2: Dir2.t) =>
 
 let jump = loc => map_focus(Fun.const(loc));
 
+let complete_face = (site: Zipper.Site.t, ctx: Ctx.t) =>
+  switch (site) {
+  | Within(tok) =>
+    Token.complete(tok)
+    |> Option.map(tok =>
+         ctx |> Ctx.push(~onto=L, tok) |> Ctx.push(~onto=R, tok)
+       )
+    |> Option.value(~default=ctx)
+  | Between =>
+    open Options.Syntax;
+    let complete = side => {
+      let (face, ctx) = Ctx.pull(~from=side, ctx);
+      let* tok = Delim.to_opt(face);
+      let+ tok = Token.complete(tok);
+      Ctx.push(~onto=side, tok, ctx);
+    };
+    // assuming this is only called when tabbing forward
+    let- () = complete(L);
+    let- () = complete(R);
+    ctx;
+  };
+
 let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
-  open Options.Syntax;
-  let c = Zipper.zip(~save_cursor=true, z);
-  let normal = Zipper.normalize(~cell=c);
-  switch (Options.get_exn(Zipper.Bug__lost_cursor, c.marks.cursor)) {
-  | Select(_) => hstep(d, z)
-  | Point({path, _}) =>
+  switch (Zipper.cursor_site(z)) {
+  | (Select(_), _) => hstep(d, z)
+  | (Point(site), ctx) =>
+    open Options.Syntax;
+    let z =
+      switch (d) {
+      | L => z
+      | R => Zipper.mk(complete_face(site, ctx))
+      };
+    let c = Zipper.zip(~save_cursor=true, z);
+    let normal = Zipper.normalize(~cell=c);
+    let car =
+      c.marks.cursor
+      |> Options.get_exn(Zipper.Bug__lost_cursor)
+      |> Path.Cursor.get_point
+      |> Option.get;
     let+ (path, _) =
       c.marks.obligs
       |> Path.Map.filter((_, mtrl: Mtrl.T.t) => mtrl != Space(Unmolded))
       |> Dir.pick(
            d,
            (
-             Path.Map.find_last_opt(p => Path.lt(normal(p), path)),
-             Path.Map.find_first_opt(p => Path.gt(normal(p), path)),
+             Path.Map.find_last_opt(p => Path.lt(normal(p), car.path)),
+             Path.Map.find_first_opt(p => Path.gt(normal(p), car.path)),
            ),
          );
     c |> Cell.put_cursor(Point(Caret.focus(path))) |> Zipper.unzip_exn;

@@ -108,6 +108,13 @@ module Molded = {
     | Grout(_) => true
     | Tile((lbl, _)) => Label.is_complete(tok.text, lbl)
     };
+  let complete = (tok: t) =>
+    switch (tok.mtrl) {
+    | Space(_)
+    | Grout(_) => None
+    | Tile((lbl, _)) =>
+      Label.complete(lbl) |> Option.map(text => {...tok, text})
+    };
 
   let cat = (l: t, ~caret=?, r: t) => {
     let n = Utf8.length(l.text);
