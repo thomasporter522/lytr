@@ -318,7 +318,6 @@ let delete_toks =
          );
        },
      )
-  |> Chain.map_loop(Cell.mark_degrouted(~side=L))
   // finally, unmold the tokens (only relabeling the last token)
   |> Chain.mapi_link(i => Token.unmold(~relabel=i - 1 / 2 == n - 1));
 };
