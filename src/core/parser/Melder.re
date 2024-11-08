@@ -135,7 +135,17 @@ let connect_ineq =
   let neq = () =>
     connect_neq(~repair, ~onto=d, onto, ~fill, t)
     |> Option.map(grouted => (grouted, onto));
-  Oblig.Delta.minimize(~to_zero=!repair, f => f(), [eq, neq]);
+  if (repair) {
+    open Options.Syntax;
+    // if repairing, then this means we're molding/remolding and our push of the
+    // current candidate token has reached the top of the local stack ie the nearest
+    // bidelimited container. prioritize maintaining the current bidelimited
+    // container if possible.
+    let/ () = neq();
+    eq();
+  } else {
+    Oblig.Delta.minimize(~to_zero=true, f => f(), [eq, neq]);
+  };
 };
 
 let connect =
