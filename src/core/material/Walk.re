@@ -80,7 +80,7 @@ module T = {
 
   let is_eq = w => List.for_all(Swing.is_eq, Chain.loops(w));
   // note: stricter than !is_eq
-  let is_neq = (w: t) => Swing.is_neq(hd(w)); // && Swing.is_neq(ft(w));
+  let is_neq = (w: t) => Swing.is_neq(hd(w)) && Swing.is_neq(ft(w));
   let is_valid = w => is_eq(w) || is_neq(w);
 
   // let has_sort = w => List.exists(Swing.has_sort, strides(w));

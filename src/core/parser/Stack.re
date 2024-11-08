@@ -7,6 +7,11 @@ type t = {
 
 let empty = {slope: Slope.empty, bound: Bound.Root};
 
+let cat = (slope: Slope.t, stack: t) => {
+  ...stack,
+  slope: Slope.cat(slope, stack.slope),
+};
+
 let merge_hd = (~onto: Dir.t, t: Token.t, stack: t) =>
   switch (stack) {
   | {slope: [], bound: Root} => None

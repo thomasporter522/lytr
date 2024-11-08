@@ -58,8 +58,12 @@ let mold =
     Token.is_empty(deferred)
       ? None
       : Some(
-          Melder.push(deferred, ~fill, stack, ~onto=L)
-          |> Option.map(((grouted, stack)) => (deferred, grouted, stack))
-          |> Options.get_fail("bug: failed to push space"),
+          {
+            let (fill, slope) = Slope.Dn.unroll(fill);
+            let stack = Stack.cat(slope, stack);
+            Melder.push(deferred, ~fill, stack, ~onto=L)
+            |> Option.map(((grouted, stack)) => (deferred, grouted, stack))
+            |> Options.get_fail("bug: failed to push space");
+          },
         );
   };

@@ -460,7 +460,17 @@ let delete_sel = (d: Dir.t, z: Zipper.t): Zipper.t => {
           : Fun.id
       )
       |> delete_toks(d);
+    // P.log("--- delete_sel/Select");
+    // P.show("ctx sans sites", Ctx.show(ctx));
+    // P.show("site l", Zipper.Site.show(l));
+    // P.show("site r", Zipper.Site.show(r));
+    // P.show(
+    //   "deleted_toks",
+    //   Chain.show(Cell.pp, Token.Unmolded.pp, deleted_toks),
+    // );
     let (molded, fill) = insert_toks(deleted_toks, ctx);
+    // P.show("molded", Ctx.show(molded));
+    // P.show("fill", Cell.show(fill));
     finalize(~mode=Deleting(d), ~fill, molded);
   };
 };
@@ -483,6 +493,7 @@ let delete = (d: Dir.t, z: Zipper.t) => {
   // P.log("--- delete");
   // P.show("z", Zipper.show(z));
   let+ z = Cursor.is_point(z.cur) ? Select.hstep(d, z) : return(z);
+  // P.show("selected", Zipper.show(z));
   delete_sel(d, z);
 };
 
