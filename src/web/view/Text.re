@@ -42,11 +42,8 @@ let view_tok = (~font, tok: Token.t) => {
       Mold.(t_nullable(~side=L, mold) && t_nullable(~side=R, mold))
         ? ["tile"] : ["tile", "match"]
     };
-  let attrs =
-    Attr.[
-      classes(["token", ...mtrl_clss]),
-      title(Sexplib.Sexp.to_string_hum(Token.sexp_of_t(tok))),
-    ];
+  let attrs = Attr.[classes(["token", ...mtrl_clss])];
+  // title(Sexplib.Sexp.to_string_hum(Token.sexp_of_t(tok))),
   let nodes =
     switch (tok.mtrl) {
     // todo: distinguish whitespace from unmolded styling
