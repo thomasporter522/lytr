@@ -122,7 +122,6 @@ let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
   switch (Zipper.cursor_site(z)) {
   | (Select(_), _) => hstep(d, z)
   | (Point(site), ctx) =>
-    open Options.Syntax;
     let z =
       switch (d) {
       | L => z
@@ -135,7 +134,7 @@ let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
       |> Options.get_exn(Zipper.Bug__lost_cursor)
       |> Path.Cursor.get_point
       |> Option.get;
-    let+ (path, _) =
+    let path =
       c.marks.obligs
       |> Path.Map.filter((_, mtrl: Mtrl.T.t) => mtrl != Space(Unmolded))
       |> Dir.pick(
@@ -144,8 +143,13 @@ let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
              Path.Map.find_last_opt(p => Path.lt(normal(p), car.path)),
              Path.Map.find_first_opt(p => Path.gt(normal(p), car.path)),
            ),
-         );
-    c |> Cell.put_cursor(Point(Caret.focus(path))) |> Zipper.unzip_exn;
+         )
+      |> Option.map(fst)
+      |> Options.get(() => Cell.end_path(~side=d, c));
+    c
+    |> Cell.put_cursor(Point(Caret.focus(path)))
+    |> Zipper.unzip_exn
+    |> Option.some;
   };
 };
 

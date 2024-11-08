@@ -113,7 +113,7 @@ module Molded = {
     | Space(_)
     | Grout(_) => None
     | Tile((lbl, _)) =>
-      Label.complete(lbl) |> Option.map(text => {...tok, text})
+      Label.complete(tok.text, lbl) |> Option.map(text => {...tok, text})
     };
 
   let cat = (l: t, ~caret=?, r: t) => {
