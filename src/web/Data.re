@@ -240,4 +240,120 @@ let update: (Model, Action) -> Model =
 in
 update(init, StampEmoji(1, 1)) |};
 
-//let ep5 = {||};
+let epzz = {|type Model = in
+type Action = in
+
+let init: Model = TODO in
+
+let update: (Model, Action) -> Model =
+  fun (model, action) ->
+    case action
+    | => TODO
+in
+update(init, )|};
+
+let epz0 = {|type Emoji = Smile + Frown + Smirk in
+type Cell = Empty + Stamped(Emoji) in
+type Model = Cell in
+type Action = StampEmoji in
+
+let init: Model = None in
+
+let update: (Model, Action) -> Model =
+  fun (_cell, action) ->
+    case action
+    | StampEmoji => Smile
+in
+
+update(init, StampEmoji)|};
+
+let epz1 = {|type Emoji = Smile + Frown + Smirk in
+type Cell = Empty + Stamped(Emoji) in
+type Model = [Cell] in
+type Action = StampEmoji(Int) in
+
+let init: Model = [None, None, None] in
+
+let update: (Model, Action) -> Model =
+  fun (cells, action) ->
+    case action
+    | StampEmoji(index) => update_nth(index, Stamped(Smile), cells)
+in
+
+update(init, StampEmoji)|};
+
+let epz2 = {|type Emoji = Smile + Frown + Smirk in
+type Cell = Empty + Stamped(Emoji) in
+type Model = ([Cell], Emoji) in
+type Action = StampEmoji(Int) + SelectEmoji(Emoji) in
+
+let init: Model = ([None, None, None], Smile) in
+
+let update: (Model, Action) -> Model =
+  fun ((cells, selected), action) ->
+    case action
+    | StampEmoji(index) =>
+      (update_nth(index, Stamped(Smile), cells), selected)
+    | SelectEmoji(new) => (cells, new)
+in
+
+update(init, StampEmoji)|};
+
+let epz3 = {|type Emoji = Smile + Frown + Smirk in
+type Cell = Empty + Stamped(Emoji) in
+type Model = ([Cell], Emoji) in
+type Action =
+  StampEmoji(Int)
+  + ClearCell(Int)
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = ([None, None, None], Smile) in
+
+let update: (Model, Action) -> Model =
+  fun ((cells, selected), action) ->
+    case action
+    | StampEmoji(index) =>
+      (update_nth(index, Stamped(Smile), cells), selected)
+    | ClearCell(index) =>
+      (update_nth(index, Empty, cells), selected)
+    | SelectEmoji(new) => (cells, new)
+in
+
+update(init, StampEmoji)|};
+
+let epz4 = {|type Emoji = Smile + Frown + Smirk in
+type Cell = Empty + Stamped(Emoji) in
+type Model = ([[Cell]], Emoji) in
+type Action =
+  StampEmoji(Int, Int)
+  + ClearCell(Int, Int)
+  + SelectEmoji(Emoji)
+in
+
+let init: Model = (
+  [[None, None, None],
+   [None, None, None],
+   [None, None, None]],
+  Smile)
+in
+
+let update_grid: (Int, Int, Cell, [[Cell]]) -> [[Cell]] =
+  fun (row, col, cell, grid) ->
+    update_nth(row, update_nth(col, cell, List.nth(row, grid)), grid)
+in
+
+let update: (Model, Action) -> Model =
+  fun ((cells, selected), action) ->
+    case action
+    | StampEmoji(row, col) =>
+      (update_grid(row, col, Stamped(Smile), cells), selected)
+    | ClearCell(row, col) =>
+      (update_grid(row, col, Empty, cells), selected)
+    | SelectEmoji(new) => (cells, new)
+in
+
+update(init, StampEmoji)
+
+
+|};

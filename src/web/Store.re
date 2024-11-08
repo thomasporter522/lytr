@@ -26,12 +26,13 @@ let save_syntax = (save_idx: int, z: Zipper.t) =>
   LocalStorage.set(save_syntax_key(save_idx), z |> serialize);
 
 let tasks = [
-  Data.ep0,
-  Data.ep1,
-  Data.ep2,
-  Data.ep3,
-  Data.ep4,
-  Data.t0_transcribe,
+  //Data.epzz,
+  Data.epz0,
+  Data.epz1,
+  Data.epz2,
+  Data.epz3,
+  Data.epz4,
+  //Data.t0_transcribe,
   Data.t1_transcribe,
   Data.t2_transcribe,
   Data.t3_transcribe,

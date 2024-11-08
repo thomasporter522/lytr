@@ -136,34 +136,59 @@ and mk_meld = (m: Meld.t): LMeld.t =>
 let step_of_loc =
     (~state: State.t, ~block as B(b): Block.t, target: Loc.t)
     : Result.t(Step.t, State.t) =>
-  b
-  |> Chain.map_loop(sec => {Block.len(Block.sec(sec))})
-  // accumulate result where Ok encodes found step and Error encodes number of chars
-  // traversed and updated loc
-  |> Chain.fold_left(
-       sec_len => {
-         let len_sol = 0;
-         let loc_sol = state.loc;
-         let len_eol = sec_len;
-         let loc_eol = Loc.shift(sec_len, state.loc);
-         loc_eol.row < target.row
-           ? Error((len_eol, loc_eol))
-           : Ok(min(len_sol + max(0, target.col - loc_sol.col), len_eol));
-       },
-       (found, rel_indent, sec_len) => {
-         open Result.Syntax;
-         let/ (len, loc) = found;
-         // count newline
-         let len_sol = len + 1;
-         let loc_sol =
-           Loc.return(loc, ~ind=Indent.peek(state.ind) + rel_indent);
-         let len_eol = len_sol + sec_len;
-         let loc_eol = Loc.shift(sec_len, loc_sol);
-         loc_eol.row < target.row
-           ? Error((len_eol, loc_eol))
-           : Ok(min(len_sol + max(0, target.col - loc_sol.col), len_eol));
-       },
-     )
+  {
+    Block.show(B(b)) |> print_endline;
+    print_endline("target: " ++ Loc.show(target));
+    print_endline("state: " ++ State.show(state));
+    b
+    |> Chain.map_loop(sec => {Block.len(Block.sec(sec))})
+    // accumulate result where Ok encodes found step and Error encodes number of chars
+    // traversed and updated loc
+    |> Chain.fold_left(
+         sec_len => {
+           let len_sol = 0;
+           let loc_sol = state.loc;
+           let len_eol = len_sol + sec_len;
+           let loc_eol = Loc.shift(sec_len, loc_sol);
+           print_endline(
+             "a: loc_eol.row < target.row:"
+             ++ string_of_bool(loc_eol.row < target.row),
+           );
+           print_endline(
+             "Loc.lt(loc_eol, target)"
+             ++ (Loc.lt(loc_eol, target) |> string_of_bool),
+           );
+           Loc.lt(loc_eol, target)
+             ? Error((len_eol, loc_eol))
+             : Ok(min(len_sol + max(0, target.col - loc_sol.col), len_eol));
+         },
+         (found, rel_indent, sec_len) => {
+           open Result.Syntax;
+           print_endline("yo");
+           let/ (len, loc) = found;
+           print_endline("dawg");
+           // count newline
+           let len_sol = len + 1;
+           let loc_sol =
+             Loc.return(loc, ~ind=Indent.peek(state.ind) + rel_indent);
+           if (Loc.lt(target, loc_sol)) {
+             Ok(len);
+           } else {
+             let len_eol = len_sol + sec_len;
+             let loc_eol = Loc.shift(sec_len, loc_sol);
+             print_endline(
+               "b: loc_eol.row < target.row:"
+               ++ string_of_bool(loc_eol.row < target.row),
+             );
+             Loc.lt(loc_eol, target)
+               ? Error((len_eol, loc_eol))
+               : Ok(
+                   min(len_sol + max(0, target.col - loc_sol.col), len_eol),
+                 );
+           };
+         },
+       );
+  }
   |> Result.map_error(~f=((_, loc)) => {...state, loc});
 
 let loc_of_step =
