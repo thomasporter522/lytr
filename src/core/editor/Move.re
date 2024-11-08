@@ -8,9 +8,7 @@ type t =
   // skip to end
   | Skip(Dir2.t)
   // jump to absolute loc
-  | Jump(Loc.t)
-  // jump to next hole
-  | Hole(Dir.t);
+  | Jump(Loc.t);
 
 // bounds goal pos to within start/end pos of program.
 // returns none if the resulting goal pos is same as start pos.
@@ -96,67 +94,10 @@ let skip = (d2: Dir2.t) =>
 
 let jump = loc => map_focus(Fun.const(loc));
 
-let complete_face = (site: Zipper.Site.t, ctx: Ctx.t) =>
-  switch (site) {
-  | Within(tok) =>
-    Token.complete(tok)
-    |> Option.map(tok => ctx |> Ctx.push(~onto=L, Token.clear_marks(tok)))
-  | Between =>
-    open Options.Syntax;
-    let complete = side => {
-      let (face, ctx) = Ctx.pull(~from=side, ctx);
-      let* tok = Delim.to_opt(face);
-      let+ tok = Token.complete(tok);
-      Ctx.push(~onto=L, tok, ctx);
-    };
-    // assuming this is only called when tabbing forward
-    let/ () = complete(L);
-    complete(R);
-  };
-
-let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
-  switch (Zipper.cursor_site(z)) {
-  | (Select(_), _) => hstep(d, z)
-  | (Point(site), ctx) =>
-    open Options.Syntax;
-    // first try completing a face
-    let/ () =
-      switch (d) {
-      | L => None
-      | R => Option.map(Zipper.mk, complete_face(site, ctx))
-      };
-    // otherwise jump to next obligation
-    let c = Zipper.zip(~save_cursor=true, z);
-    let normal = Zipper.normalize(~cell=c);
-    let car =
-      c.marks.cursor
-      |> Options.get_exn(Zipper.Bug__lost_cursor)
-      |> Path.Cursor.get_point
-      |> Option.get;
-    let path =
-      c.marks.obligs
-      |> Path.Map.filter((_, mtrl: Mtrl.T.t) => mtrl != Space(Unmolded))
-      |> Dir.pick(
-           d,
-           (
-             Path.Map.find_last_opt(p => Path.lt(normal(p), car.path)),
-             Path.Map.find_first_opt(p => Path.gt(normal(p), car.path)),
-           ),
-         )
-      |> Option.map(fst)
-      |> Options.get(() => Cell.end_path(~side=d, c));
-    c
-    |> Cell.put_cursor(Point(Caret.focus(path)))
-    |> Zipper.unzip_exn
-    |> Option.some;
-  };
-};
-
 // todo: need to return none in some more cases when no visible movement occurs
 let perform =
   fun
   | Step(H(d)) => hstep(d)
   | Step(V(d)) => vstep(d)
   | Skip(d2) => skip(d2)
-  | Jump(loc) => jump(loc)
-  | Hole(d) => hole(d);
+  | Jump(loc) => jump(loc);
