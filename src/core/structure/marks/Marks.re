@@ -138,7 +138,8 @@ module Cell = {
     cursor: Options.merge(~f=Path.Cursor.union, l.cursor, r.cursor),
     obligs: Path.Map.union((_, t, _) => Some(t), l.obligs, r.obligs),
     dirty: Path.Map.union((_, (), ()) => Some(), l.dirty, r.dirty),
-    degrouted: Path.Map.union((_, (), ()) => Some(), l.dirty, r.dirty),
+    degrouted:
+      Path.Map.union((_, (), ()) => Some(), l.degrouted, r.degrouted),
   };
   let union_all = List.fold_left(union, empty);
 
