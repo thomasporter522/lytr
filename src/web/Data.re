@@ -42,16 +42,16 @@ in
 [mark(p1), line(p1, p2), mark(p2)]|};
 
 let t3_transcribe = {|shapes
-|> map(rotate(pi / 4))
-|> map(translate(6, 7))
-|> filter(fun shape -> area(shape) < 50)
-|> map(dilate(5))|};
+>> map(rotate(pi / 4))
+>> map(translate(6, 7))
+>> filter(fun shape -> area(shape) < 50)
+>> map(dilate(5))|};
 
 let t3_modify = {|shapes
-|> filter(fun shape -> area(shape) < 50)
-|> map(dilate(5))
-|> map(rotate(pi / 4))
-|> map(translate(6, 7))|};
+>> filter(fun shape -> area(shape) < 50)
+>> map(dilate(5))
+>> map(rotate(pi / 4))
+>> map(translate(6, 7))|};
 
 let emoji_paint = {|type Emoji = None + Smile + Laugh in
 let Row = Int in
