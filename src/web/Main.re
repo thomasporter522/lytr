@@ -54,32 +54,52 @@ let act_str = (action: Update.t) =>
   | _ => Update.show(action)
   };
 
-let apply = (model, action, state, ~schedule_action): Model.t => {
+let apply = (old_model, action, state, ~schedule_action): Model.t => {
   restart_caret_animation();
   print_endline("Apply:" ++ Update.show(action));
-  switch (Update.apply(model, action, state, ~schedule_action)) {
+  switch (Update.apply(old_model, action, state, ~schedule_action)) {
   | exception exn when Update.catch_exns^ =>
     prerr_endline(Printexc.to_string(exn));
     {
-      ...model,
-      hist: [(act_str(action), Printexc.to_string(exn)), ...model.hist],
+      ...old_model,
+      hist: [
+        (act_str(action), Printexc.to_string(exn)),
+        ...old_model.hist,
+      ],
     };
   | Ok(model) =>
-    Store.save_syntax(0, model.zipper);
-    {...model, hist: [(act_str(action), "✔"), ...model.hist]};
+    switch (
+      View.Page.view(~inject=_ => Virtual_dom.Vdom.Effect.Ignore, model)
+    ) {
+    | exception exn when Update.catch_exns^ =>
+      prerr_endline(Printexc.to_string(exn));
+      {
+        ...old_model,
+        hist: [
+          (act_str(action), "Failure: View:" ++ Printexc.to_string(exn)),
+          ...old_model.hist,
+        ],
+      };
+    | _ =>
+      Store.save_syntax(0, model.zipper);
+      {...model, hist: [(act_str(action), "✔"), ...model.hist]};
+    }
   | Error(FailedToPerform as err) =>
     prerr_endline(Update.Failure.show(FailedToPerform));
     {
-      ...model,
-      hist: [(act_str(action), Update.Failure.show(err)), ...model.hist],
+      ...old_model,
+      hist: [
+        (act_str(action), Update.Failure.show(err)),
+        ...old_model.hist,
+      ],
     };
   | Error(err) =>
     print_endline(Update.Failure.show(err));
     {
-      ...model,
+      ...old_model,
       hist: [
         (Update.show(action), Update.Failure.show(err)),
-        ...model.hist,
+        ...old_model.hist,
       ],
     };
   };
