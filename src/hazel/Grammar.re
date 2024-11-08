@@ -60,7 +60,7 @@ module Pat = {
   let sort = Sort.of_str("Pat");
   let pat = nt(sort);
 
-  let bool_lit = alt([c("true"), c("false")]);
+  // let bool_lit = alt([c("true"), c("false")]);
 
   let cons_ap = seq([pat, brc(L, "("), comma_sep(pat), brc(R, ")")]);
   let operand =
@@ -68,7 +68,7 @@ module Pat = {
       t(Int_lit),
       t(Float_lit),
       t(Id_lower),
-      bool_lit,
+      // bool_lit,
       //Constructor
       t(Id_upper),
       seq([brc(L, "("), comma_sep(pat), brc(R, ")")]),
@@ -95,7 +95,7 @@ module Exp = {
   let sort = Sort.of_str("Exp");
   let exp = nt(sort);
 
-  let bool_lit = alt([c("true"), c("false")]);
+  // let bool_lit = alt([c("true"), c("false")]);
 
   let rul =
     seq([op(~break=(true, false), "|"), nt(Pat.sort), op("=>"), exp]);
@@ -127,7 +127,7 @@ module Exp = {
       t(Float_lit),
       t(Id_lower),
       t(Id_upper), // constructors
-      bool_lit,
+      // bool_lit,
       seq([brc(L, "("), comma_sep(exp), brc(R, ")")]),
       seq([brc(L, "["), comma_sep(exp), brc(R, "]")]),
     ]);
