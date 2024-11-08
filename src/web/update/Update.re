@@ -4,7 +4,7 @@ open Stds;
 open Tylr_core;
 open Model;
 
-let catch_exns = ref(false);
+let catch_exns = ref(true);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
