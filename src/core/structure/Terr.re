@@ -46,7 +46,7 @@ let map_face = (f, terr: t) => {...terr, wald: Wald.map_hd(f, terr.wald)};
 let sort = (terr: t) => Wald.sort(terr.wald);
 let cells = (terr: t) => Wald.cells(terr.wald) @ [terr.cell];
 
-let of_wald = wald => Base.{cell: Cell.empty, wald};
+let of_wald = (~cell=Cell.empty, wald) => Base.{cell, wald};
 let of_tok = tok => of_wald(Wald.of_tok(tok));
 
 let link = (t, c, terr: t) => {...terr, wald: Wald.link(t, c, terr.wald)};

@@ -216,10 +216,10 @@ let button = (ctx: t): t => {
     | ([hd, ...tl], []) =>
       let ctx = map_hd(Frame.Open.cons(~onto=L, hd), ctx);
       go(~ctx, (tl, rev_up));
-    | ([l, ...tl], [r, ..._]) when Melder.lt(l.wald, r.wald) =>
+    | ([l, ...tl], [r, ..._]) when Frame.lt(l.wald, r.wald) =>
       let ctx = map_hd(Frame.Open.cons(~onto=L, l), ctx);
       go(~ctx, (tl, rev_up));
-    | ([l, ..._], [r, ...tl]) when Melder.gt(l.wald, r.wald) =>
+    | ([l, ..._], [r, ...tl]) when Frame.gt(l.wald, r.wald) =>
       let ctx = map_hd(Frame.Open.cons(~onto=R, r), ctx);
       go(~ctx, (rev_dn, tl));
     | ([l, ...tl_l], [r, ...tl_r])
@@ -228,14 +228,14 @@ let button = (ctx: t): t => {
           || Mtrl.(
                is_space(Terr.face(l).mtrl) && is_space(Terr.face(r).mtrl)
              )
-          || !Melder.eq(l.wald, r.wald) =>
+          || !Frame.eq(l.wald, r.wald) =>
       let ctx =
         ctx
         |> map_hd(Frame.Open.cons(~onto=L, l))
         |> map_hd(Frame.Open.cons(~onto=R, r));
       go(~ctx, (tl_l, tl_r));
     | ([l, ...tl_l], [r, ...tl_r]) =>
-      assert(Melder.eq(l.wald, r.wald));
+      assert(Frame.eq(l.wald, r.wald));
       let ctx = link((l, r), ctx);
       go(~ctx, (tl_l, tl_r));
     };

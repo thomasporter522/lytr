@@ -108,6 +108,13 @@ module Molded = {
     | Grout(_) => true
     | Tile((lbl, _)) => Label.is_complete(tok.text, lbl)
     };
+  let complete = (tok: t) =>
+    switch (tok.mtrl) {
+    | Space(_)
+    | Grout(_) => None
+    | Tile((lbl, _)) =>
+      Label.complete(tok.text, lbl) |> Option.map(text => {...tok, text})
+    };
 
   let cat = (l: t, ~caret=?, r: t) => {
     let n = Utf8.length(l.text);
@@ -303,7 +310,7 @@ let unmold = (~relabel=true, tok: Molded.t): Unmolded.t => {
       | [] => Space(Unmolded)
       | [_, ..._] as lbls => Tile(lbls)
       }
-    | Grout(_) => raise(Invalid_argument("Token.Unmolded.unmold"))
+    | Grout(_) => Grout()
     | Tile((lbl, _)) =>
       Tile(
         is_empty(tok) || !relabel

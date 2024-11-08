@@ -4,22 +4,6 @@ exception Bug__failed_to_push_space;
 
 let debug = ref(true);
 
-let lt = (l: Wald.t, r: Wald.t) =>
-  !
-    Lists.is_empty(
-      Walker.lt(Node(Wald.face(l).mtrl), Node(Wald.face(r).mtrl)),
-    );
-let gt = (l: Wald.t, r: Wald.t) =>
-  !
-    Lists.is_empty(
-      Walker.gt(Node(Wald.face(l).mtrl), Node(Wald.face(r).mtrl)),
-    );
-let eq = (l: Wald.t, r: Wald.t) =>
-  !
-    Lists.is_empty(
-      Walker.eq(Node(Wald.face(l).mtrl), Node(Wald.face(r).mtrl)),
-    );
-
 // assumes w is already oriented toward side.
 // used to complete zigg top when it takes precedence over pushed wald.
 let complete_wald = (~side: Dir.t, ~fill=Cell.empty, w: Wald.t): Terr.t => {
@@ -135,7 +119,17 @@ let connect_ineq =
   let neq = () =>
     connect_neq(~repair, ~onto=d, onto, ~fill, t)
     |> Option.map(grouted => (grouted, onto));
-  Oblig.Delta.minimize(~to_zero=!repair, f => f(), [eq, neq]);
+  if (repair) {
+    open Options.Syntax;
+    // if repairing, then this means we're molding/remolding and our push of the
+    // current candidate token has reached the top of the local stack ie the nearest
+    // bidelimited container. prioritize maintaining the current bidelimited
+    // container if possible.
+    let/ () = neq();
+    eq();
+  } else {
+    Oblig.Delta.minimize(~to_zero=true, f => f(), [eq, neq]);
+  };
 };
 
 let connect =
@@ -171,24 +165,84 @@ let connect =
   |> Options.get(() => Error(complete_terr(~onto=d, ~fill, onto)));
 };
 
+let rec unzip_tok = (~frame=Frame.Open.empty, path: Path.t, cell: Cell.t) => {
+  let m = Cell.get(cell);
+  switch (path) {
+  | [] => raise(Marks.Invalid)
+  | [hd, ...tl] =>
+    let m = Options.get_exn(Marks.Invalid, m);
+    switch (Meld.unzip(hd, m)) {
+    | Loop((pre, cell, suf)) =>
+      unzip_tok(~frame=Frame.Open.add((pre, suf), frame), tl, cell)
+    | Link((pre, tok, suf)) =>
+      let (cell_pre, pre) = Chain.uncons(pre);
+      let (cell_suf, suf) = Chain.uncons(suf);
+      let (cell_pre, dn) = Slope.Dn.unroll(cell_pre);
+      let (cell_suf, up) = Slope.Up.unroll(cell_suf);
+      let frame =
+        frame |> Frame.Open.add((pre, suf)) |> Frame.Open.cat((dn, up));
+      ((cell_pre, tok, cell_suf), frame);
+    };
+  };
+};
+
 let rec push =
         (
-          ~repair=false,
+          ~repair=?,
           t: Token.t,
           ~fill=Cell.empty,
           stack: Stack.t,
           ~onto: Dir.t,
         )
-        : option((Grouted.t, Stack.t)) =>
+        : option((Grouted.t, Stack.t)) => {
+  let r = Option.is_some(repair);
   switch (stack.slope) {
   | [] =>
-    connect_ineq(~repair, ~onto, stack.bound, ~fill, t)
+    connect_ineq(~repair=r, ~onto, stack.bound, ~fill, t)
     |> Option.map(((grouted, bound)) =>
          (grouted, Stack.{slope: [], bound})
        )
   | [hd, ...tl] =>
-    switch (connect(~repair, ~onto, hd, ~fill, t)) {
-    | Error(fill) => push(~repair, t, ~fill, {...stack, slope: tl}, ~onto)
-    | Ok((grouted, hd)) => Some((grouted, {...stack, slope: [hd, ...tl]}))
-    }
+    let connect = () =>
+      switch (connect(~repair=r, ~onto, hd, ~fill, t)) {
+      | Error(fill) =>
+        push(~repair?, t, ~fill, {...stack, slope: tl}, ~onto)
+      | Ok((grouted, hd)) =>
+        Some((grouted, {...stack, slope: [hd, ...tl]}))
+      };
+    switch (repair) {
+    | None => connect()
+    | Some(remold) =>
+      let discharge = () => discharge(~remold, stack, ~fill, t);
+      Oblig.Delta.minimize(f => f(), [discharge, connect]);
+    };
   };
+}
+and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
+  switch (stack.slope) {
+  | [] => None
+  | [hd, ...tl] =>
+    open Options.Syntax;
+    let* (path, _) =
+      hd.cell.marks.obligs
+      |> Path.Map.filter((_, mtrl: Mtrl.T.t) =>
+           switch (mtrl) {
+           | Tile(_) when mtrl == t.mtrl => true
+           | _ => false
+           }
+         )
+      |> Path.Map.max_binding_opt;
+    let ((c_l, tok, c_r), (dn, up)) = unzip_tok(path, hd.cell);
+    Effects.remove(tok);
+    let l = Stack.cat(dn, {...stack, slope: tl});
+    let r = {
+      let (c_fill, up_fill) = Slope.Up.unroll(fill);
+      let slope =
+        up @ [Terr.of_wald(Wald.rev(hd.wald), ~cell=c_fill), ...up_fill];
+      Stack.{slope, bound: Node(Terr.of_tok(t))};
+    };
+    let c = Cell.Space.merge(c_l, ~fill=Cell.dirty, c_r);
+    let* (slope, fill) = Result.to_option(remold(~fill=c, (l, r)));
+    push(~repair=remold, t, ~fill, {...l, slope}, ~onto=L);
+  };
+};

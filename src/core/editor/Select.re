@@ -170,6 +170,5 @@ let perform = (a: t, z: Zipper.t): option(Zipper.t) =>
     | Step(V(d)) => Move.vstep(d, z)
     | Skip(d2) => Move.skip(d2, z)
     | Jump(pos) => Move.jump(pos, z)
-    | Hole(_) => failwith("unimplemented")
     }
   };

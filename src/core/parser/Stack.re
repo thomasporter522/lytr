@@ -1,11 +1,25 @@
-[@deriving (show({with_path: false}), sexp, yojson)]
-type t = {
-  slope: Slope.t,
-  // may want to limit this to tok or make polymorphic
-  bound: Bound.t(Terr.t),
+module Bound = {
+  include Bound;
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = Bound.t(Terr.t);
 };
 
-let empty = {slope: Slope.empty, bound: Bound.Root};
+module Base = {
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = {
+    slope: Slope.t,
+    // may want to limit this to tok or make polymorphic
+    bound: Bound.t,
+  };
+};
+include Base;
+
+let empty = {slope: Slope.empty, bound: Bound.root};
+
+let cat = (slope: Slope.t, stack: t) => {
+  ...stack,
+  slope: Slope.cat(slope, stack.slope),
+};
 
 let merge_hd = (~onto: Dir.t, t: Token.t, stack: t) =>
   switch (stack) {
@@ -63,3 +77,13 @@ let connect = (t: Token.t, grouted: Grouted.t, stack: t) =>
   |> Chain.Affix.fold_out(~init=stack, ~f=(tok, (swing, cell)) =>
        link(tok, (swing, cell))
      );
+
+module Frame = {
+  [@deriving (show({with_path: false}), sexp, yojson)]
+  type t = (Base.t, Base.t);
+  let empty = (empty, empty);
+  let cat = ((slope_l, slope_r), (stack_l, stack_r)) => (
+    cat(slope_l, stack_l),
+    cat(slope_r, stack_r),
+  );
+};

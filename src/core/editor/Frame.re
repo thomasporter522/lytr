@@ -1,3 +1,21 @@
+open Stds;
+
+let lt = (l: Wald.t, r: Wald.t) =>
+  !
+    Lists.is_empty(
+      Walker.lt(Node(Wald.face(l).mtrl), Node(Wald.face(r).mtrl)),
+    );
+let gt = (l: Wald.t, r: Wald.t) =>
+  !
+    Lists.is_empty(
+      Walker.gt(Node(Wald.face(l).mtrl), Node(Wald.face(r).mtrl)),
+    );
+let eq = (l: Wald.t, r: Wald.t) =>
+  !
+    Lists.is_empty(
+      Walker.eq(Node(Wald.face(l).mtrl), Node(Wald.face(r).mtrl)),
+    );
+
 let zip_lt = (zipped: Cell.t, r: Terr.L.t) =>
   Cell.put(M(zipped, r.wald, r.cell));
 let zip_gt = (l: Terr.R.t, zipped: Cell.t) =>
@@ -33,6 +51,15 @@ module Open = {
       (r, (dn, up));
     };
 
+  // todo: rename
+  let add = ((pre, suf): (Meld.Affix.t, Meld.Affix.t), f: t) =>
+    switch (Terr.mk'(pre), Terr.mk'(suf)) {
+    | (None, None) => f
+    | (None, Some(r)) => cons(~onto=R, r, f)
+    | (Some(l), None) => cons(~onto=L, l, f)
+    | (Some(l), Some(r)) => f |> cons(~onto=L, l) |> cons(~onto=R, r)
+    };
+
   let extend = (~side: Dir.t, tl, (dn, up): t) =>
     switch (side) {
     | L => (Slope.extend(tl, dn), up)
@@ -59,12 +86,17 @@ module Open = {
       let w =
         Option.get(Wald.merge_hds(~save_cursor, ~from=L, l.wald, r.wald));
       Some((Eq(), Cell.put(M(l.cell, w, r.cell)), (dn, up)));
-    | ([l, ..._], [r, ...up]) when Melder.lt(l.wald, r.wald) =>
+    | ([l, ..._], [r, ...up]) when lt(l.wald, r.wald) =>
       Some((Neq(L), zip_lt(zipped, r), (dn, up)))
-    | ([l, ...dn], [r, ..._]) when Melder.gt(l.wald, r.wald) =>
+    | ([l, ...dn], [r, ..._]) when gt(l.wald, r.wald) =>
       Some((Neq(R), zip_gt(l, zipped), (dn, up)))
     | ([l, ...dn], [r, ...up]) =>
-      assert(Melder.eq(l.wald, r.wald));
+      try(assert(eq(l.wald, r.wald))) {
+      | _ =>
+        open Stds;
+        P.show("(dn, up)", show((dn, up)));
+        failwith("");
+      };
       Some((Eq(), zip_eq(l, zipped, r), (dn, up)));
     };
 

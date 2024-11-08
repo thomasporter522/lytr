@@ -54,6 +54,14 @@ let is_complete = text =>
     true
   | Const(_, c) => String.equal(c, text);
 
+let complete = text =>
+  fun
+  | Id_lower
+  | Id_upper
+  | Int_lit
+  | Float_lit => None
+  | Const(_, c) => String.equal(c, text) ? None : Some(c);
+
 // beware calling this with the text of partial tokens
 let oblig = text =>
   fun

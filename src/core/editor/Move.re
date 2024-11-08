@@ -8,9 +8,7 @@ type t =
   // skip to end
   | Skip(Dir2.t)
   // jump to absolute loc
-  | Jump(Loc.t)
-  // jump to next hole
-  | Hole(Dir.t);
+  | Jump(Loc.t);
 
 // bounds goal pos to within start/end pos of program.
 // returns none if the resulting goal pos is same as start pos.
@@ -96,32 +94,10 @@ let skip = (d2: Dir2.t) =>
 
 let jump = loc => map_focus(Fun.const(loc));
 
-let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
-  open Options.Syntax;
-  let c = Zipper.zip(~save_cursor=true, z);
-  let normal = Zipper.normalize(~cell=c);
-  switch (Options.get_exn(Zipper.Bug__lost_cursor, c.marks.cursor)) {
-  | Select(_) => hstep(d, z)
-  | Point({path, _}) =>
-    let+ (path, _) =
-      c.marks.obligs
-      |> Path.Map.filter((_, mtrl: Mtrl.T.t) => mtrl != Space(Unmolded))
-      |> Dir.pick(
-           d,
-           (
-             Path.Map.find_last_opt(p => Path.lt(normal(p), path)),
-             Path.Map.find_first_opt(p => Path.gt(normal(p), path)),
-           ),
-         );
-    c |> Cell.put_cursor(Point(Caret.focus(path))) |> Zipper.unzip_exn;
-  };
-};
-
 // todo: need to return none in some more cases when no visible movement occurs
 let perform =
   fun
   | Step(H(d)) => hstep(d)
   | Step(V(d)) => vstep(d)
   | Skip(d2) => skip(d2)
-  | Jump(loc) => jump(loc)
-  | Hole(d) => hole(d);
+  | Jump(loc) => jump(loc);
