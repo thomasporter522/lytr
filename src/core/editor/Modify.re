@@ -107,112 +107,22 @@ let mold =
 };
 
 let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
-  open Options.Syntax;
   // P.log("--- remold");
   // P.show("fill", Cell.show(fill));
   // P.show("ctx", Ctx.show(ctx));
   let ((l, r), tl) = Ctx.unlink_stacks(ctx);
-  let bounds = (l.bound, r.bound);
-  let- () =
-    // first try removing grout and continuing
-    switch (Slope.unlink(r.slope)) {
-    | Some((tok, (cell, _), up)) when Token.Grout.is(tok) =>
-      Effects.remove(tok);
-      let up = Slope.cat(snd(Slope.Up.unroll(cell)), up);
-      let r = {...r, slope: up};
-      Some(remold(~fill, Ctx.link_stacks((l, r), tl)));
-    | _ => None
-    };
-  switch (r.slope) {
-  | [] =>
-    // P.log("--- remold/done");
-    // P.show("l", Stack.show(l));
-    // P.show("fill", Cell.show(fill));
-    let cell = Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill);
-    // P.show("completed", Cell.show(cell));
-    let ctx = Ctx.link_stacks(({...l, slope: []}, {...r, slope: []}), tl);
+  switch (Molder.remold(~fill, (l, r))) {
+  | Error((fill, (l', r'))) =>
+    // remold error means something in r melded onto the bound of l, breaking their
+    // bidelimited container, so we need to add the suffix of the next stack frame
+    // in tl to the remolding queue
+    tl
+    |> Ctx.map_hd(Frame.Open.cat(Stack.(to_slope(l'), to_slope(r'))))
+    |> remold(~fill)
+  | Ok(cell) =>
+    let hd = ({...l, slope: []}, {...r, slope: []});
+    let ctx = Ctx.link_stacks(hd, tl);
     (cell, ctx);
-  | [hd_up, ...tl_up] =>
-    // insert any pending ghosts if next terr has newlines
-    let (l, fill) =
-      Terr.tokens(hd_up)
-      |> List.map(Token.height)
-      |> List.fold_left((+), 0) == 0
-        ? (l, fill)
-        : {
-          let bounds = (l.bound, r.bound);
-          let (cell, effs) =
-            Effects.dry_run(
-              () => Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill),
-              (),
-            );
-          // hack(?) to avoid completion if no new ghosts are generated. if only
-          // grout are generated, then we can generate them later as needed at the
-          // end of remolding. better to delay their generation bc there may already
-          // be grout in the suffix whose relative position around neighboring
-          // whitespace we want to preserve.
-          effs
-          |> List.for_all(
-               fun
-               | Effects.Insert(tok) =>
-                 Mtrl.(is_grout(tok.mtrl) || is_space(tok.mtrl))
-               | Remove(_) => true,
-             )
-            ? (l, fill)
-            : {
-              Effects.commit(effs);
-              let (fill, slope) = Slope.Dn.unroll(cell);
-              ({...l, slope}, fill);
-            };
-        };
-    let r_tl = {...r, slope: tl_up};
-    let (hd_w, tl_w) = Wald.uncons(hd_up.wald);
-    // tl_w unrolled to up slope
-    let unrolled = () =>
-      Chain.Affix.uncons(tl_w)
-      |> Option.map(((cell, (ts, cs))) =>
-           snd(Slope.Up.unroll(cell))
-           @ [{wald: Wald.mk(ts, cs), cell: hd_up.cell}]
-         )
-      |> Option.value(~default=snd(Slope.Up.unroll(hd_up.cell)));
-    switch (Molder.mold(l, ~fill, Token.unmold(hd_w))) {
-    | None =>
-      tl
-      |> Ctx.link_stacks((l, r_tl))
-      |> Ctx.map_hd(Frame.Open.cat(([], unrolled())))
-      |> remold(~fill=Cell.mark_ends_dirty(fill))
-    | Some((t, grouted, rest)) when t.mtrl == hd_w.mtrl =>
-      // fast path for when hd_w retains original meld
-      let connected = Stack.connect(t, grouted, rest) |> Stack.extend(tl_w);
-      if (connected.bound == l.bound) {
-        tl |> Ctx.link_stacks((connected, r_tl)) |> remold(~fill=hd_up.cell);
-      } else {
-        tl
-        |> Ctx.map_hd(
-             Frame.Open.cat((
-               Stack.to_slope(connected),
-               Stack.to_slope(r_tl),
-             )),
-           )
-        |> remold(~fill=hd_up.cell);
-      };
-    | Some((t, grouted, rest)) =>
-      let connected = Stack.connect(t, grouted, rest);
-      // check if connection changed the stack bound
-      if (connected.bound == l.bound) {
-        // if not, then nearest bidelimited container is preserved
-        tl
-        |> Ctx.link_stacks((connected, r_tl))
-        |> Ctx.map_hd(Frame.Open.cat(([], unrolled())))
-        |> remold;
-      } else {
-        // otherwise, break down bidelimited container and add right side to
-        // remolding queue (the suffix of the ctx)
-        let open_ =
-          Stack.(to_slope(connected), unrolled() @ to_slope(r_tl));
-        tl |> Ctx.map_hd(Frame.Open.cat(open_)) |> remold;
-      };
-    };
   };
 };
 

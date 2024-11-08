@@ -33,6 +33,15 @@ module Open = {
       (r, (dn, up));
     };
 
+  // todo: rename
+  let add = ((pre, suf): (Meld.Affix.t, Meld.Affix.t), f: t) =>
+    switch (Terr.mk'(pre), Terr.mk'(suf)) {
+    | (None, None) => f
+    | (None, Some(r)) => cons(~onto=R, r, f)
+    | (Some(l), None) => cons(~onto=L, l, f)
+    | (Some(l), Some(r)) => f |> cons(~onto=L, l) |> cons(~onto=R, r)
+    };
+
   let extend = (~side: Dir.t, tl, (dn, up): t) =>
     switch (side) {
     | L => (Slope.extend(tl, dn), up)
