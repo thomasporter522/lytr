@@ -96,8 +96,15 @@ let mold =
     (ctx: Ctx.t, ~fill=Cell.dirty, tok: Token.Unmolded.t): option(Ctx.t) => {
   open Options.Syntax;
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
+  // Grouter.dbg := true;
   let+ (tok, grouted, l) = Molder.mold(l, ~fill, tok);
+  // Grouter.dbg := false;
+  // P.log("--- Molder.mold/success");
+  // P.show("tok", Token.show(tok));
+  // P.show("grouted", Grouted.show(grouted));
+  // P.show("stack", Stack.show(l));
   let connected = Stack.connect(tok, grouted, l);
+  // P.show("connected", Stack.show(connected));
   connected.bound == l.bound
     ? Ctx.link_stacks((connected, r), rest)
     : Ctx.map_hd(
@@ -107,7 +114,7 @@ let mold =
 };
 
 let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
-  // P.log("--- remold");
+  // P.log("--- Modify.remold");
   // P.show("fill", Cell.show(fill));
   // P.show("ctx", Ctx.show(ctx));
   let ((l, r), tl) = Ctx.unlink_stacks(ctx);
@@ -120,8 +127,14 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
     |> Ctx.map_hd(Frame.Open.cat(Stack.(to_slope(l'), to_slope(r'))))
     |> remold(~fill)
   | Ok((dn, fill)) =>
+    // P.log("--- Modify.remold/done");
+    // P.show("dn", Slope.Dn.show(dn));
+    // P.show("fill", Cell.show(fill));
     let bounds = (l.bound, r.bound);
+    // Melder.dbg := true;
     let cell = Melder.complete_bounded(~bounds, ~onto=L, dn, ~fill);
+    // Melder.dbg := false;
+    // P.show("completed", Cell.show(cell));
     let hd = ({...l, slope: []}, {...r, slope: []});
     let ctx = Ctx.link_stacks(hd, tl);
     (cell, ctx);
@@ -317,9 +330,14 @@ let insert_toks =
   toks
   |> Chain.fold_left(
        fill => (ctx, fill),
-       ((ctx, fill), tok, next_fill) =>
+       ((ctx, fill), tok, next_fill) => {
+         //  P.log("--- insert_toks/tok");
+         //  P.show("ctx", Ctx.show(ctx));
+         //  P.show("fill", Cell.show(fill));
+         //  P.show("tok", Token.Unmolded.show(tok));
          switch (mold(ctx, ~fill, tok)) {
          | Some(ctx) =>
+           //  P.show("molded tok", Ctx.show(ctx));
            let (face, rest) = Ctx.pull(~from=L, ctx);
            switch (face, next_fill.marks.cursor) {
            // if molded token is longer than original, then move cursor out of
@@ -343,7 +361,8 @@ let insert_toks =
              Option.is_some(fill.marks.cursor)
                ? Cell.mark_ends_dirty(fill) : next_fill;
            (ctx, next_fill);
-         },
+         }
+       },
      );
 };
 
@@ -413,12 +432,12 @@ let insert = (s: string, z: Zipper.t) => {
   open Options.Syntax;
   let z = delete_sel(L, z);
 
-  // P.log("--- insert");
+  // P.log("--- Modify.insert");
   let- () = try_expand(s, z);
   let- () = try_move(s, z);
   let- () = try_extend(s, z);
 
-  // P.log("--- insert/molding");
+  // P.log("--- Modify.insert/molding");
   // P.show("z.ctx", Ctx.show(z.ctx));
   let (toks, ctx) = relabel(s, z.ctx);
   // P.show("toks", Chain.show(Cell.pp, Token.Unmolded.pp, toks));

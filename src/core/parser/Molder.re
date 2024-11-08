@@ -81,8 +81,12 @@ let rec mold =
          |> Option.map(((grouted, stack)) => (tok, grouted, stack))
        )
   ) {
-  // pushed token was empty ghost connected via neq-relation
-  | Some((tok, grouted, _) as molded) =>
+  | Some((tok, grouted, _stack) as molded) =>
+    // remove empty ghost connected via neq-relation
+    // P.log("--- Molder.mold/success");
+    // P.show("tok", Token.show(tok));
+    // P.show("grouted", Grouted.show(grouted));
+    // P.show("stack", Stack.show(stack));
     Mtrl.is_tile(tok.mtrl) && tok.text == "" && Grouted.is_neq(grouted)
       ? None : Some(molded)
   | None =>
@@ -102,19 +106,18 @@ let rec mold =
 and remold =
     (~fill, (l, r): Stack.Frame.t)
     : Result.t((Slope.Dn.t, Cell.t), (Cell.t, Stack.Frame.t)) => {
-  // open Result.Syntax;
-  // P.log("--- remold");
+  // P.log("--- Molder.remold");
   // P.show("fill", Cell.show(fill));
   // P.show("(l, r)", Stack.Frame.show((l, r)));
   let bounds = (l.bound, r.bound);
   switch (r.slope) {
   | [] =>
-    // P.log("--- remold/done");
+    // P.log("--- Molder.remold/done");
     // P.show("l", Stack.show(l));
     // P.show("fill", Cell.show(fill));
     Ok((l.slope, fill))
   | [hd, ...tl] =>
-    // P.log("--- remold/continue");
+    // P.log("--- Molder.remold/continue");
     // P.show("hd", Terr.show(hd));
     // insert any pending ghosts if next terr has newlines
     let (l, fill) =
