@@ -48,13 +48,11 @@ module Typ = {
     //Arrow
     //TODO: should the below be "ch" or c? (padding with horizontal spaces or none?)
     p(~a=R, seq([typ, op("->"), typ])),
-    //Ap
-    p(seq([typ, brc(L, "("), typ, brc(R, ")")])),
-    p(operand),
     //Sum type
     p(~a=L, seq([typ, op("+"), typ])),
     //Constructor def for sums
     p(cons_ap),
+    p(operand),
   ];
 };
 
