@@ -79,13 +79,12 @@ module Pat = {
 
   let tbl = [
     //Typeann
-    p(~a=L, seq([pat, c(":"), nt(Typ.sort)])),
+    p(seq([pat, op(~space=(false, true), ":"), nt(Typ.sort)])),
     //Cons
     p(~a=R, seq([pat, c("::"), pat])),
-    //ap
-    p(seq([pat, brc(L, "("), pat, brc(R, ")")])),
     //bare tuple
     //p(~a=L, seq([pat, c(","), pat])),
+    //ap
     p(cons_ap),
     p(operand),
   ];
@@ -136,8 +135,11 @@ module Exp = {
   let add_op = op_alt(["+", "+.", "-", "-.", "@", "++"]);
   let mult_op = op_alt(["*", "*.", "/", "/."]);
   let neg_op = op_alt(["-", "-."]);
-  let comp_op_int = op_alt(["<", "<=", ">", ">=", "==", "!="]);
-  let comp_op_float = op_alt(["<.", "<=.", ">", ">=.", "==", "!="]);
+  let comp_op =
+    op_alt(
+      ["<", "<=", ">", ">=", "==", "!="]
+      @ ["<.", "<=.", ">.", ">=.", "==.", "!=."],
+    );
 
   let fn_ap = seq([exp, brc(L, "("), comma_sep(exp), brc(R, ")")]);
 
@@ -165,8 +167,7 @@ module Exp = {
       ]),
     ),
     //Comparison
-    p(~a=L, seq([exp, comp_op_int, exp])),
-    p(~a=L, seq([exp, comp_op_float, exp])),
+    p(~a=L, seq([exp, comp_op, exp])),
     //Math operations
     p(~a=L, seq([exp, add_op, exp])),
     p(~a=L, seq([exp, mult_op, exp])),
