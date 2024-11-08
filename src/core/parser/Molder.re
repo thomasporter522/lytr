@@ -31,9 +31,15 @@ let candidates = (t: Token.Unmolded.t): list(Token.t) =>
       |> List.concat_map(lbl =>
            Molds.with_label(lbl) |> List.map(mold => (lbl, mold))
          )
-      |> List.stable_sort(((_, l: Mold.t), (_, r: Mold.t)) =>
-           Sort.compare(l.sort, r.sort)
-         )
+      |> List.stable_sort(((lbl_l, m_l: Mold.t), (lbl_r, m_r: Mold.t)) => {
+           open Compare.Syntax;
+           let/ () = Sort.compare(m_l.sort, m_r.sort);
+           (-1)
+           * Bool.compare(
+               Label.is_complete(t.text, lbl_l),
+               Label.is_complete(t.text, lbl_r),
+             );
+         })
       |> List.map(Mtrl.tile)
     },
   );
