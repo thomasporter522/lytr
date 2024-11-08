@@ -100,33 +100,32 @@ let complete_face = (site: Zipper.Site.t, ctx: Ctx.t) =>
   switch (site) {
   | Within(tok) =>
     Token.complete(tok)
-    |> Option.map(tok =>
-         ctx |> Ctx.push(~onto=L, tok) |> Ctx.push(~onto=R, tok)
-       )
-    |> Option.value(~default=ctx)
+    |> Option.map(tok => ctx |> Ctx.push(~onto=L, Token.clear_marks(tok)))
   | Between =>
     open Options.Syntax;
     let complete = side => {
       let (face, ctx) = Ctx.pull(~from=side, ctx);
       let* tok = Delim.to_opt(face);
       let+ tok = Token.complete(tok);
-      Ctx.push(~onto=side, tok, ctx);
+      Ctx.push(~onto=L, tok, ctx);
     };
     // assuming this is only called when tabbing forward
-    let- () = complete(L);
-    let- () = complete(R);
-    ctx;
+    let/ () = complete(L);
+    complete(R);
   };
 
 let hole = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
   switch (Zipper.cursor_site(z)) {
   | (Select(_), _) => hstep(d, z)
   | (Point(site), ctx) =>
-    let z =
+    open Options.Syntax;
+    // first try completing a face
+    let/ () =
       switch (d) {
-      | L => z
-      | R => Zipper.mk(complete_face(site, ctx))
+      | L => None
+      | R => Option.map(Zipper.mk, complete_face(site, ctx))
       };
+    // otherwise jump to next obligation
     let c = Zipper.zip(~save_cursor=true, z);
     let normal = Zipper.normalize(~cell=c);
     let car =
