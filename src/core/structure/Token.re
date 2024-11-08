@@ -310,7 +310,7 @@ let unmold = (~relabel=true, tok: Molded.t): Unmolded.t => {
       | [] => Space(Unmolded)
       | [_, ..._] as lbls => Tile(lbls)
       }
-    | Grout(_) => raise(Invalid_argument("Token.Unmolded.unmold"))
+    | Grout(_) => Grout()
     | Tile((lbl, _)) =>
       Tile(
         is_empty(tok) || !relabel

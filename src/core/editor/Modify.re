@@ -119,7 +119,9 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
     tl
     |> Ctx.map_hd(Frame.Open.cat(Stack.(to_slope(l'), to_slope(r'))))
     |> remold(~fill)
-  | Ok(cell) =>
+  | Ok((dn, fill)) =>
+    let bounds = (l.bound, r.bound);
+    let cell = Melder.complete_bounded(~bounds, ~onto=L, dn, ~fill);
     let hd = ({...l, slope: []}, {...r, slope: []});
     let ctx = Ctx.link_stacks(hd, tl);
     (cell, ctx);

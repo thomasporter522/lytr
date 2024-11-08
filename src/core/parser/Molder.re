@@ -25,7 +25,7 @@ let candidates = (t: Token.Unmolded.t): list(Token.t) =>
     Token.mk(~id=t.id, ~marks=?t.marks, ~text=t.text),
     switch (t.mtrl) {
     | Space(t) => [Mtrl.Space(t)]
-    | Grout(_) => failwith("bug: attempted to mold grout")
+    | Grout(_) => []
     | Tile(lbls) =>
       lbls
       |> List.concat_map(lbl =>
@@ -43,36 +43,6 @@ let candidates = (t: Token.Unmolded.t): list(Token.t) =>
       |> List.map(Mtrl.tile)
     },
   );
-
-// returns None if input token is empty
-let mold =
-    (stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
-    : option((Token.t, Grouted.t, Stack.t)) =>
-  switch (
-    candidates(t)
-    |> Oblig.Delta.minimize(tok =>
-         Melder.push(~repair=true, tok, ~fill, stack, ~onto=L)
-         |> Option.map(((grouted, stack)) => (tok, grouted, stack))
-       )
-  ) {
-  // pushed token was empty ghost connected via neq-relation
-  | Some((tok, grouted, _) as molded) =>
-    Mtrl.is_tile(tok.mtrl) && tok.text == "" && Grouted.is_neq(grouted)
-      ? None : Some(molded)
-  | None =>
-    let deferred = Token.Unmolded.defer(t);
-    Token.is_empty(deferred)
-      ? None
-      : Some(
-          {
-            let (fill, slope) = Slope.Dn.unroll(fill);
-            let stack = Stack.cat(slope, stack);
-            Melder.push(deferred, ~fill, stack, ~onto=L)
-            |> Option.map(((grouted, stack)) => (deferred, grouted, stack))
-            |> Options.get_fail("bug: failed to push space");
-          },
-        );
-  };
 
 let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
   let (cell, effs) =
@@ -100,34 +70,52 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
     };
 };
 
-let rec remold =
-        (~fill=Cell.empty, (l, r): Stack.Frame.t)
-        : Result.t(Cell.t, (Cell.t, Stack.Frame.t)) => {
-  open Result.Syntax;
+// returns None if input token is empty
+let rec mold =
+        (stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
+        : option((Token.t, Grouted.t, Stack.t)) =>
+  switch (
+    candidates(t)
+    |> Oblig.Delta.minimize(tok =>
+         Melder.push(tok, ~fill, stack, ~onto=L, ~repair=remold)
+         |> Option.map(((grouted, stack)) => (tok, grouted, stack))
+       )
+  ) {
+  // pushed token was empty ghost connected via neq-relation
+  | Some((tok, grouted, _) as molded) =>
+    Mtrl.is_tile(tok.mtrl) && tok.text == "" && Grouted.is_neq(grouted)
+      ? None : Some(molded)
+  | None =>
+    let deferred = Token.Unmolded.defer(t);
+    Token.is_empty(deferred)
+      ? None
+      : Some(
+          {
+            let (fill, slope) = Slope.Dn.unroll(fill);
+            let stack = Stack.cat(slope, stack);
+            Melder.push(deferred, ~fill, stack, ~onto=L)
+            |> Option.map(((grouted, stack)) => (deferred, grouted, stack))
+            |> Options.get_fail("bug: failed to push space");
+          },
+        );
+  }
+and remold =
+    (~fill, (l, r): Stack.Frame.t)
+    : Result.t((Slope.Dn.t, Cell.t), (Cell.t, Stack.Frame.t)) => {
+  // open Result.Syntax;
   // P.log("--- remold");
   // P.show("fill", Cell.show(fill));
-  // P.show("ctx", Ctx.show(ctx));
+  // P.show("(l, r)", Stack.Frame.show((l, r)));
   let bounds = (l.bound, r.bound);
-  let/ _ =
-    // first try removing grout and continuing
-    switch (Slope.unlink(r.slope)) {
-    | Some((tok, (cell, _), up)) when Token.Grout.is(tok) =>
-      Effects.remove(tok);
-      let up = Slope.cat(snd(Slope.Up.unroll(cell)), up);
-      let r = {...r, slope: up};
-      remold(~fill, (l, r));
-    | _ =>
-      // think I'm missing a type quantifier in result syntax.
-      // empty values here just to typecheck and are ignored.
-      Error((Cell.empty, Stack.Frame.empty))
-    };
   switch (r.slope) {
   | [] =>
     // P.log("--- remold/done");
     // P.show("l", Stack.show(l));
     // P.show("fill", Cell.show(fill));
-    Ok(Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill))
+    Ok((l.slope, fill))
   | [hd, ...tl] =>
+    // P.log("--- remold/continue");
+    // P.show("hd", Terr.show(hd));
     // insert any pending ghosts if next terr has newlines
     let (l, fill) =
       Terr.tokens(hd)
