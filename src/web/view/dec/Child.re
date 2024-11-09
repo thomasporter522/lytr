@@ -100,7 +100,10 @@ let view = (~font, p: Profile.t) => {
              ),
         ];
   let body_line =
-    height <= 0 || r_closed_by_delim_after_newline && height <= 1
+    height <= 0
+    || Option.is_none(fst(p.no_delim))
+    && r_closed_by_delim_after_newline
+    && height <= 1
       ? []
       : Util.Svgs.Path.[
           m(~x=p.ind, ~y=p.loc.row)
