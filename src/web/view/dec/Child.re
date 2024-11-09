@@ -87,8 +87,19 @@ let view = (~font, p: Profile.t) => {
     |> Option.map(includes_all_but_padding(~side=R, end_loc.col))
     |> Option.value(~default=false);
 
+  let b =
+    height <= 0
+    || Option.is_none(fst(p.no_delim))
+    && r_closed_by_delim_after_newline
+    && height <= 1;
+
   let hd_line =
-    hd.rest == 0 || height > 0 && l_open_and_covers_row
+    hd.rest == 0
+    || height > 0
+    && l_open_and_covers_row
+    || height > 0
+    && Option.is_none(fst(p.no_delim))
+    && !b
       ? []
       : Util.Svgs.Path.[
           m(~x=p.loc.col, ~y=p.loc.row + 1)
@@ -100,10 +111,7 @@ let view = (~font, p: Profile.t) => {
              ),
         ];
   let body_line =
-    height <= 0
-    || Option.is_none(fst(p.no_delim))
-    && r_closed_by_delim_after_newline
-    && height <= 1
+    b
       ? []
       : Util.Svgs.Path.[
           m(~x=p.ind, ~y=p.loc.row)
