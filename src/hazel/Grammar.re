@@ -168,6 +168,8 @@ module Exp = {
     ),
     //Comparison
     p(~a=L, seq([exp, comp_op, exp])),
+    //Reverse-ap
+    p(~a=L, seq([exp, op("|>"), exp])),
     //Math operations
     p(~a=L, seq([exp, add_op, exp])),
     p(~a=L, seq([exp, mult_op, exp])),
