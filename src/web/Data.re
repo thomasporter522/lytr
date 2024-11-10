@@ -42,16 +42,40 @@ in
 [mark(p1), line(p1, p2), mark(p2)]|};
 
 let t3_transcribe = {|shapes
->> map(rotate(pi / 4))
->> map(translate(6, 7))
->> filter(fun shape -> area(shape) < 50)
->> map(dilate(5))|};
+|> map(rotate(pi / 4))
+|> map(translate(6, 7))
+|> filter(fun shape -> area(shape) < 50)
+|> map(dilate(5))|};
 
 let t3_modify = {|shapes
->> filter(fun shape -> area(shape) < 50)
->> map(dilate(5))
->> map(rotate(pi / 4))
->> map(translate(6, 7))|};
+|> filter(fun shape -> area(shape) < 50)
+|> map(dilate(5))
+|> map(rotate(pi / 4))
+|> map(translate(6, 7))|};
+
+let t4_transcribe = {|type Point = (Int, Int) in
+type Rect = (Point, Int, Int) in
+
+let contains = fun (r: Rect, p: Point) ->
+  let (x, y) = p in
+  let ((x_min, y_min), x_len, y_len) = r in
+  x_min <= x && x <= x_min + x_len
+  && y_min <= y && y <= y_min + y_len
+in|};
+
+let t4_modify = {|type Point = (Int, Int) in
+type Rect = (Point, Int, Int) in
+type Circ = (Point, Int) in
+type Shape = R(Rect) + C(Circ) in
+
+let contains = fun (s: Shape, p: Point) ->
+  let (x, y) = p in
+  case s
+  | R(((x_min, y_min), x_len, y_len)) =>
+ x_min <= x && x <= x_min + x_len
+ && y_min <= y && y <= y_min + y_len
+  | C((center, r)) => dist(center, p) <= r
+in|};
 
 let emoji_paint = {|type Emoji = None + Smile + Laugh in
 let Row = Int in

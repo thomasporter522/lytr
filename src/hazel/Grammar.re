@@ -98,7 +98,14 @@ module Exp = {
 
   let rul =
     seq([op(~break=(true, false), "|"), nt(Pat.sort), op("=>"), exp]);
-  let case = seq([kw(~space=(false, true), "case"), exp, rul, star(rul)]);
+  let case =
+    seq([
+      kw(~space=(false, true), "case"),
+      exp,
+      rul,
+      star(rul),
+      kw(~space=(true, false), ~break=(true, false), "end"),
+    ]);
 
   let let_ =
     seq([
@@ -149,8 +156,6 @@ module Exp = {
     //let
     p(let_),
     p(type_def),
-    //Reverse-ap (re-syntaxed for now as interferes with case rules)
-    p(~a=L, seq([exp, op(">>"), exp])),
     //fun
     p(
       seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
@@ -166,6 +171,8 @@ module Exp = {
         exp,
       ]),
     ),
+    p(~a=R, seq([exp, op("||"), exp])),
+    p(~a=R, seq([exp, op("&&"), exp])),
     //Comparison
     p(~a=L, seq([exp, comp_op, exp])),
     //Reverse-ap
