@@ -167,8 +167,8 @@ let perform = (a: t, z: Zipper.t): option(Zipper.t) =>
   | Move(a) =>
     switch (a) {
     | Step(H(d)) => hstep(d, z)
-    | Step(V(d)) => Move.vstep(d, z)
-    | Skip(d2) => Move.skip(d2, z)
-    | Jump(pos) => Move.jump(pos, z)
+    | Step(V(d)) => Move.vstep(~drop_anchor=true, d, z)
+    | Skip(d2) => Move.skip(~drop_anchor=true, d2, z)
+    | Jump(pos) => Move.jump(~drop_anchor=true, pos, z)
     }
   };

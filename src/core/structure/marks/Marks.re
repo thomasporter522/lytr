@@ -84,9 +84,27 @@ module Cell = {
   let put_cursor = (cur, marks) => {...marks, cursor: Some(cur)};
   let get_focus = (marks: t) =>
     Option.bind(marks.cursor, Path.Cursor.get_focus);
-  let put_focus = (path: Path.t, marks: t) => {
+  // let map_focus = (marks: t) => Path.Cursor.get_focus(marks.cursor);
+  let put_focus = (~drop_anchor=false, foc: Path.t, marks: t) => {
     ...marks,
-    cursor: Path.Cursor.put_focus(path, marks.cursor),
+    cursor: {
+      open Options.Syntax;
+      let/ () = {
+        let* () = Options.of_bool(drop_anchor);
+        let* cur = marks.cursor;
+        // only drop anchor if cursor was pointing
+        let* car = Cursor.get_point(cur);
+        let+ sel =
+          Result.to_option(
+            Path.Selection.of_carets(
+              Caret.focus(foc),
+              Caret.anchor(car.path),
+            ),
+          );
+        Path.Cursor.select(sel);
+      };
+      Path.Cursor.put_focus(foc, marks.cursor);
+    },
   };
 
   let add_oblig = (~path=Path.empty, t: Mtrl.T.t, marks: t) => {

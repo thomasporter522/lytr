@@ -73,10 +73,10 @@ let cursor = (~font, z: Zipper.t) => {
 };
 
 let view = (~font: Model.Font.t, ~zipper: Zipper.t): Node.t => {
-  // print_endline("--- Code.view ---");
-  // print_endline("z = " ++ Zipper.show(zipper));
+  // P.log("--- Code.view ---");
+  // P.show("z", Zipper.show(zipper));
   let c = Zipper.zip(~save_cursor=true, zipper);
-  // print_endline("c = " ++ Cell.show(c));
+  // P.show("c", Cell.show(c));
   // let t = Layout.mk_cell(c);
   // print_endline("t = " ++ LCell.show(t));
   // let b = LCell.flatten(t);
