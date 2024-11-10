@@ -81,13 +81,19 @@ let rec mold =
          |> Option.map(((grouted, stack)) => (tok, grouted, stack))
        )
   ) {
-  | Some((tok, grouted, _stack) as molded) =>
+  | Some((tok, grouted, stack) as molded) =>
     // remove empty ghost connected via neq-relation
     // P.log("--- Molder.mold/success");
     // P.show("tok", Token.show(tok));
     // P.show("grouted", Grouted.show(grouted));
     // P.show("stack", Stack.show(stack));
-    Mtrl.is_tile(tok.mtrl) && tok.text == "" && Grouted.is_neq(grouted)
+    Mtrl.is_tile(tok.mtrl)
+    && Token.is_empty(tok)
+    && (
+      Grouted.is_neq(grouted)
+      || Option.is_some(Grouted.is_eq(grouted))
+      && stack.slope == []
+    )
       ? Error(Cell.mark_degrouted(fill, ~side=R)) : Ok(molded)
   | None =>
     let deferred = Token.Unmolded.defer(t);
