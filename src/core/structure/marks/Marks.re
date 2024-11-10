@@ -22,6 +22,10 @@ module Token = {
     };
   let shift = n => Option.map(Step.Cursor.map(Step.shift(n)));
   let union = Options.merge(~f=Step.Cursor.union);
+  let focus_point: t => t =
+    Option.map(
+      Cursor.map((car: Step.Caret.t) => Step.Caret.focus(car.path), Fun.id),
+    );
 };
 
 module Cell = {

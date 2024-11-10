@@ -27,7 +27,8 @@ module Base = {
     ...tok,
     marks: Some(cursor),
   };
-  let put_marks = (marks, tok) => {...tok, marks};
+  let map_marks = (f, tok: t(_)): t(_) => {...tok, marks: f(tok.marks)};
+  let put_marks = marks => map_marks(Fun.const(marks));
   let clear_marks = tok => put_marks(None, tok);
   let pop_marks = tok => (tok.marks, clear_marks(tok));
   let height = tok => Strings.count('\n', tok.text);
@@ -43,6 +44,7 @@ module Molded = {
   [@deriving (sexp, yojson)]
   type t = Base.t(Mtrl.T.t);
 
+  let focus_point: t => t = map_marks(Marks.focus_point);
   let pp = (out, tok: t) =>
     switch (tok.mtrl) {
     | Space(t) =>

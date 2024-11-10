@@ -49,6 +49,15 @@ let face = (~side: Dir.t, zigg: t) => {
   | Root => Wald.hd(top)
   };
 };
+let map_face = (~side: Dir.t, f, zigg: t) => {
+  let (s_d, top, s_b) = orient(side, zigg);
+  let (s_d, top) =
+    switch (Slope.map_face(f, s_d)) {
+    | Some(s_d) => (s_d, top)
+    | None => (s_d, Wald.map_hd(f, top))
+    };
+  unorient(side, (s_d, top, s_b));
+};
 
 // let x = (1 + [a + b ? c / d : e * f] + 3) + 4 * 5 in x + 1
 

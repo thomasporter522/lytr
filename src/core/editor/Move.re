@@ -51,14 +51,32 @@ let hstep_tok = (d: Dir.t, tok: Token.t): (Token.t, bool) => {
   };
 };
 
+let push_site = (~onto: Dir.t, site: Zipper.Site.t, ctx: Ctx.t) =>
+  switch (site) {
+  | Between => ctx
+  | Within(tok) => Ctx.push(~onto, tok, ctx)
+  };
+let push_sites = (site: Zipper.Site.cursor, ctx: Ctx.t) =>
+  switch (site) {
+  | Point(Between) => ctx
+  | Point(Within(tok)) =>
+    ctx |> Ctx.push(~onto=L, tok) |> Ctx.push(~onto=R, tok)
+  | Select((l, r)) => ctx |> push_site(~onto=L, l) |> push_site(~onto=R, r)
+  };
+
 let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
   let b = Dir.toggle(d);
   let+ ctx =
     switch (z.cur) {
     | Select({range: zigg, _}) =>
-      // move to d end of selection
-      return(Ctx.push_zigg(~onto=b, zigg, z.ctx))
+      // move to d end of selection, taking care to update any token marks
+      let (_, ctx_sans_sites) = Zipper.cursor_site(z);
+      let zigg =
+        zigg
+        |> Zigg.map_face(~side=d, Token.focus_point)
+        |> Zigg.map_face(~side=b, Token.clear_marks);
+      return(Ctx.push_zigg(~onto=b, zigg, ctx_sans_sites));
     | Point(_) =>
       let (face, ctx) = Ctx.pull(~from=d, z.ctx);
       let+ tok = Bound.to_opt(face);
