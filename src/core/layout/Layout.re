@@ -137,9 +137,9 @@ let step_of_loc =
     (~state: State.t, ~block as B(b): Block.t, target: Loc.t)
     : Result.t(Step.t, State.t) =>
   {
-    Block.show(B(b)) |> print_endline;
-    print_endline("target: " ++ Loc.show(target));
-    print_endline("state: " ++ State.show(state));
+    // Block.show(B(b)) |> print_endline;
+    // print_endline("target: " ++ Loc.show(target));
+    // print_endline("state: " ++ State.show(state));
     b
     |> Chain.map_loop(sec => {Block.len(Block.sec(sec))})
     // accumulate result where Ok encodes found step and Error encodes number of chars
@@ -150,23 +150,23 @@ let step_of_loc =
            let loc_sol = state.loc;
            let len_eol = len_sol + sec_len;
            let loc_eol = Loc.shift(sec_len, loc_sol);
-           print_endline(
-             "a: loc_eol.row < target.row:"
-             ++ string_of_bool(loc_eol.row < target.row),
-           );
-           print_endline(
-             "Loc.lt(loc_eol, target)"
-             ++ (Loc.lt(loc_eol, target) |> string_of_bool),
-           );
+           //  print_endline(
+           //    "a: loc_eol.row < target.row:"
+           //    ++ string_of_bool(loc_eol.row < target.row),
+           //  );
+           //  print_endline(
+           //    "Loc.lt(loc_eol, target)"
+           //    ++ (Loc.lt(loc_eol, target) |> string_of_bool),
+           //  );
            Loc.lt(loc_eol, target)
              ? Error((len_eol, loc_eol))
              : Ok(min(len_sol + max(0, target.col - loc_sol.col), len_eol));
          },
          (found, rel_indent, sec_len) => {
            open Result.Syntax;
-           print_endline("yo");
+           //  print_endline("yo");
            let/ (len, loc) = found;
-           print_endline("dawg");
+           //  print_endline("dawg");
            // count newline
            let len_sol = len + 1;
            let loc_sol =
@@ -176,10 +176,10 @@ let step_of_loc =
            } else {
              let len_eol = len_sol + sec_len;
              let loc_eol = Loc.shift(sec_len, loc_sol);
-             print_endline(
-               "b: loc_eol.row < target.row:"
-               ++ string_of_bool(loc_eol.row < target.row),
-             );
+             //  print_endline(
+             //    "b: loc_eol.row < target.row:"
+             //    ++ string_of_bool(loc_eol.row < target.row),
+             //  );
              Loc.lt(loc_eol, target)
                ? Error((len_eol, loc_eol))
                : Ok(
