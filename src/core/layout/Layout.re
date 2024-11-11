@@ -219,7 +219,12 @@ let loc_of_step =
 // returns a valid path into c whose loc is nearest the given target,
 // where nearest is defined by the ordering relation Loc.lt
 let path_of_loc =
-    (~state=State.init, ~tree: LCell.t, target: Loc.t)
+    (
+      ~round_tok: option(Dir.t)=?,
+      ~state=State.init,
+      ~tree: LCell.t,
+      target: Loc.t,
+    )
     : Result.t(Path.t, State.t) => {
   open Result.Syntax;
   let rec go = (~state, t: LCell.t) => {
@@ -245,7 +250,13 @@ let path_of_loc =
            let/ s = found;
            let/ s =
              step_of_loc(~state=s, ~block=b_tok, target)
-             |> Result.map(~f=n => [step - 1, n]);
+             |> Result.map(~f=n =>
+                  switch (round_tok) {
+                  | None => [step - 1, n]
+                  | Some(L) => [step - 1, 0]
+                  | Some(R) => [step - 1, Block.len(b_tok)]
+                  }
+                );
            go(~state=s, t_cell) |> Result.map(~f=Path.cons(step));
          },
        );
@@ -330,8 +341,11 @@ let rec state_of_path =
 //     (~side=Dir.L, ~state=State.init, ~tree: LCell.t, path: Path.t) =>
 //   Dir.pick(side, (fst, snd), snd(range_of_path(~state, ~tree, path)));
 
-let map = (~tree: LCell.t, f: Loc.t => Loc.t, path: Path.t): Path.t =>
-  switch (path_of_loc(~tree, f(fst(state_of_path(~tree, path)).loc))) {
+let map =
+    (~round_tok=?, ~tree: LCell.t, f: Loc.t => Loc.t, path: Path.t): Path.t =>
+  switch (
+    path_of_loc(~round_tok?, ~tree, f(fst(state_of_path(~tree, path)).loc))
+  ) {
   | Ok(path) => path
   | Error(_) => LCell.end_path(tree, ~side=R)
   };

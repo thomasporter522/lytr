@@ -13,11 +13,15 @@ type t =
 // bounds goal pos to within start/end pos of program.
 // returns none if the resulting goal pos is same as start pos.
 let map_focus =
-    (~drop_anchor=false, f: Loc.t => Loc.t, z: Zipper.t): option(Zipper.t) => {
+    (~round_tok=?, ~drop_anchor=false, f: Loc.t => Loc.t, z: Zipper.t)
+    : option(Zipper.t) => {
   open Options.Syntax;
   let c = Zipper.zip(~save_cursor=true, z);
   let* init = Option.bind(c.marks.cursor, Path.Cursor.get_focus);
-  let goal = Layout.map(~tree=Layout.mk_cell(c), f, init);
+  let goal =
+    init
+    |> Layout.map(~round_tok?, ~tree=Layout.mk_cell(c), f)
+    |> Zipper.normalize(~cell=c);
   goal == init
     ? None
     : c
@@ -101,13 +105,13 @@ let rec hstep_n = (n: int, z: Zipper.t): Zipper.t => {
   };
 };
 
-let vstep = (~drop_anchor=false, d: Dir.t) =>
-  map_focus(~drop_anchor, loc =>
+let vstep = (~round_tok=?, ~drop_anchor=false, d: Dir.t) =>
+  map_focus(~round_tok?, ~drop_anchor, loc =>
     {...loc, row: loc.row + Dir.pick(d, ((-1), 1))}
   );
 
-let skip = (~drop_anchor=false, d2: Dir2.t) =>
-  map_focus(~drop_anchor, loc =>
+let skip = (~round_tok=?, ~drop_anchor=false, d2: Dir2.t) =>
+  map_focus(~round_tok?, ~drop_anchor, loc =>
     switch (d2) {
     | H(L) => {...loc, col: 0}
     | H(R) => {...loc, col: Int.max_int}
@@ -116,8 +120,8 @@ let skip = (~drop_anchor=false, d2: Dir2.t) =>
     }
   );
 
-let jump = (~drop_anchor=false, loc) =>
-  map_focus(~drop_anchor, Fun.const(loc));
+let jump = (~round_tok=?, ~drop_anchor=false, loc) =>
+  map_focus(~round_tok?, ~drop_anchor, Fun.const(loc));
 
 // todo: need to return none in some more cases when no visible movement occurs
 let perform =
