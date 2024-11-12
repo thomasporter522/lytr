@@ -69,16 +69,16 @@ let push_site = (~onto: Dir.t, site: Zipper.Site.t, ctx: Ctx.t) =>
   | Within(tok) => Ctx.push(~onto, tok, ctx)
   };
 
-let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
+let hstep = (~char=false, d: Dir.t, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
-  // let b = Dir.toggle(d);
+  let b = Dir.toggle(d);
   let (cur_site, ctx_sans_site) = Zipper.cursor_site(z);
   let growing =
     switch (z.cur) {
     | Point(_) => true
     | Select({focus, _}) => focus == d
     };
-  // let hstep_tok = hstep_tok(~is_selected=Cursor.is_select(z.cur));
+  let hstep_tok = hstep_tok(~is_selected=Cursor.is_select(z.cur));
   if (growing) {
     let (delim, ctx_sans_delim) =
       switch (cur_site) {
@@ -91,19 +91,18 @@ let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
         }
       };
     let+ tok = Delim.is_tok(delim);
-    // let (stepped, exited) = hstep_tok(d, tok);
-    let stepped = tok;
+    let (stepped, exited) = char ? hstep_tok(d, tok) : (tok, true);
     let zigg =
       switch (z.cur) {
       | Point(_) => Zigg.of_tok(stepped)
       | Select(sel) => Zigg.grow(~side=sel.focus, stepped, sel.range)
       };
     let sel = Selection.{focus: d, range: zigg};
-    // let ctx =
-    //   ctx_sans_delim
-    //   |> (exited ? Fun.id : Ctx.push(~onto=d, stepped))
-    //   |> (!Token.has_anchor(stepped) ? Fun.id : Ctx.push(~onto=b, stepped));
-    Zipper.mk(~cur=Select(sel), ctx_sans_delim);
+    let ctx =
+      ctx_sans_delim
+      |> (exited ? Fun.id : Ctx.push(~onto=d, stepped))
+      |> (!Token.has_anchor(stepped) ? Fun.id : Ctx.push(~onto=b, stepped));
+    Zipper.mk(~cur=Select(sel), ctx);
   } else {
     // points always grow, only selections can shrink.
     // d points from selection focus toward anchor.
@@ -112,14 +111,12 @@ let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
     let (_site_foc, site_anc) = Dir.order(sel.focus, sites);
 
     let (tok, rest) = Zigg.pull(~side=sel.focus, sel.range);
-    // let (stepped, exited) = hstep_tok(d, tok);
-    let stepped = tok;
+    let (stepped, exited) = char ? hstep_tok(d, tok) : (tok, true);
 
     switch (rest) {
     // sel spanned more than one token
     | Some(rest) =>
-      // let zigg = exited ? rest : Zigg.grow(~side=sel.focus, stepped, rest);
-      let zigg = rest;
+      let zigg = exited ? rest : Zigg.grow(~side=sel.focus, stepped, rest);
       let cur = Cursor.Select({...sel, range: zigg});
       let ctx =
         ctx_sans_site

@@ -422,7 +422,8 @@ let delete = (d: Dir.t, z: Zipper.t) => {
   //   };
   // P.log("--- delete");
   // P.show("z", Zipper.show(z));
-  let+ z = Cursor.is_point(z.cur) ? Select.hstep(d, z) : return(z);
+  let+ z =
+    Cursor.is_point(z.cur) ? Select.hstep(~char=true, d, z) : return(z);
   // P.show("selected", Zipper.show(z));
   delete_sel(d, z);
 };
