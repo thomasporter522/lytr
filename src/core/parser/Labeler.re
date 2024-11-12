@@ -55,7 +55,7 @@ let pop = buf => {
   // I'm guessing buf state is altered by this switch expression?
   // so I can't call lexeme(buf) before it?
   switch%sedlex (buf) {
-  | space =>
+  | white_space =>
     let text = lexeme(buf);
     Some(Token.Unmolded.mk(~text, Mtrl.Space(White(Usr))));
   | int_lit => mk(lexeme(buf), Int_lit)
@@ -92,4 +92,10 @@ let single = (s: string): option(Token.Unmolded.t) =>
   switch (label(s)) {
   | [tok] => Some(tok)
   | _ => None
+  };
+
+let starts_with_space = s =>
+  switch (label(s)) {
+  | [] => false
+  | [tok, ..._] => Mtrl.is_space(tok.mtrl)
   };
