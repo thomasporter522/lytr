@@ -159,7 +159,11 @@ let finalize = (~mode=Mode.Navigating, ~fill=Cell.dirty, ctx: Ctx.t): Zipper.t =
 
 let try_move = (s: string, z: Zipper.t) =>
   switch (s, Ctx.face(~side=R, z.ctx)) {
-  | (" ", Node(tok)) when String.starts_with(~prefix=" ", tok.text) =>
+  | (" ", Node(tok))
+      when
+        String.starts_with(~prefix=" ", tok.text) || Mtrl.is_grout(tok.mtrl) =>
+    Move.perform(Step(H(R)), z)
+  | ("\n", Node(tok)) when String.starts_with(~prefix="\n", tok.text) =>
     Move.perform(Step(H(R)), z)
   | _ => None
   };
