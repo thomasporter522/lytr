@@ -44,6 +44,11 @@ module Molded = {
   [@deriving (sexp, yojson)]
   type t = Base.t(Mtrl.T.t);
 
+  let is_const = (tok: t) =>
+    switch (tok.mtrl) {
+    | Tile((Const(_), _)) => true
+    | _ => false
+    };
   let focus_point: t => t = map_marks(Marks.focus_point);
   let pp = (out, tok: t) =>
     switch (tok.mtrl) {

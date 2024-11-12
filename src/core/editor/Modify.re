@@ -284,7 +284,8 @@ let delete_toks =
          // note: affixes empty if token completely selected
          // (assuming edge carets have been temporarily non-normally placed on toks)
          let (l, r) = Token.(affix(~side=L, tok), affix(~side=R, tok));
-         {...tok, text: l ++ r}
+         let text = Token.is_const(tok) ? l : l ++ r;
+         {...tok, text}
          |> Token.put_cursor(Point(Step.Caret.focus(Utf8.length(l))));
        } else if (i == 0) {
          let l = Token.affix(~side=L, tok);
