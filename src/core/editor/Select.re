@@ -113,48 +113,50 @@ let hstep = (~char=false, d: Dir.t, z: Zipper.t): option(Zipper.t) => {
     let (tok, rest) = Zigg.pull(~side=sel.focus, sel.range);
     let (stepped, exited) = char ? hstep_tok(d, tok) : (tok, true);
 
-    switch (rest) {
-    // sel spanned more than one token
-    | Some(rest) =>
-      let zigg = exited ? rest : Zigg.grow(~side=sel.focus, stepped, rest);
-      let cur = Cursor.Select({...sel, range: zigg});
-      let ctx =
-        ctx_sans_site
-        |> Ctx.push(~onto=sel.focus, stepped)
-        |> push_site(~onto=Dir.toggle(sel.focus), site_anc);
-      return(Zipper.mk_button(~cur, ctx));
-    // sel was a single token, need to consider anchor side more carefully
-    | None =>
-      switch (stepped.marks, site_anc) {
-      | (None, _) =>
-        // must be true bc anchor does not move
-        assert(site_anc == Between);
-        let cur = Cursor.Point(Caret.focus());
-        let ctx = Ctx.push(~onto=sel.focus, stepped, ctx_sans_site);
-        return(Zipper.mk_button(~cur, ctx));
-      | (Some(Point(car)), Between) =>
-        assert(car.hand == Focus);
-        let cur = Cursor.Select({...sel, range: Zigg.of_tok(stepped)});
-        let ctx = Ctx.push(~onto=sel.focus, stepped, ctx_sans_site);
-        return(Zipper.mk_button(~cur, ctx));
-      | (Some(Point(car)), Within(_)) =>
-        assert(car.hand == Focus);
-        let cur = Cursor.Point(Caret.focus());
-        let ctx =
-          // maybe can encapsulate as push point ctx
-          ctx_sans_site
-          |> Ctx.push(~onto=sel.focus, stepped)
-          |> Ctx.push(~onto=Dir.toggle(sel.focus), stepped);
-        return(Zipper.mk_button(~cur, ctx));
-      | (Some(Select(_)), _) =>
-        let cur = Cursor.Select({...sel, range: Zigg.of_tok(stepped)});
+    let z =
+      switch (rest) {
+      // sel spanned more than one token
+      | Some(rest) =>
+        let zigg = exited ? rest : Zigg.grow(~side=sel.focus, stepped, rest);
+        let cur = Cursor.Select({...sel, range: zigg});
         let ctx =
           ctx_sans_site
           |> Ctx.push(~onto=sel.focus, stepped)
-          |> Ctx.push(~onto=Dir.toggle(sel.focus), stepped);
-        return(Zipper.mk_button(~cur, ctx));
-      }
-    };
+          |> push_site(~onto=Dir.toggle(sel.focus), site_anc);
+        Zipper.mk(~cur, ctx);
+      // sel was a single token, need to consider anchor side more carefully
+      | None =>
+        switch (stepped.marks, site_anc) {
+        | (None, _) =>
+          // must be true bc anchor does not move
+          assert(site_anc == Between);
+          let cur = Cursor.Point(Caret.focus());
+          let ctx = Ctx.push(~onto=sel.focus, stepped, ctx_sans_site);
+          Zipper.mk(~cur, ctx);
+        | (Some(Point(car)), Between) =>
+          assert(car.hand == Focus);
+          let cur = Cursor.Select({...sel, range: Zigg.of_tok(stepped)});
+          let ctx = Ctx.push(~onto=sel.focus, stepped, ctx_sans_site);
+          Zipper.mk(~cur, ctx);
+        | (Some(Point(car)), Within(_)) =>
+          assert(car.hand == Focus);
+          let cur = Cursor.Point(Caret.focus());
+          let ctx =
+            // maybe can encapsulate as push point ctx
+            ctx_sans_site
+            |> Ctx.push(~onto=sel.focus, stepped)
+            |> Ctx.push(~onto=Dir.toggle(sel.focus), stepped);
+          Zipper.mk(~cur, ctx);
+        | (Some(Select(_)), _) =>
+          let cur = Cursor.Select({...sel, range: Zigg.of_tok(stepped)});
+          let ctx =
+            ctx_sans_site
+            |> Ctx.push(~onto=sel.focus, stepped)
+            |> Ctx.push(~onto=Dir.toggle(sel.focus), stepped);
+          Zipper.mk(~cur, ctx);
+        }
+      };
+    return(Zipper.rebutton(z));
   };
 };
 

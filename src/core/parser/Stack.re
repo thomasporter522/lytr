@@ -14,6 +14,7 @@ module Base = {
 };
 include Base;
 
+let mk = (~slope=Slope.empty, bound) => {slope, bound};
 let empty = {slope: Slope.empty, bound: Bound.root};
 
 let cat = (slope: Slope.t, stack: t) => {

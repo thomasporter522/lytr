@@ -75,25 +75,37 @@ let push_sites = (site: Zipper.Site.cursor, ctx: Ctx.t) =>
 let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
   let b = Dir.toggle(d);
+  // P.log("--- Move.hstep");
+  let (cur_site, ctx_sans_sites) = Zipper.cursor_site(z);
   let+ ctx =
-    switch (z.cur) {
-    | Select({range: zigg, _}) =>
+    switch (cur_site) {
+    | Select(_) =>
+      let sel = Option.get(Cursor.get_select(z.cur));
       // move to d end of selection, taking care to update any token marks
-      let (_, ctx_sans_sites) = Zipper.cursor_site(z);
+      // let (_, ctx_sans_sites) = Zipper.cursor_site(z);
       let zigg =
-        zigg
+        sel.range
         |> Zigg.map_face(~side=d, Token.focus_point)
         |> Zigg.map_face(~side=b, Token.clear_marks);
       return(Ctx.push_zigg(~onto=b, zigg, ctx_sans_sites));
-    | Point(_) =>
-      let (face, ctx) = Ctx.pull(~from=d, z.ctx);
+    | Point(site) =>
+      // P.log("--- Move.hstep/Point");
+      let (face, ctx) =
+        switch (site) {
+        | Between => Ctx.pull(~from=d, ctx_sans_sites)
+        | Within(tok) => (Delim.tok(tok), ctx_sans_sites)
+        };
+      // P.show("face", Delim.show(face));
+      // P.show("ctx", Ctx.show(ctx));
       let+ tok = Bound.to_opt(face);
       let (stepped, exited) = hstep_tok(d, tok);
+      // P.show("stepped", Token.show(stepped));
+      // P.show("exited", string_of_bool(exited));
       ctx
       |> Ctx.push(~onto=b, stepped)
       |> (exited ? Fun.id : Ctx.push(~onto=d, stepped));
     };
-  Zipper.mk(Ctx.button(ctx));
+  Zipper.(rebutton(mk(ctx)));
 };
 let rec hstep_n = (n: int, z: Zipper.t): Zipper.t => {
   let step = (d, z) =>

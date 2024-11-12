@@ -270,6 +270,7 @@ let zip = (~save_cursor=false, z: t) => {
   let zipped = save_cursor ? Cell.point(Focus) : Cell.empty;
   Ctx.zip(ctx, ~zipped, ~save_cursor);
 };
+let rebutton = (z: t) => zip(~save_cursor=true, z) |> unzip_exn;
 
 let path_of_ctx = (ctx: Ctx.t) => {
   let c = zip(~save_cursor=true, mk(ctx));
@@ -291,23 +292,6 @@ let normalize = (~cell: Cell.t, path: Path.t): Path.t => {
   let car = Option.get(Cursor.get_point(cur));
   car.path;
 };
-
-let mk_button = (~cur: Cursor.t, ctx) =>
-  switch (cur) {
-  | Point(_) => mk(~cur, Ctx.button(ctx))
-  | Select(sel) =>
-    let (l, r) =
-      Selection.carets(sel)
-      |> Tuples.map2(Caret.map(Fun.const(Path.empty)))
-      |> Tuples.map2(Cell.caret);
-    let ((dn, up), tl) = Ctx.uncons(ctx);
-    let (zigg, rolled_l, dn') =
-      Zigg.take_ineq(~side=L, sel.range, ~fill=l, dn);
-    let (zigg, rolled_r, up') = Zigg.take_ineq(~side=R, zigg, ~fill=r, up);
-    let cell = Cell.put(Zigg.roll(~l=rolled_l, zigg, ~r=rolled_r));
-    let ctx = Ctx.(button(cons((dn', up'), tl)));
-    unzip_exn(cell, ~ctx);
-  };
 
 let selection_str = (cur: Cursor.Base.t('tok)): option(string) =>
   switch (cur) {

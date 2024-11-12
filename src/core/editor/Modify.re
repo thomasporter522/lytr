@@ -26,7 +26,7 @@ let relabel =
     |> Option.value(~default="");
   let labeled = Labeler.label(s_l ++ s ++ s_r);
   // push left face back if its labeling remains unchanged
-  let (labeled, rest, pushed_back_left) =
+  let (labeled, rest, pushed_back_l) =
     switch (labeled) {
     | [hd, ...tl] when hd.text == s_l && s_l != "" && !merges =>
       let ctx =
@@ -37,7 +37,7 @@ let relabel =
     | labeled => (labeled, rest, false)
     };
   // push right face back if its labeling remains unchanged
-  let (labeled, rest) =
+  let (labeled, rest, pushed_back_r) =
     switch (Lists.Framed.ft(labeled)) {
     | Some((pre, ft)) when ft.text == s_r && s_r != "" && !merges =>
       let ctx =
@@ -45,14 +45,14 @@ let relabel =
         |> Option.map(t => Ctx.push(~onto=R, t, rest))
         |> Option.value(~default=rest);
       // (List.rev(pre), 0, ctx);
-      (List.rev(pre), ctx);
+      (List.rev(pre), ctx, true);
     | _ =>
       // (labeled, Utf8.length(s_r), rest)
-      (labeled, rest)
+      (labeled, rest, false)
     };
 
   // restore caret position
-  let n = Utf8.length((pushed_back_left ? "" : s_l) ++ s);
+  let n = Utf8.length((pushed_back_l ? "" : s_l) ++ s);
   let (_, marked) =
     labeled
     |> Lists.fold_map(
@@ -87,7 +87,10 @@ let relabel =
          | _ => Chain.link(Cell.dirty, tok, c)
          }
        );
-  (normalized, Ctx.button(rest));
+  // if both faces were pushed back, then use original ctx to preserve any closed
+  // frames broken by pulling faces
+  let ctx = pushed_back_l && pushed_back_r ? ctx : rest;
+  (normalized, ctx);
 };
 
 // None means token was removed. Some(ctx) means token was molded (or deferred and

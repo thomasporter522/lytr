@@ -249,7 +249,15 @@ and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
       |> Path.Map.max_binding_opt;
     let ((c_l, tok, c_r), (dn, up)) = unzip_tok(path, hd.cell);
     Effects.remove(tok);
-    let l = Stack.cat(dn, {...stack, slope: tl});
+    // let l = Stack.cat(dn, {...stack, slope: tl});
+    let l = {
+      let bound =
+        switch (tl) {
+        | [] => stack.bound
+        | [t, ..._] => Node(t)
+        };
+      Stack.mk(bound, ~slope=dn);
+    };
     let r = {
       let (c_fill, up_fill) = Slope.Up.unroll(fill);
       let slope =
@@ -258,6 +266,7 @@ and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
     };
     let c = Cell.Space.merge(c_l, ~fill=Cell.dirty, c_r);
     let* (slope, fill) = Result.to_option(remold(~fill=c, (l, r)));
-    push(~repair=remold, t, ~fill, {...l, slope}, ~onto=L);
+    let stack = Stack.cat(slope, {...stack, slope: tl});
+    push(~repair=remold, t, ~fill, stack, ~onto=L);
   };
 };
