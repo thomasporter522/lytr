@@ -76,6 +76,15 @@
   position: relative;
   opacity: 40%;
 }
+.tile.Exp .ghost {
+  color: var(--exp-text-color);
+}
+.tile.Pat .ghost {
+  color: var(--pat-text-color);
+}
+.tile.Typ .ghost {
+  color: var(--typ-text-color);
+}
 
 .grout {
   position: relative;
