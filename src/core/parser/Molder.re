@@ -109,6 +109,9 @@ let rec mold =
           },
         );
   }
+// returns Ok if all suffix elements are remolded by the prefix without changing
+// stack bound. returns Error if a suffix element changes stack bound when remolded
+// and returns remaining suffix elements.
 and remold =
     (~fill, (l, r): Stack.Frame.t)
     : Result.t((Slope.Dn.t, Cell.t), (Cell.t, Stack.Frame.t)) => {

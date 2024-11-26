@@ -166,7 +166,9 @@ let connect =
   let neq_b = () => {
     let (hd, _tl) = Wald.uncons(onto.wald);
     // we call connect_neq in b direction for the purpose of emitting token effects
-    // for subsequent oblig minimization, but don't need the result
+    // for subsequent oblig minimization, but don't need the result.
+    // todo: fix what's probably a rare bug here where neq_b wins and its effects
+    // are committed but the connection result with those effected tokens are not.
     connect_neq(~repair, ~onto=b, Node(Terr.of_tok(t)), ~fill, hd)
     |> Option.map(_ => complete_terr(~onto=d, ~fill, onto))
     |> Option.map(Result.err);
