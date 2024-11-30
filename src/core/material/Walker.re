@@ -1,7 +1,7 @@
 open Stds;
 open Walk;
 
-let dbg = ref(false);
+let debug = ref(false);
 
 let mtrlize_tile = ((l, r, s, from)) =>
   Grammar.v
@@ -33,8 +33,8 @@ let mtrlize_grout =
     // instead these NTs are generated in `arrive`.
     switch (l, r) {
     | (Root, Root) => [op(s), pre(s), pos(s), in_(s)]
-    | (Root, Node(_)) => [op(s), pos(s)]
-    | (Node(_), Root) => [op(s), pre(s)]
+    | (Root, Node(_)) => [op(s)]
+    | (Node(_), Root) => [op(s)]
     | (Node(_), Node(_)) => [op(s)]
     }
   )
