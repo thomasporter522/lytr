@@ -99,11 +99,15 @@ let mold =
     (ctx: Ctx.t, ~fill=Cell.dirty, tok: Token.Unmolded.t)
     : Result.t(Ctx.t, Cell.t) => {
   open Result.Syntax;
+  // P.log("--- Modify.mold");
+  // P.show("ctx", Ctx.show(ctx));
+  // P.show("fill", Cell.show(fill));
+  // P.show("tok", Token.Unmolded.show(tok));
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
   // Grouter.dbg := true;
   let+ (tok, grouted, l) = Molder.mold(l, ~fill, tok);
   // Grouter.dbg := false;
-  // P.log("--- Molder.mold/success");
+  // P.log("--- Modify.mold/success");
   // P.show("tok", Token.show(tok));
   // P.show("grouted", Grouted.show(grouted));
   // P.show("stack", Stack.show(l));

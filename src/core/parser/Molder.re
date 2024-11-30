@@ -73,7 +73,11 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
 // returns None if input token is empty
 let rec mold =
         (stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
-        : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) =>
+        : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) => {
+  // P.log("--- Molder.mold");
+  // P.show("stack", Stack.show(stack));
+  // P.show("fill", Cell.show(fill));
+  // P.show("t", Token.Unmolded.show(t));
   switch (
     candidates(t)
     |> Oblig.Delta.minimize(tok =>
@@ -108,7 +112,8 @@ let rec mold =
             |> Options.get_fail("bug: failed to push space");
           },
         );
-  }
+  };
+}
 // returns Ok if all suffix elements are remolded by the prefix without changing
 // stack bound. returns Error if a suffix element changes stack bound when remolded
 // and returns remaining suffix elements.

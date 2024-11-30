@@ -191,14 +191,7 @@ let rec unzip_tok = (~frame=Frame.Open.empty, path: Path.t, cell: Cell.t) => {
     switch (Meld.unzip(hd, m)) {
     | Loop((pre, cell, suf)) =>
       unzip_tok(~frame=Frame.Open.add((pre, suf), frame), tl, cell)
-    | Link((pre, tok, suf)) =>
-      let (cell_pre, pre) = Chain.uncons(pre);
-      let (cell_suf, suf) = Chain.uncons(suf);
-      let (cell_pre, dn) = Slope.Dn.unroll(cell_pre);
-      let (cell_suf, up) = Slope.Up.unroll(cell_suf);
-      let frame =
-        frame |> Frame.Open.add((pre, suf)) |> Frame.Open.cat((dn, up));
-      ((cell_pre, tok, cell_suf), frame);
+    | Link((pre, tok, suf)) => ((pre, tok, suf), frame)
     };
   };
 };
@@ -249,26 +242,31 @@ and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
            }
          )
       |> Path.Map.max_binding_opt;
-    let ((c_l, tok, c_r), (dn, up)) = unzip_tok(path, hd.cell);
-    Effects.remove(tok);
-    // let l = Stack.cat(dn, {...stack, slope: tl});
-    let l = {
-      let bound =
-        switch (tl) {
-        | [] => stack.bound
-        | [t, ..._] => Node(t)
-        };
-      Stack.mk(bound, ~slope=dn);
+    let ((pre, tok, suf), (dn, up)) = unzip_tok(path, hd.cell);
+    let toks = [tok, ...Chain.links(suf)];
+    let* () = toks |> List.for_all(Token.is_empty) |> Options.of_bool;
+    List.iter(Effects.remove, toks);
+    let* (l, c_l) = {
+      let (c, pre) = Chain.uncons(pre);
+      let+ bound = Terr.mk'(pre);
+      let (c, dn') = Slope.Dn.unroll(c);
+      (Stack.{slope: Slope.cat(dn', dn), bound: Node(bound)}, c);
     };
-    let r = {
+    let (c_r, r) = {
+      let (c_suf, up_suf) = Slope.Up.unroll_s(Chain.loops(suf));
       let (c_fill, up_fill) = Slope.Up.unroll(fill);
-      let slope =
-        up @ [Terr.of_wald(Wald.rev(hd.wald), ~cell=c_fill), ...up_fill];
-      Stack.{slope, bound: Node(Terr.of_tok(t))};
+      let up =
+        Slope.concat([
+          up_suf,
+          up,
+          [{wald: Wald.rev(hd.wald), cell: c_fill}, ...up_fill],
+        ]);
+      (c_suf, Stack.{slope: up, bound: Node(Terr.of_tok(t))});
     };
     let c = Cell.Space.merge(c_l, ~fill=Cell.dirty, c_r);
     let* (slope, fill) = Result.to_option(remold(~fill=c, (l, r)));
-    let stack = Stack.cat(slope, {...stack, slope: tl});
+    let stack =
+      Stack.cat(Stack.to_slope({...l, slope}), {...stack, slope: tl});
     push(~repair=remold, t, ~fill, stack, ~onto=L);
   };
 };

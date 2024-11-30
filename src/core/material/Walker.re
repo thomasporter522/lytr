@@ -113,79 +113,80 @@ let swing_into = (w: Walk.t, ~from: Dir.t) => {
   };
 };
 
-let swing_all =
-  Memo.general(((nt: Mtrl.NT.t, from: Dir.t)) => {
-    let index = ref(Walk.Index.empty);
-    let seen = Hashtbl.create(32);
-    let q = Queue.create();
+let swing_all = ((nt: Mtrl.NT.t, from: Dir.t)) => {
+  let index = ref(Walk.Index.empty);
+  let seen = Hashtbl.create(32);
+  let q = Queue.create();
 
-    let w_init = Walk.unit(Swing.unit(nt));
-    Queue.push(w_init, q);
-    index := swing_over(w_init, ~from);
+  let w_init = Walk.unit(Swing.unit(nt));
+  Queue.push(w_init, q);
+  index := swing_over(w_init, ~from);
 
-    while (!Queue.is_empty(q)) {
-      let w = Queue.pop(q);
-      let nt = Swing.bot(Chain.hd(w));
-      // need only keep track of sort (sans mold) bc any differently-molded
-      // same-sort NTs will only have tighter prec bounds and cannot access
-      // any NTs not already reachable from the initial NT
-      switch (Hashtbl.find_opt(seen, Mtrl.NT.sort(nt))) {
-      | Some () => () // avoid cycling
-      | None =>
-        Hashtbl.add(seen, Mtrl.NT.sort(nt), ());
-        let swung = swing_into(w, ~from);
-        index := Index.union(index^, swung);
-        swung |> Index.iter((_, w) => Queue.push(w, q));
-      };
+  while (!Queue.is_empty(q)) {
+    let w = Queue.pop(q);
+    let nt = Swing.bot(Chain.hd(w));
+    // need only keep track of sort (sans mold) bc any differently-molded
+    // same-sort NTs will only have tighter prec bounds and cannot access
+    // any NTs not already reachable from the initial NT
+    switch (Hashtbl.find_opt(seen, Mtrl.NT.sort(nt))) {
+    | Some () => () // avoid cycling
+    | None =>
+      Hashtbl.add(seen, Mtrl.NT.sort(nt), ());
+      let swung = swing_into(w, ~from);
+      index := Index.union(index^, swung);
+      swung |> Index.iter((_, w) => Queue.push(w, q));
     };
+  };
 
-    index^;
-  });
-let swing_all = (sort, ~from: Dir.t): Index.t => swing_all((sort, from));
+  index^;
+};
+let swing_all_memo = Memo.general(swing_all);
+let swing_all = (sort, ~from: Dir.t): Index.t =>
+  (debug^ ? swing_all : swing_all_memo)((sort, from));
 
-let step_all =
-  Memo.general(((src: End.t, from: Dir.t)) =>
-    switch (src) {
-    | Root => swing_all(Tile(Tile.NT.root), ~from)
-    | Node(Space(_)) =>
-      // space takes prec over everything and matches itself
-      Space.T.all
-      |> List.fold_left(
-           (idx, t) => Index.add(Node(Space(t)), Walk.empty, idx),
-           Index.single(Root, Walk.empty),
-         )
-    | Node(Grout((s, tips))) =>
-      switch (Dir.pick(Dir.toggle(from), tips)) {
-      | Conc =>
-        let w = Walk.unit(Walk.Swing.unit(Grout(s)));
-        let un = Mtrl.Grout((s, Dir.order(from, Tip.(Conc, Conv))));
-        let bin = Mtrl.Grout((s, Tip.(Conc, Conc)));
-        swing_all(Grout(s), ~from)
-        |> Index.add(Root, w)
-        |> Index.add(Node(un), w)
-        |> Index.add(Node(bin), w)
-        |> Index.union(swing_into(Walk.space, ~from));
-      | Conv =>
-        Index.single(Root, Walk.space)
-        |> Index.union(swing_into(Walk.space, ~from))
-      }
-    | Node(Tile((lbl, mold))) =>
-      (Sym.T(lbl), mold.rctx)
-      |> RZipper.step(Dir.toggle(from))
-      |> List.map(
-           fun
-           // reached end of regex
-           | Bound.Root => Index.single(Root, Walk.space)
-           | Node((Sym.T(lbl), rctx)) =>
-             Index.single(Node(Tile((lbl, {...mold, rctx}))), Walk.space)
-           | Node((NT(sort), rctx)) =>
-             swing_all(Tile((sort, Node({...mold, rctx}))), ~from),
-         )
-      |> List.cons(swing_into(Walk.space, ~from))
-      |> Index.union_all
+let step_all = ((src: End.t, from: Dir.t)) =>
+  switch (src) {
+  | Root => swing_all(Tile(Tile.NT.root), ~from)
+  | Node(Space(_)) =>
+    // space takes prec over everything and matches itself
+    Space.T.all
+    |> List.fold_left(
+         (idx, t) => Index.add(Node(Space(t)), Walk.empty, idx),
+         Index.single(Root, Walk.empty),
+       )
+  | Node(Grout((s, tips))) =>
+    switch (Dir.pick(Dir.toggle(from), tips)) {
+    | Conc =>
+      let w = Walk.unit(Walk.Swing.unit(Grout(s)));
+      let un = Mtrl.Grout((s, Dir.order(from, Tip.(Conc, Conv))));
+      let bin = Mtrl.Grout((s, Tip.(Conc, Conc)));
+      swing_all(Grout(s), ~from)
+      |> Index.add(Root, w)
+      |> Index.add(Node(un), w)
+      |> Index.add(Node(bin), w)
+      |> Index.union(swing_into(Walk.space, ~from));
+    | Conv =>
+      Index.single(Root, Walk.space)
+      |> Index.union(swing_into(Walk.space, ~from))
     }
-  );
-let step_all = (src: End.t, ~from: Dir.t): Index.t => step_all((src, from));
+  | Node(Tile((lbl, mold))) =>
+    (Sym.T(lbl), mold.rctx)
+    |> RZipper.step(Dir.toggle(from))
+    |> List.map(
+         fun
+         // reached end of regex
+         | Bound.Root => Index.single(Root, Walk.space)
+         | Node((Sym.T(lbl), rctx)) =>
+           Index.single(Node(Tile((lbl, {...mold, rctx}))), Walk.space)
+         | Node((NT(sort), rctx)) =>
+           swing_all(Tile((sort, Node({...mold, rctx}))), ~from),
+       )
+    |> List.cons(swing_into(Walk.space, ~from))
+    |> Index.union_all
+  };
+let step_all_memo = Memo.general(step_all);
+let step_all = (src: End.t, ~from: Dir.t): Index.t =>
+  (debug^ ? step_all : step_all_memo)((src, from));
 
 let bfs = (~from: Dir.t, q: Queue.t((End.t, Walk.t))): Index.t => {
   let index = ref(Index.empty);
@@ -209,16 +210,17 @@ let bfs = (~from: Dir.t, q: Queue.t((End.t, Walk.t))): Index.t => {
 let is_minimal = (w: Walk.t) =>
   !(Walk.is_neq(w) && List.exists(Mtrl.is_tile, Walk.stance_sorts(w).mid));
 
-let walk_all =
-  Memo.general(((from: Dir.t, src: End.t)) => {
-    let q = Queue.create();
-    step_all(~from, src) |> Index.iter((dst, w) => Queue.push((dst, w), q));
-    bfs(~from, q)
-    |> Index.filter(Walk.is_valid)
-    |> Index.filter(is_minimal)
-    |> Index.sort;
-  });
-let walk_all = (~from: Dir.t, src: End.t) => walk_all((from, src));
+let walk_all = ((from: Dir.t, src: End.t)) => {
+  let q = Queue.create();
+  step_all(~from, src) |> Index.iter((dst, w) => Queue.push((dst, w), q));
+  bfs(~from, q)
+  |> Index.filter(Walk.is_valid)
+  |> Index.filter(is_minimal)
+  |> Index.sort;
+};
+let walk_all_memo = Memo.general(walk_all);
+let walk_all = (~from: Dir.t, src: End.t) =>
+  (debug^ ? walk_all : walk_all_memo)((from, src));
 
 let enter_all =
   Memo.general(((from: Dir.t, nt: Mtrl.NT.t)) => {
