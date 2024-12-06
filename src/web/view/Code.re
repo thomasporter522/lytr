@@ -26,8 +26,11 @@ let rec carets = (~font, c: Cell.t) => {
 };
 
 let cursor = (~font, z: Zipper.t) => {
+  P.log("--- Code.cursor");
   let c = Zipper.zip(~save_cursor=true, z);
+  P.show("c", Cell.show(c));
   let lc = Layout.mk_cell(c);
+  P.show("lc", LCell.show(lc));
 
   let (_, ind_ctx) = Zipper.zip_indicated(z);
   let ind_cur =
@@ -37,7 +40,11 @@ let cursor = (~font, z: Zipper.t) => {
          Fun.id,
        );
   let ind_lz = Layout.unzip(ind_cur, lc);
+  P.show("ind_lz", LZipper.show(ind_lz));
+  Layout.State.debug := true;
   let state = Layout.state_of_ctx(ind_lz.ctx);
+  Layout.State.debug := false;
+  P.show("state", Layout.State.show(state));
 
   switch (ind_lz.cur) {
   | Point(ind_lc) =>

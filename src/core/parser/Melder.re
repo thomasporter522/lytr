@@ -250,7 +250,7 @@ and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
       let (c, pre) = Chain.uncons(pre);
       let+ bound = Terr.mk'(pre);
       let (c, dn') = Slope.Dn.unroll(c);
-      (Stack.{slope: Slope.cat(dn', dn), bound: Node(bound)}, c);
+      (Stack.{slope: dn', bound: Node(bound)}, c);
     };
     let (c_r, r) = {
       let (c_suf, up_suf) = Slope.Up.unroll_s(Chain.loops(suf));
@@ -266,7 +266,9 @@ and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
     let c = Cell.Space.merge(c_l, ~fill=Cell.dirty, c_r);
     let* (slope, fill) = Result.to_option(remold(~fill=c, (l, r)));
     let stack =
-      Stack.cat(Stack.to_slope({...l, slope}), {...stack, slope: tl});
+      {...stack, slope: tl}
+      |> Stack.cat(dn)
+      |> Stack.cat(Stack.to_slope({...l, slope}));
     push(~repair=remold, t, ~fill, stack, ~onto=L);
   };
 };
