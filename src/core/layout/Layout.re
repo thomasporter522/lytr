@@ -44,6 +44,8 @@ module State = {
     loc: Loc.t,
   };
 
+  let debug = ref(false);
+
   let init = {ind: Indent.init, loc: Loc.zero};
 
   let map = (f, s: t) => {...s, loc: f(s.loc)};
@@ -97,7 +99,7 @@ module State = {
     |> Lists.fold_left(~init=s, ~f=(s, (i, (cell, b_tok))) =>
          s
          |> jump_cell(~over=cell)
-         |> (i == 0 ? push_ind : Fun.id)
+         |> (i == 0 && !Mtrl.is_space(LTerr.sort(over)) ? push_ind : Fun.id)
          |> jump_tok(~over=b_tok)
        )
     |> (closed ? Fun.id : pop_ind);
