@@ -150,6 +150,10 @@ and remold =
            (c, up);
          })
       |> Option.value(~default=Slope.Up.unroll(hd.cell));
+    // P.log("--- Molder.remold/continue/molding");
+    // P.show("l", Stack.show(l));
+    // P.show("fill", Cell.show(fill));
+    // P.show("hd_w", Token.show(hd_w));
     switch (mold(l, ~fill, Token.unmold(hd_w))) {
     | Error(fill) =>
       let (c, up) = unroll_tl_w_hd_cell();
@@ -157,6 +161,10 @@ and remold =
       (l, r_tl) |> Stack.Frame.cat(([], up)) |> remold(~fill);
     | Ok((t, grouted, rest)) when t.mtrl == hd_w.mtrl =>
       // fast path for when hd_w retains original meld
+      // P.log("--- Molder.remold/continue/fast path");
+      // P.show("t", Token.show(t));
+      // P.show("grouted", Grouted.show(grouted));
+      // P.show("rest", Stack.show(rest));
       let connected = Stack.connect(t, grouted, rest) |> Stack.extend(tl_w);
       if (connected.bound == l.bound) {
         remold(~fill=hd.cell, (connected, r_tl));

@@ -151,7 +151,7 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
 
 let finalize = (~mode=Mode.Navigating, ~fill=Cell.dirty, ctx: Ctx.t): Zipper.t => {
   Mode.set(mode);
-  // P.log("--- finalize");
+  // P.log("--- Modify.finalize");
   let (remolded, ctx) = remold(~fill, ctx);
   // P.show("remolded", Cell.show(remolded));
   // P.show("ctx", Ctx.show(ctx));
@@ -245,6 +245,7 @@ let expand = (tok: Token.t) =>
   };
 let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
+  // P.log("--- Modify.try_expand");
   let* () = Options.of_bool(String.starts_with(~prefix=" ", s));
   // todo: check if in middle of token
   let (face, rest) = Ctx.pull(~from=L, z.ctx);
@@ -253,6 +254,9 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   let* expanded = expand(tok);
   let ((l, r), tl) = Ctx.unlink_stacks(rest);
   let* (t, grouted, rest) = Result.to_option(Molder.mold(l, expanded));
+  // P.show("molded", Token.show(t));
+  // P.show("grouted", Grouted.show(grouted));
+  // P.show("stack", Stack.show(rest));
   if (t.mtrl == Space(Unmolded) || t.mtrl == tok.mtrl) {
     None;
   } else {

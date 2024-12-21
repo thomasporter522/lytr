@@ -104,6 +104,7 @@ let connect_eq =
 };
 let connect_neq =
     (
+      ~strict=false,
       ~repair=false,
       ~onto as d: Dir.t,
       onto: Bound.t(Terr.t),
@@ -112,7 +113,7 @@ let connect_neq =
     )
     : option(Grouted.t) => {
   let face = onto |> Bound.map(t => Terr.face(t).mtrl);
-  Walker.walk_neq(~from=d, face, Node(t.mtrl))
+  Walker.walk_neq(~strict, ~from=d, face, Node(t.mtrl))
   |> Grouter.pick(~repair, ~from=d, [fill]);
 };
 let connect_lt = connect_neq(~onto=L);
@@ -132,7 +133,9 @@ let connect_ineq =
     |> Options.bind(~f=onto => connect_eq(~repair, ~onto=d, onto, ~fill, t))
     |> Option.map(((grouted, terr)) => (grouted, Bound.Node(terr)));
   let neq = () =>
-    connect_neq(~repair, ~onto=d, onto, ~fill, t)
+    // require strict neq when we reach the stack bound to avoid breaking
+    // bidelimited containers
+    connect_neq(~strict=true, ~repair, ~onto=d, onto, ~fill, t)
     |> Option.map(grouted => (grouted, onto));
   if (repair) {
     open Options.Syntax;
