@@ -38,16 +38,16 @@
   /* --inner-silhouette-color: #fff9d5; */
   --inner-silhouette-color: var(--light-page-color);
 
-  --exp-bg-color: #ebdfc5; /*#dbf6de;*/
-  --exp-shadow-color: #c4b599;/*#329f43;*/
+  --exp-bg-color: #ebdfc5;
+  --exp-shadow-color: #c3b292;
   --exp-text-color: #756e58;
 
-  --pat-bg-color: #d8e6ef; /* #f5fbff; */
-  --pat-shadow-color: #90bdde; /*#268bd2;*/
+  --pat-bg-color: #d0e7ec;
+  --pat-shadow-color: #91bcd9;
   --pat-text-color: #2f85a1;
 
-  --typ-bg-color: #ecdaff;
-  --typ-shadow-color: #cea9fd;
+  --typ-bg-color: #e8d9e6;
+  --typ-shadow-color: #c2a1e2;
   --typ-text-color: #7e5fa4;
 
   --rul-bg-color: #f3caf4;
