@@ -59,10 +59,8 @@
   --empty-hole-z: 5;
   --tile-z: 4;
   --code-text-z: 6;
-  --code-text-shards-z: 7;
   --bar-z: 0;
   --anchor-z: 14;
-  --current-caret-pos-z: 15;
   --caret-z: 14;
 }
 
@@ -285,20 +283,6 @@
   position: absolute;
   z-index: var(--code-text-z);
   /* white-space: pre; */
-}
-
-/* NOTE(andrew): below 3 styles are part of
-   a hack to display incomplete delims in
-   selections */
-.code-text-shards {
-  position: absolute;
-  z-index: var(--code-text-shards-z);
-}
-.code-text-shards span {
-  color: #0000 !important;
-}
-.code-text-shards span.delim-incomplete {
-  color: #ce9600 !important;
 }
 
 .selection {
