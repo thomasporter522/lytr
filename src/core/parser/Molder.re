@@ -72,7 +72,7 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
 
 // returns None if input token is empty
 let rec mold =
-        (stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
+        (~re=false, stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
         : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) => {
   // P.log("--- Molder.mold");
   // P.show("stack", Stack.show(stack));
@@ -81,7 +81,7 @@ let rec mold =
   switch (
     candidates(t)
     |> Oblig.Delta.minimize(tok =>
-         Melder.push(tok, ~fill, stack, ~onto=L, ~repair=remold)
+         Melder.push(~no_eq=re, tok, ~fill, stack, ~onto=L, ~repair=remold)
          |> Option.map(((grouted, stack)) => (tok, grouted, stack))
        )
   ) {
@@ -107,7 +107,7 @@ let rec mold =
           {
             let (fill, slope) = Slope.Dn.unroll(fill);
             let stack = Stack.cat(slope, stack);
-            Melder.push(deferred, ~fill, stack, ~onto=L)
+            Melder.push(~no_eq=re, deferred, ~fill, stack, ~onto=L)
             |> Option.map(((grouted, stack)) => (deferred, grouted, stack))
             |> Options.get_fail("bug: failed to push space");
           },
@@ -154,7 +154,7 @@ and remold =
     // P.show("l", Stack.show(l));
     // P.show("fill", Cell.show(fill));
     // P.show("hd_w", Token.show(hd_w));
-    switch (mold(l, ~fill, Token.unmold(hd_w))) {
+    switch (mold(~re=true, l, ~fill, Token.unmold(hd_w))) {
     | Error(fill) =>
       let (c, up) = unroll_tl_w_hd_cell();
       let fill = fill |> Cell.pad(~r=c) |> Cell.mark_ends_dirty;

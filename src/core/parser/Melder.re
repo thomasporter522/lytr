@@ -2,7 +2,7 @@ open Stds;
 
 exception Bug__failed_to_push_space;
 
-let dbg = ref(true);
+let debug = ref(true);
 
 // assumes w is already oriented toward side.
 // used to complete zigg top when it takes precedence over pushed wald.
@@ -26,7 +26,7 @@ let complete_terr = (~onto: Dir.t, ~fill=Cell.empty, terr: Terr.t): Cell.t => {
   let orient = Dir.pick(onto, (Meld.rev, Fun.id));
   let exited = Walker.exit(~from=onto, Node(Terr.face(terr).mtrl));
   let grouted = Grouter.pick(~repair=true, ~from=onto, [fill], exited);
-  // if (dbg^) {
+  // if (debug^) {
   //   P.log("--- Melder.complete_terr");
   //   P.show("onto", Dir.show(onto));
   //   P.show("fill", Cell.show(fill));
@@ -35,7 +35,7 @@ let complete_terr = (~onto: Dir.t, ~fill=Cell.empty, terr: Terr.t): Cell.t => {
   switch (grouted) {
   | Some(grouted) =>
     let m = Grouted.complete_terr(grouted, terr);
-    // if (dbg^) {
+    // if (debug^) {
     //   P.log("--- Melder.complete_terr/grouted");
     //   P.show("grouted", Grouted.show(grouted));
     //   P.show("completed meld", Meld.show(m));
@@ -66,7 +66,7 @@ let complete_bounded =
   let fill = complete_slope(~onto, ~fill, slope);
   let fc_onto = bd_onto |> Bound.map(t => Terr.face(t).mtrl);
   let fc_from = bd_from |> Bound.map(t => Terr.face(t).mtrl);
-  // if (dbg^) {
+  // if (debug^) {
   //   P.log("--- Melder.complete_bounded");
   //   P.show("completed slope", Cell.show(fill));
   // };
@@ -121,6 +121,7 @@ let connect_gt = connect_neq(~onto=R);
 
 let connect_ineq =
     (
+      ~no_eq=false,
       ~repair=false,
       ~onto as d: Dir.t,
       onto: Bound.t(Terr.t),
@@ -129,9 +130,13 @@ let connect_ineq =
     )
     : option((Grouted.t, Bound.t(Terr.t))) => {
   let eq = () =>
-    Bound.to_opt(onto)
-    |> Options.bind(~f=onto => connect_eq(~repair, ~onto=d, onto, ~fill, t))
-    |> Option.map(((grouted, terr)) => (grouted, Bound.Node(terr)));
+    no_eq
+      ? None
+      : Bound.to_opt(onto)
+        |> Options.bind(~f=onto =>
+             connect_eq(~repair, ~onto=d, onto, ~fill, t)
+           )
+        |> Option.map(((grouted, terr)) => (grouted, Bound.Node(terr)));
   let neq = () =>
     // require strict neq when we reach the stack bound to avoid breaking
     // bidelimited containers
@@ -201,6 +206,7 @@ let rec unzip_tok = (~frame=Frame.Open.empty, path: Path.t, cell: Cell.t) => {
 
 let rec push =
         (
+          ~no_eq=false,
           ~repair=?,
           t: Token.t,
           ~fill=Cell.empty,
@@ -211,7 +217,7 @@ let rec push =
   let r = Option.is_some(repair);
   switch (stack.slope) {
   | [] =>
-    connect_ineq(~repair=r, ~onto, stack.bound, ~fill, t)
+    connect_ineq(~no_eq, ~repair=r, ~onto, stack.bound, ~fill, t)
     |> Option.map(((grouted, bound)) =>
          (grouted, Stack.{slope: [], bound})
        )
@@ -219,19 +225,20 @@ let rec push =
     let connect = () =>
       switch (connect(~repair=r, ~onto, hd, ~fill, t)) {
       | Error(fill) =>
-        push(~repair?, t, ~fill, {...stack, slope: tl}, ~onto)
+        push(~no_eq, ~repair?, t, ~fill, {...stack, slope: tl}, ~onto)
       | Ok((grouted, hd)) =>
         Some((grouted, {...stack, slope: [hd, ...tl]}))
       };
     switch (repair) {
     | None => connect()
     | Some(remold) =>
-      let discharge = () => discharge(~remold, stack, ~fill, t);
+      let discharge = () => discharge(~no_eq, ~remold, stack, ~fill, t);
       Oblig.Delta.minimize(f => f(), [discharge, connect]);
     };
   };
 }
-and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
+and discharge =
+    (~no_eq, ~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
   switch (stack.slope) {
   | [] => None
   | [hd, ...tl] =>
@@ -272,6 +279,6 @@ and discharge = (~remold, stack: Stack.t, ~fill=Cell.empty, t: Token.t) => {
       {...stack, slope: tl}
       |> Stack.cat(dn)
       |> Stack.cat(Stack.to_slope({...l, slope}));
-    push(~repair=remold, t, ~fill, stack, ~onto=L);
+    push(~no_eq, ~repair=remold, t, ~fill, stack, ~onto=L);
   };
 };
