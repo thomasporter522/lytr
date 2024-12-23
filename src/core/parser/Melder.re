@@ -204,6 +204,8 @@ let rec unzip_tok = (~frame=Frame.Open.empty, path: Path.t, cell: Cell.t) => {
   };
 };
 
+// no_eq indicates whether to disallow matching the stack bound, as may be
+// desirable for tokens getting remolded/melded in the suffix of a modification
 let rec push =
         (
           ~no_eq=false,
