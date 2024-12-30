@@ -49,7 +49,7 @@ let pop = buf => {
     let lbls =
       Labels.completions(text)
       // avoid duplicating exact match const label
-      |> (Label.is_const(lbl) ? Fun.id : List.cons(lbl));
+      |> (Label.is_const(lbl) ? Fun.id : Stds.Lists.snoc(lbl));
     Some(Token.Unmolded.mk(~text, Mtrl.Tile(lbls)));
   };
   // I'm guessing buf state is altered by this switch expression?

@@ -163,6 +163,17 @@ let finalize = (~mode=Mode.Navigating, ~fill=Cell.dirty, ctx: Ctx.t): Zipper.t =
   Mode.reset();
   Zipper.unzip_exn(c, ~ctx);
 };
+let finalize_ = (remolded: Cell.t, ctx: Ctx.t): Zipper.t => {
+  // P.log("--- Modify.finalize_");
+  // P.show("remolded", Cell.show(remolded));
+  // P.show("ctx", Ctx.show(ctx));
+  let (l, r) = Ctx.(face(~side=L, ctx), face(~side=R, ctx));
+  let repadded = Linter.repad(~l, remolded, ~r);
+  // P.show("repadded", Cell.show(repadded));
+  let c = {...repadded, marks: Cell.Marks.flush(repadded.marks)};
+  // P.show("flushed", Cell.show(c));
+  Zipper.unzip_exn(c, ~ctx);
+};
 
 let try_move = (s: string, z: Zipper.t) =>
   switch (s, Ctx.face(~side=R, z.ctx)) {
@@ -177,6 +188,17 @@ let try_move = (s: string, z: Zipper.t) =>
 
 let extend = (~side=Dir.R, s: string, tok: Token.t) =>
   switch (tok.mtrl) {
+  | Space(Unmolded) =>
+    // this path may need extra guards, currently always succeeds at extending
+    // unmolded token
+    let (l, r) =
+      Token.split_text(tok)
+      |> Option.map(((l, _, r)) => (l, r))
+      |> Option.value(
+           ~default=Dir.pick(side, (("", tok.text), (tok.text, ""))),
+         );
+    let text = l ++ s ++ r;
+    Labeler.single(text) |> Option.map(_ => {...tok, text});
   | Space(_)
   | Grout(_) => None
   | Tile((lbl, _)) =>
@@ -232,12 +254,21 @@ let try_extend = (s: string, z: Zipper.t): option(Zipper.t) => {
 };
 
 // maybe rename expandable
-let expand = (tok: Token.t) =>
+let expand = (tok: Token.t): option(Token.Unmolded.t) =>
   switch (tok.mtrl) {
   | Space(White(_))
   | Grout(_) => None
   // | Tile((Const(_), _)) => None
-  | Space(Unmolded)
+  | Space(Unmolded) =>
+    open Options.Syntax;
+    let* labeled = Labeler.single(tok.text);
+    // P.log("--- Modify.expand");
+    // P.sexp("labeled", Token.Unmolded.sexp_of_t(labeled));
+    switch (labeled.mtrl) {
+    | Space(_)
+    | Grout(_) => None
+    | Tile(_) => Some(labeled)
+    };
   | Tile(_) =>
     open Options.Syntax;
     let* labeled = Labeler.single(tok.text);
@@ -381,6 +412,63 @@ let insert_toks =
      );
 };
 
+let meld_remold =
+    (prev, tok: Token.t, next, ctx: Ctx.t): option((Cell.t, Ctx.t)) => {
+  open Options.Syntax;
+  let ((l, r), rest) = Ctx.unlink_stacks(ctx);
+  let* (grouted, l) =
+    Melder.push(tok, ~fill=prev, l, ~onto=L, ~repair=Molder.remold);
+  let connected = Stack.connect(Effects.insert(tok), grouted, l);
+  let* ctx =
+    connected.bound == l.bound
+      ? Some(Ctx.link_stacks((connected, r), rest)) : None;
+  let remolded = remold(~fill=next, ctx);
+  // P.log("--- meld_remold");
+  // P.show("tok", Token.show(tok));
+  // P.show("ctx", Ctx.show(ctx));
+  // P.show("remolded", Cell.show(fst(remolded)));
+  // P.show("remolded ctx", Ctx.show(snd(remolded)));
+  // P.show("effects", Fmt.(to_to_string(list(Effects.pp), Effects.log^)));
+  switch (tok.mtrl) {
+  | Tile((lbl, _))
+      when
+        !Label.is_instant(lbl)
+        && Oblig.Delta.(not_hole(of_effects(Effects.log^))) =>
+    None
+  | _ => Some(remolded)
+  };
+};
+
+let candidates = (t: Token.Unmolded.t): list(Token.t) =>
+  Molder.candidates(t) @ [Token.Unmolded.defer(t)];
+
+let mold_remold =
+    (prev, tok: Token.Unmolded.t, next, ctx: Ctx.t): (Cell.t, Ctx.t) => {
+  candidates(tok)
+  |> Oblig.Delta.minimize(
+       //  ~show_y=
+       //    ((cell, ctx)) => {
+       //      P.show("cell", Cell.show(cell));
+       //      P.show("ctx", Ctx.show(ctx));
+       //    },
+       tok =>
+       meld_remold(prev, tok, next, ctx)
+     )
+  |> Options.get_fail(
+       "bug: at least deferred candidate should have succeeded",
+     );
+};
+
+let insert_remold =
+    (toks: Chain.t(Cell.t, Token.Unmolded.t), ctx: Ctx.t): (Cell.t, Ctx.t) => {
+  switch (Chain.(unlink(rev(toks)))) {
+  | Error(cell) => remold(~fill=cell, ctx)
+  | Ok((next, tok, toks)) =>
+    let (ctx, prev) = insert_toks(Chain.rev(toks), ctx);
+    mold_remold(prev, tok, next, ctx);
+  };
+};
+
 // delete_sel clears the textual content of the current selection (doing nothing if
 // the selection is empty). this entails dropping all of the zigg's cells and
 // remelding the zigg's tokens as empty ghosts onto (the left side of) the ctx. in
@@ -414,10 +502,10 @@ let delete_sel = (d: Dir.t, z: Zipper.t): Zipper.t => {
     //   "deleted_toks",
     //   Chain.show(Cell.pp, Token.Unmolded.pp, deleted_toks),
     // );
-    let (molded, fill) = insert_toks(deleted_toks, ctx);
+    let (remolded, ctx) = insert_remold(deleted_toks, ctx);
     // P.show("molded", Ctx.show(molded));
     // P.show("fill", Cell.show(fill));
-    finalize(~mode=Deleting(d), ~fill, molded);
+    finalize_(remolded, ctx);
   };
 };
 
@@ -458,8 +546,11 @@ let insert = (s: string, z: Zipper.t) => {
   let (toks, ctx) = relabel(s, z.ctx);
   // P.show("toks", Chain.show(Cell.pp, Token.Unmolded.pp, toks));
   // P.show("ctx", Ctx.show(ctx));
-  let (molded, fill) = insert_toks(toks, ctx);
+  // let (molded, fill) = insert_toks(toks, ctx);
   // P.show("molded", Ctx.show(molded));
   // P.show("fill", Cell.show(fill));
-  finalize(~mode=Inserting(s), ~fill, molded);
+  // finalize(~mode=Inserting(s), ~fill, molded);
+
+  let (remolded, ctx) = insert_remold(toks, ctx);
+  finalize_(remolded, ctx);
 };

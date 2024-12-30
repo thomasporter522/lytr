@@ -14,12 +14,13 @@ let p = (~a: option(Dir.t)=?, r: t) => (a, r);
 let t = (lbl: Label.t) => Regex.atom(Sym.t(lbl));
 let nt = (srt: Sort.t) => Regex.atom(Sym.nt(srt));
 
-let c = (~p=Padding.none, s) => t(Label.const(~padding=p, s));
+let c = (~p=Padding.none, ~i=false, s) =>
+  t(Label.const(~padding=p, ~instant=i, s));
 let kw = (~space=(true, true), ~break=(false, false), ~indent=true) =>
   c(~p=Padding.kw(~space, ~break, ~indent, ()));
 let op = (~space=(true, true), ~break=(false, false), ~indent=true) =>
   c(~p=Padding.op(~space, ~break, ~indent, ()));
-let brc = (side: Dir.t) => c(~p=Padding.brc(side));
+let brc = (side: Dir.t) => c(~p=Padding.brc(side), ~i=true);
 
 let comma = op(~space=(false, true), ",");
 let comma_sep = atom => seq([atom, Star(seq([comma, atom]))]);

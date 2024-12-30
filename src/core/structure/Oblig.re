@@ -12,14 +12,12 @@ module Ord = {
     | Unmolded_tok;
 
   // low to high severity
-  // (unmolded tile severity doesn't matter in that it is always last resort
-  // after using other oblig severities to compare available mold options)
   let all = [
     Missing_meld,
     Missing_tile,
+    Unmolded_tok,
     Incon_meld,
     Extra_meld,
-    Unmolded_tok,
   ];
   let severity = o => Option.get(Lists.find_index((==)(o), all));
   let compare = (l, r) => Int.compare(severity(l), severity(r));
@@ -48,6 +46,11 @@ module Delta = {
   let zero = empty;
   let decr = (o, map) => add(o, find(o, map) - 1, map);
   let incr = (o, map) => add(o, find(o, map) + 1, map);
+
+  let not_hole = (map: t) =>
+    find(Missing_tile, map) > 0
+    || find(Incon_meld, map) > 0
+    || find(Extra_meld, map) > 0;
 
   let compare = (l, r) =>
     Lists.fold_right(
