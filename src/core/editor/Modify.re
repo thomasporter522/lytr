@@ -418,24 +418,37 @@ let meld_remold =
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
   let* (grouted, l) =
     Melder.push(tok, ~fill=prev, l, ~onto=L, ~repair=Molder.remold);
-  let connected = Stack.connect(Effects.insert(tok), grouted, l);
-  let* ctx =
-    connected.bound == l.bound
-      ? Some(Ctx.link_stacks((connected, r), rest)) : None;
-  let remolded = remold(~fill=next, ctx);
-  // P.log("--- meld_remold");
-  // P.show("tok", Token.show(tok));
-  // P.show("ctx", Ctx.show(ctx));
-  // P.show("remolded", Cell.show(fst(remolded)));
-  // P.show("remolded ctx", Ctx.show(snd(remolded)));
-  // P.show("effects", Fmt.(to_to_string(list(Effects.pp), Effects.log^)));
-  switch (tok.mtrl) {
-  | Tile((lbl, _))
-      when
-        !Label.is_instant(lbl)
-        && Oblig.Delta.(not_hole(of_effects(Effects.log^))) =>
-    None
-  | _ => Some(remolded)
+  let is_redundant =
+    Token.is_empty(tok)
+    && (
+      Grouted.is_neq(grouted)
+      || Option.is_some(Grouted.is_eq(grouted))
+      && l.slope == []
+    );
+  if (is_redundant) {
+    Effects.remove(tok);
+    let fill = Cell.Space.merge(prev, next);
+    Some(remold(~fill, ctx));
+  } else {
+    let connected = Stack.connect(Effects.insert(tok), grouted, l);
+    let* ctx =
+      connected.bound == l.bound
+        ? Some(Ctx.link_stacks((connected, r), rest)) : None;
+    let remolded = remold(~fill=next, ctx);
+    // P.log("--- meld_remold");
+    // P.show("tok", Token.show(tok));
+    // P.show("ctx", Ctx.show(ctx));
+    // P.show("remolded", Cell.show(fst(remolded)));
+    // P.show("remolded ctx", Ctx.show(snd(remolded)));
+    // P.show("effects", Fmt.(to_to_string(list(Effects.pp), Effects.log^)));
+    switch (tok.mtrl) {
+    | Tile((lbl, _))
+        when
+          !Label.is_instant(lbl)
+          && Oblig.Delta.(not_hole(of_effects(Effects.log^))) =>
+      None
+    | _ => Some(remolded)
+    };
   };
 };
 
