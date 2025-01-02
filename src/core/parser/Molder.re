@@ -168,10 +168,11 @@ and remold =
       // P.show("grouted", Grouted.show(grouted));
       // P.show("rest", Stack.show(rest));
       let connected = Stack.connect(t, grouted, rest) |> Stack.extend(tl_w);
+      let fill = Cell.mark_ends_dirty(hd.cell);
       if (connected.bound == l.bound) {
-        remold(~fill=hd.cell, (connected, r_tl));
+        remold(~fill, (connected, r_tl));
       } else {
-        Error((hd.cell, (connected, r_tl)));
+        Error((fill, (connected, r_tl)));
       };
     | Ok((t, grouted, rest)) =>
       let connected = Stack.connect(t, grouted, rest);
@@ -183,7 +184,7 @@ and remold =
         |> Stack.Frame.cat(([], up))
         |> remold(~fill=Cell.mark_ends_dirty(fill));
       } else {
-        Error((hd.cell, (connected, r_tl)));
+        Error((Cell.mark_ends_dirty(hd.cell), (connected, r_tl)));
       };
     };
   };
