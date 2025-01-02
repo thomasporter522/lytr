@@ -70,7 +70,8 @@ module Delta = {
   let of_effects = List.fold_left(Fun.flip(add_effect), zero);
 
   let minimize =
-      (~to_zero=false, f: 'x => option('y), xs: list('x)): option('y) => {
+      (~to_zero=false, ~to_hole=false, f: 'x => option('y), xs: list('x))
+      : option('y) => {
     open Options.Syntax;
     let* (y, effs, delta) =
       xs
@@ -79,7 +80,7 @@ module Delta = {
            y_opt |> Option.map(y => (y, effs, of_effects(effs)))
          )
       |> Lists.min(((_, _, l), (_, _, r)) => compare(l, r));
-    if (to_zero && compare(delta, zero) > 0) {
+    if (to_zero && compare(delta, zero) > 0 || to_hole && not_hole(delta)) {
       None;
     } else {
       Effects.commit(effs);
