@@ -431,9 +431,13 @@ let meld_remold =
     Some(remold(~fill, ctx));
   } else {
     let connected = Stack.connect(Effects.insert(tok), grouted, l);
-    let* ctx =
+    let ctx =
       connected.bound == l.bound
-        ? Some(Ctx.link_stacks((connected, r), rest)) : None;
+        ? Ctx.link_stacks((connected, r), rest)
+        : Ctx.map_hd(
+            Frame.Open.cat(Stack.(to_slope(connected), to_slope(r))),
+            rest,
+          );
     let remolded = remold(~fill=next, ctx);
     // P.log("--- meld_remold");
     // P.show("tok", Token.show(tok));
