@@ -41,22 +41,36 @@ let of_token = (tok: Token.t) =>
 
 module Delta = {
   include Map;
+  // each value is (# removed, # inserted)
   [@deriving (show({with_path: false}), sexp, yojson)]
-  type t = Map.t(int);
-  let find = (o, map) => Option.value(find_opt(o, map), ~default=0);
+  type t = Map.t((int, int));
+  let find = (o, map) => Option.value(find_opt(o, map), ~default=(0, 0));
 
   let zero = empty;
-  let decr = (o, map) => add(o, find(o, map) - 1, map);
-  let incr = (o, map) => add(o, find(o, map) + 1, map);
+  let decr = (o, map) =>
+    add(o, Tuples.map_fst(n => n - 1, find(o, map)), map);
+  let incr = (o, map) =>
+    add(o, Tuples.map_snd(n => n + 1, find(o, map)), map);
 
   let not_hole = (map: t) =>
-    find(Missing_tile, map) > 0
-    || find(Incon_meld, map) > 0
-    || find(Extra_meld, map) > 0;
+    snd(find(Missing_tile, map)) > 0
+    || snd(find(Incon_meld, map)) > 0
+    || snd(find(Extra_meld, map)) > 0;
 
   let compare = (l, r) =>
     Lists.fold_right(
-      ~f=(o, c) => c != 0 ? c : Int.compare(find(o, l), find(o, r)),
+      ~f=
+        (o, c) =>
+          c != 0
+            ? c
+            : {
+              let (removed_l, inserted_l) = find(o, l);
+              let (removed_r, inserted_r) = find(o, r);
+              open Compare.Syntax;
+              let/ () =
+                Int.compare(inserted_l - removed_l, inserted_r - removed_r);
+              Int.compare(inserted_l, inserted_r);
+            },
       all,
       ~init=0,
     );
