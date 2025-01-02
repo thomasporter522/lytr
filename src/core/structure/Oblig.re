@@ -2,6 +2,8 @@ open Sexplib.Std;
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
 open Stds;
 
+let debug = ref(false);
+
 module Ord = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t =

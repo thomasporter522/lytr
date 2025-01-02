@@ -70,11 +70,13 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
     };
 };
 
-// returns None if input token is empty
+// returns Error(fill) if input token is empty
+// re indicates whether token is being remolded
 let rec mold =
         (~re=false, stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
         : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) => {
   // P.log("--- Molder.mold");
+  // P.show("re", string_of_bool(re));
   // P.show("stack", Stack.show(stack));
   // P.show("fill", Cell.show(fill));
   // P.show("t", Token.Unmolded.show(t));

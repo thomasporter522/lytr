@@ -131,6 +131,9 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
     // remold error means something in r melded onto the bound of l, breaking their
     // bidelimited container, so we need to add the suffix of the next stack frame
     // in tl to the remolding queue
+    // P.log("--- Modify.remold/error");
+    // P.show("fill", Cell.show(fill));
+    // P.show("(l', r')", Stack.Frame.show((l', r')));
     tl
     |> Ctx.map_hd(Frame.Open.cat(Stack.(to_slope(l'), to_slope(r'))))
     |> remold(~fill)
