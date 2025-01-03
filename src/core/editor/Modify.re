@@ -561,7 +561,7 @@ let try_truncate = (z: Zipper.t) => {
         };
         ctx
         |> Ctx.push(~onto=L, tok)
-        |> Ctx.push(~onto=R, tok)
+        |> (Token.is_complete(tok) ? Fun.id : Ctx.push(~onto=R, tok))
         |> Zipper.mk
         |> Option.some;
       | _ => None
