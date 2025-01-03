@@ -112,6 +112,7 @@
 }
 
 .unmolded {
+  font-style: italic;
   opacity: 40%;
   color: var(--unmolded-color);
 }
