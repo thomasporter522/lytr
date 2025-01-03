@@ -529,6 +529,48 @@ let delete_sel = (d: Dir.t, z: Zipper.t): Zipper.t => {
   };
 };
 
+let try_truncate = (z: Zipper.t) => {
+  switch (z.cur) {
+  | Point(_) => None
+  | Select(sel) =>
+    // prune ctx of any duplicated tokens
+    let (sites, ctx) = Zipper.cursor_site(z);
+    let (l, r) = Option.get(Cursor.get_select(sites));
+    // temporarily denormalize cursor for more convenient processing
+    switch (
+      Zigg.tokens(sel.range)
+      |> (
+        l == Between
+          ? Lists.map_hd(add_edge(~hand=sel.focus == L ? Focus : Anchor, L))
+          : Fun.id
+      )
+      |> (
+        r == Between
+          ? Lists.map_ft(add_edge(~hand=sel.focus == R ? Focus : Anchor, R))
+          : Fun.id
+      )
+    ) {
+    | [tok] =>
+      switch (Token.split_text(tok)) {
+      | Some((l, _, "")) when !Strings.is_empty(l) =>
+        let tok = {
+          ...tok,
+          text: l,
+          // renormalize cursor
+          marks: Some(Point(Caret.focus(Utf8.length(l)))),
+        };
+        ctx
+        |> Ctx.push(~onto=L, tok)
+        |> Ctx.push(~onto=R, tok)
+        |> Zipper.mk
+        |> Option.some;
+      | _ => None
+      }
+    | _ => None
+    };
+  };
+};
+
 let delete = (d: Dir.t, z: Zipper.t) => {
   open Options.Syntax;
   // let/ () =
@@ -548,6 +590,7 @@ let delete = (d: Dir.t, z: Zipper.t) => {
   // P.show("z", Zipper.show(z));
   let+ z =
     Cursor.is_point(z.cur) ? Select.hstep(~char=true, d, z) : return(z);
+  let- () = try_truncate(z);
   // P.show("selected", Zipper.show(z));
   delete_sel(d, z);
 };
