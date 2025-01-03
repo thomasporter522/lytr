@@ -6,6 +6,7 @@ module Base = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t('tok) = list(Terr.Base.t('tok));
   let empty = [];
+  let is_empty = slope => slope == empty;
   let singleton = t => [t];
   let height = List.length;
   let cons = List.cons;
