@@ -1,60 +1,12 @@
 open Stds;
 
-let relabel =
-    (s: string, ctx: Ctx.t): (Chain.t(Cell.t, Token.Unmolded.t), Ctx.t) => {
-  let (l, rest) =
-    switch (Ctx.pull(~from=L, ctx)) {
-    // hack to avoid merging usr/sys space tokens
-    | (Node(tok), _) when Token.Space.is(tok) => (Delim.root, ctx)
-    | (Node(tok), _) when tok.text == "" => (Delim.root, ctx)
-    | (l, rest) => (l, rest)
-    };
-  let (r, rest) =
-    switch (Ctx.pull(~from=R, rest)) {
-    | (Node(tok), _) when Token.Space.is(tok) => (Delim.root, rest)
-    | (Node(tok), _) when tok.text == "" => (Delim.root, rest)
-    | (r, rest) => (r, rest)
-    };
-  let merges = Delim.merges(l, r);
-  let s_l =
-    Delim.is_tok(l)
-    |> Option.map(Token.affix(~side=L, ~default_all=true))
-    |> Option.value(~default="");
-  let s_r =
-    Delim.is_tok(r)
-    |> Option.map(Token.affix(~side=R, ~default_all=true))
-    |> Option.value(~default="");
-  let labeled = Labeler.label(s_l ++ s ++ s_r);
-  // push left face back if its labeling remains unchanged
-  let (labeled, rest, pushed_back_l) =
-    switch (labeled) {
-    | [hd, ...tl] when hd.text == s_l && s_l != "" && !merges =>
-      let ctx =
-        Delim.is_tok(l)
-        |> Option.map(t => Ctx.push(~onto=L, t, rest))
-        |> Option.value(~default=rest);
-      (tl, ctx, true);
-    | labeled => (labeled, rest, false)
-    };
-  // push right face back if its labeling remains unchanged
-  let (labeled, rest, pushed_back_r) =
-    switch (Lists.Framed.ft(labeled)) {
-    | Some((pre, ft)) when ft.text == s_r && s_r != "" && !merges =>
-      let ctx =
-        Delim.is_tok(r)
-        |> Option.map(t => Ctx.push(~onto=R, t, rest))
-        |> Option.value(~default=rest);
-      // (List.rev(pre), 0, ctx);
-      (List.rev(pre), ctx, true);
-    | _ =>
-      // (labeled, Utf8.length(s_r), rest)
-      (labeled, rest, false)
-    };
+type to_be_inserted = Chain.t(Cell.t, Token.Unmolded.t);
 
+let restore_and_normalize_cursor =
+    (n: int, toks: list(Token.Unmolded.t)): to_be_inserted => {
   // restore caret position
-  let n = Utf8.length((pushed_back_l ? "" : s_l) ++ s);
   let (_, marked) =
-    labeled
+    toks
     |> Lists.fold_map(
          ~init=0,
          ~f=(num_chars, tok: Token.Unmolded.t) => {
@@ -69,28 +21,88 @@ let relabel =
   // normalize the cursors by popping off any carets at the token edges
   // and storing them instead in neighboring cells, the final result being a
   // chain of cell-loops (either empty or with a caret) and token-links
-  let normalized =
-    marked
-    |> Lists.fold_right(
-         ~init=Chain.unit(Cell.dirty), ~f=(tok: Token.Unmolded.t, c) =>
-         switch (tok.marks) {
-         | Some(Point({path: 0, _})) =>
-           Chain.link(
-             Cell.point(~dirty=true, Focus),
-             Token.clear_marks(tok),
-             c,
-           )
-         | Some(Point({path: n, _})) when n == Utf8.length(tok.text) =>
-           c
-           |> Chain.map_hd(Fun.const(Cell.point(~dirty=true, Focus)))
-           |> Chain.link(Cell.dirty, Token.clear_marks(tok))
-         | _ => Chain.link(Cell.dirty, tok, c)
-         }
-       );
-  // if both faces were pushed back, then use original ctx to preserve any closed
-  // frames broken by pulling faces
-  let ctx = pushed_back_l && pushed_back_r ? ctx : rest;
-  (normalized, ctx);
+  marked
+  |> Lists.fold_right(
+       ~init=Chain.unit(Cell.dirty), ~f=(tok: Token.Unmolded.t, c) =>
+       switch (tok.marks) {
+       | Some(Point({path: 0, _})) =>
+         Chain.link(
+           Cell.point(~dirty=true, Focus),
+           Token.clear_marks(tok),
+           c,
+         )
+       | Some(Point({path: n, _})) when n == Utf8.length(tok.text) =>
+         c
+         |> Chain.map_hd(Fun.const(Cell.point(~dirty=true, Focus)))
+         |> Chain.link(Cell.dirty, Token.clear_marks(tok))
+       | _ => Chain.link(Cell.dirty, tok, c)
+       }
+     );
+};
+
+let relabel = (s: string, z: Zipper.t): list((to_be_inserted, Ctx.t)) => {
+  let (cur_site, ctx) = Zipper.cursor_site(z);
+  switch (Option.get(Cursor.get_point(cur_site))) {
+  | Within(tok) =>
+    let (l, r) = Token.(affix(~side=L, tok), affix(~side=R, tok));
+    let labeled = Labeler.label(l ++ s ++ r);
+    let n = Utf8.length(l ++ s);
+    let toks = restore_and_normalize_cursor(n, labeled);
+    [(toks, ctx)];
+  | Between =>
+    let (l, ctx_sans_l) = Ctx.pull(~from=L, ctx);
+    let (r, ctx_sans_r) = Ctx.pull(~from=R, ctx);
+    let (_, ctx_sans_lr) = Ctx.pull(~from=R, ctx_sans_l);
+    let no_merge = {
+      let labeled = Labeler.label(s);
+      let n = Utf8.length(s);
+      let toks = restore_and_normalize_cursor(n, labeled);
+      [(toks, ctx)];
+    };
+    let merged_l =
+      switch (l) {
+      | Root
+      | Node({mtrl: Space(White(_)) | Grout(_), _}) => []
+      | Node({mtrl: Space(Unmolded) | Tile(_), text: l, _}) =>
+        switch (Labeler.single(l ++ s)) {
+        | None => []
+        | Some(tok) =>
+          let n = Utf8.length(l ++ s);
+          let toks = restore_and_normalize_cursor(n, [tok]);
+          [(toks, ctx_sans_l)];
+        }
+      };
+    let merged_r =
+      switch (r) {
+      | Root
+      | Node({mtrl: Space(White(_)) | Grout(_), _}) => []
+      | Node({mtrl: Space(Unmolded) | Tile(_), text: r, _}) =>
+        switch (Labeler.single(s ++ r)) {
+        | None => []
+        | Some(tok) =>
+          let n = Utf8.length(s);
+          let toks = restore_and_normalize_cursor(n, [tok]);
+          [(toks, ctx_sans_r)];
+        }
+      };
+    let merged_lr =
+      switch (l, r) {
+      | (Root | Node({mtrl: Space(White(_)) | Grout(_), _}), _)
+      | (_, Root | Node({mtrl: Space(White(_)) | Grout(_), _})) => []
+      | (
+          Node({mtrl: Space(Unmolded) | Tile(_), text: l, _}),
+          Node({mtrl: Space(Unmolded) | Tile(_), text: r, _}),
+        ) =>
+        switch (Labeler.single(l ++ s ++ r)) {
+        | None => []
+        | Some(tok) =>
+          let n = Utf8.length(l ++ s);
+          let toks = restore_and_normalize_cursor(n, [tok]);
+          [(toks, ctx_sans_lr)];
+        }
+      };
+    List.concat([merged_lr, merged_l, merged_r, no_merge]);
+  };
 };
 
 // None means token was removed. Some(ctx) means token was molded (or deferred and
@@ -604,16 +616,11 @@ let insert = (s: string, z: Zipper.t) => {
   let- () = try_move(s, z);
   let- () = try_extend(s, z);
 
-  // P.log("--- Modify.insert/molding");
-  // P.show("z.ctx", Ctx.show(z.ctx));
-  let (toks, ctx) = relabel(s, z.ctx);
-  // P.show("toks", Chain.show(Cell.pp, Token.Unmolded.pp, toks));
-  // P.show("ctx", Ctx.show(ctx));
-  // let (molded, fill) = insert_toks(toks, ctx);
-  // P.show("molded", Ctx.show(molded));
-  // P.show("fill", Cell.show(fill));
-  // finalize(~mode=Inserting(s), ~fill, molded);
-
-  let (remolded, ctx) = insert_remold(toks, ctx);
+  let (remolded, ctx) =
+    relabel(s, z)
+    |> Oblig.Delta.minimize(((toks, ctx)) =>
+         Some(insert_remold(toks, ctx))
+       )
+    |> Option.get;
   finalize_(remolded, ctx);
 };
