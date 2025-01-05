@@ -123,7 +123,7 @@ let mold =
   // P.show("tok", Token.show(tok));
   // P.show("grouted", Grouted.show(grouted));
   // P.show("stack", Stack.show(l));
-  let connected = Stack.connect(tok, grouted, l);
+  let connected = Stack.connect(Effects.insert(tok), grouted, l);
   // P.show("connected", Stack.show(connected));
   connected.bound == l.bound
     ? Ctx.link_stacks((connected, r), rest)

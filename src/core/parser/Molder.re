@@ -158,6 +158,7 @@ and remold =
     // P.show("hd_w", Token.show(hd_w));
     switch (mold(~re=true, l, ~fill, Token.unmold(hd_w))) {
     | Error(fill) =>
+      Effects.remove(hd_w);
       let (c, up) = unroll_tl_w_hd_cell();
       let fill = fill |> Cell.pad(~r=c) |> Cell.mark_ends_dirty;
       (l, r_tl) |> Stack.Frame.cat(([], up)) |> remold(~fill);
@@ -175,7 +176,8 @@ and remold =
         Error((fill, (connected, r_tl)));
       };
     | Ok((t, grouted, rest)) =>
-      let connected = Stack.connect(t, grouted, rest);
+      Effects.remove(hd_w);
+      let connected = Stack.connect(Effects.insert(t), grouted, rest);
       // check if connection changed the stack bound
       if (connected.bound == l.bound) {
         // if not, then nearest bidelimited container is preserved
