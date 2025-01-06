@@ -190,16 +190,16 @@ let finalize_ = (remolded: Cell.t, ctx: Ctx.t): Zipper.t => {
   Zipper.unzip_exn(c, ~ctx);
 };
 
-let try_move = (s: string, z: Zipper.t) =>
-  switch (s, Ctx.face(~side=R, z.ctx)) {
-  | (" ", Node(tok))
-      when
-        String.starts_with(~prefix=" ", tok.text) || Mtrl.is_grout(tok.mtrl) =>
+let try_move = (s: string, z: Zipper.t) => {
+  let (face, ctx) = Ctx.pull(~from=R, z.ctx);
+  switch (s, face, Ctx.face(~side=R, ctx)) {
+  | (" ", Node(tok), _) when tok.text == " " || Mtrl.is_grout(tok.mtrl) =>
     Move.perform(Step(H(R)), z)
-  | ("\n", Node(tok)) when String.starts_with(~prefix="\n", tok.text) =>
+  | ("\n", Node(tok), Node(next)) when tok.text == "\n" && next.text == "" =>
     Move.perform(Step(H(R)), z)
   | _ => None
   };
+};
 
 let extend = (~side=Dir.R, s: string, tok: Token.t) =>
   switch (tok.mtrl) {
