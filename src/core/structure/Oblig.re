@@ -48,7 +48,7 @@ module Delta = {
 
   let zero = empty;
   let decr = (o, map) =>
-    add(o, Tuples.map_fst(n => n - 1, find(o, map)), map);
+    add(o, Tuples.map_fst(n => n + 1, find(o, map)), map);
   let incr = (o, map) =>
     add(o, Tuples.map_snd(n => n + 1, find(o, map)), map);
 
