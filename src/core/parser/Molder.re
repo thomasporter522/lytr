@@ -174,6 +174,21 @@ and remold =
       // P.show("rest", Stack.show(rest));
       let connected = Stack.connect(t, grouted, rest) |> Stack.extend(tl_w);
       let fill = Cell.mark_ends_dirty(hd.cell);
+      let (fill, r_tl) =
+        // unroll hd terrace cell if it contains an unmolded obligation,
+        // in case it can be molded by the new prefix
+        if (Path.Map.exists(
+              _ =>
+                fun
+                | Mtrl.Space(Space.T.Unmolded) => true
+                | _ => false,
+              fill.marks.obligs,
+            )) {
+          let (fill, unrolled) = Slope.Up.unroll(fill);
+          (fill, Stack.cat(unrolled, r_tl));
+        } else {
+          (fill, r_tl);
+        };
       if (connected.bound == l.bound) {
         remold(~fill, (connected, r_tl));
       } else {
