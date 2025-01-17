@@ -20,6 +20,8 @@ open Stds;
 // or
 // let x = 1 in <> + 2 >< <in> >< x + 1
 
+let debug = ref(false);
+
 let candidates = (t: Token.Unmolded.t): list(Token.t) =>
   List.map(
     Token.mk(~id=t.id, ~marks=?t.marks, ~text=t.text),
@@ -75,17 +77,19 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
 let rec mold =
         (~re=false, stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
         : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) => {
-  // P.log("--- Molder.mold");
-  // P.show("re", string_of_bool(re));
-  // P.show("stack", Stack.show(stack));
-  // P.show("fill", Cell.show(fill));
-  // P.show("t", Token.Unmolded.show(t));
+  // if (debug^) {
+  //   P.log("--- Molder.mold");
+  //   P.show("re", string_of_bool(re));
+  //   P.show("stack", Stack.show(stack));
+  //   P.show("fill", Cell.show(fill));
+  //   P.show("t", Token.Unmolded.show(t));
+  // };
   switch (
     candidates(t)
-    |> Oblig.Delta.minimize(tok =>
+    |> Oblig.Delta.minimize(tok => {
          Melder.push(~no_eq=re, tok, ~fill, stack, ~onto=L, ~repair=remold)
          |> Option.map(((grouted, stack)) => (tok, grouted, stack))
-       )
+       })
   ) {
   | Some((tok, grouted, stack) as molded) =>
     // remove empty ghost connected via neq-relation
