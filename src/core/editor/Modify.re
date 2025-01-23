@@ -375,7 +375,7 @@ let meld_remold =
     );
   if (is_redundant) {
     Effects.remove(tok);
-    let fill = Cell.Space.merge(prev, next);
+    let fill = Cell.Space.merge(prev, ~fill=Cell.degrouted, next);
     Some(remold(~fill, ctx));
   } else {
     let connected = Stack.connect(Effects.insert(tok), grouted, l);

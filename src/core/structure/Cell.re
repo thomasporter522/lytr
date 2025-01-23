@@ -119,6 +119,10 @@ let add_marks = marks => map_marks(Marks.union(marks));
 let clear_marks = (cell: t) => {...cell, marks: Marks.empty};
 let pop_marks = (cell: t) => (cell.marks, clear_marks(cell));
 
+let degrouted = {
+  let marks = Marks.mk(~degrouted=Path.Map.singleton(Path.empty, ()), ());
+  {...empty, marks};
+};
 let rec mark_degrouted = (~side: Dir.t, c: t) =>
   switch (c.meld) {
   | None =>
