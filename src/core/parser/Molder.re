@@ -100,7 +100,8 @@ let rec mold =
     Mtrl.is_tile(tok.mtrl)
     && Token.is_empty(tok)
     && (
-      Grouted.is_neq(grouted)
+      Token.is_complete(tok)
+      || Grouted.is_neq(grouted)
       || Option.is_some(Grouted.is_eq(grouted))
       && stack.slope == []
     )

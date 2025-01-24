@@ -376,9 +376,10 @@ let meld_remold =
   // P.show("grouted", Grouted.show(grouted));
   // P.show("l", Stack.show(l));
   let is_redundant =
-    Token.is_empty(tok)
+    tok.text == ""
     && (
-      Grouted.is_neq(grouted)
+      Token.is_complete(tok)
+      || Grouted.is_neq(grouted)
       || Option.is_some(Grouted.is_eq(grouted))
       && l.slope == []
     );
