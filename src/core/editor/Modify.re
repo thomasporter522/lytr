@@ -400,10 +400,13 @@ let meld_remold =
     // P.show("effects", Fmt.(to_to_string(list(Effects.pp), Effects.log^)));
     switch (tok.mtrl) {
     | Tile((lbl, _))
+        // delay expansion if obligations more severe than holes
         when
           !expanding
           && !Label.is_instant(lbl)
-          && Oblig.Delta.(not_hole(of_effects(Effects.log^))) =>
+          && Oblig.Delta.(not_hole(of_effects(Effects.log^)))
+          // this is necessary when deleting delims to empty ghosts
+          && !Token.is_empty(tok) =>
       None
     | _ => Some(remolded)
     };
@@ -460,12 +463,19 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
 
 let mold_remold =
     (prev, tok: Token.Unmolded.t, next, ctx: Ctx.t): (Cell.t, Ctx.t) => {
-  Molder.candidates(tok)
-  @ [Token.Unmolded.defer(tok)]
-  |> Oblig.Delta.minimize(tok => meld_remold(prev, tok, next, ctx))
-  |> Options.get_fail(
-       "bug: at least deferred candidate should have succeeded",
-     );
+  open Options.Syntax;
+  // P.log("--- Modify.mold_remold");
+  // P.show("prev", Cell.show(prev));
+  // P.show("tok", Token.Unmolded.show(tok));
+  // P.show("next", Cell.show(next));
+  // P.show("ctx", Ctx.show(ctx));
+  let- () =
+    Molder.candidates(tok)
+    @ (tok.text == "" ? [] : [Token.Unmolded.defer(tok)])
+    |> Oblig.Delta.minimize(tok => meld_remold(prev, tok, next, ctx));
+  assert(tok.text == "");
+  let fill = Cell.Space.merge(prev, ~fill=Cell.degrouted, next);
+  remold(~fill, ctx);
 };
 
 let insert_remold =

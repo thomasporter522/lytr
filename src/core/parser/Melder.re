@@ -99,23 +99,27 @@ let connect_eq =
     (~repair=?, ~onto as d: Dir.t, onto: Terr.t, ~fill=Cell.empty, t: Token.t)
     : option((Grouted.t, Terr.t)) => {
   open Options.Syntax;
+  let r = Option.is_some(repair);
   let rec go = (onto: Terr.t, fill) => {
-    let r = Option.is_some(repair);
-    let/ () = r ? rm_ghost_and_go(onto, fill) : None;
-    let face = Terr.face(onto).mtrl;
-    let ws = Walker.walk_eq(~from=d, Node(face), Node(t.mtrl));
-    let* fill =
-      switch (ws, repair) {
-      | ([], _) => None
-      | (_, None) => Some(fill)
-      | ([_, ..._], Some(remold)) =>
-        let+ fill =
-          combine_cells(~remold, Node(onto), fill, Node(Terr.of_tok(t)));
-        [fill];
-      };
-    ws
-    |> Grouter.pick(~repair=r, ~from=d, fill)
-    |> Option.map(grouted => (grouted, onto));
+    let connect = () => {
+      let face = Terr.face(onto).mtrl;
+      let ws = Walker.walk_eq(~from=d, Node(face), Node(t.mtrl));
+      let* fill =
+        switch (ws, repair) {
+        | ([], _) => None
+        | (_, None) => Some(fill)
+        | ([_, ..._], Some(remold)) =>
+          let+ fill =
+            combine_cells(~remold, Node(onto), fill, Node(Terr.of_tok(t)));
+          [fill];
+        };
+      ws
+      |> Grouter.pick(~repair=r, ~from=d, fill)
+      |> Option.map(grouted => (grouted, onto));
+    };
+    let rm_then_connect = () =>
+      r && Token.is_complete(t) ? rm_ghost_and_go(onto, fill) : None;
+    Oblig.Delta.minimize(f => f(), [connect, rm_then_connect]);
   }
   and rm_ghost_and_go = (onto, fill) =>
     switch (Terr.unlink(onto)) {
@@ -253,7 +257,9 @@ let rec push =
     switch (repair) {
     | None => connect()
     | Some(remold) =>
-      let discharge = () => discharge(~no_eq, ~remold, stack, ~fill, t);
+      let discharge = () =>
+        Token.is_complete(t)
+          ? discharge(~no_eq, ~remold, stack, ~fill, t) : None;
       Oblig.Delta.minimize(f => f(), [discharge, connect]);
     };
   };
