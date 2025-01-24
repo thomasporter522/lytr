@@ -62,12 +62,19 @@ let complete_slope = (~onto: Dir.t, ~fill=Cell.empty) =>
 let complete_bounded =
     (~bounds as (l, r), ~onto: Dir.t, ~fill=Cell.empty, slope) => {
   // from/onto terminology here very confusing...
+  // if (debug^) {
+  //   P.log("--- Melder.complete_bounded");
+  //   P.show("l", Bound.show(Terr.pp, l));
+  //   P.show("r", Bound.show(Terr.pp, r));
+  //   P.show("onto", Dir.show(onto));
+  //   P.show("fill", Cell.show(fill));
+  //   P.show("slope", Slope.show(slope));
+  // };
   let (bd_onto, bd_from) = Dir.order(onto, (l, r));
   let fill = complete_slope(~onto, ~fill, slope);
   let fc_onto = bd_onto |> Bound.map(t => Terr.face(t).mtrl);
   let fc_from = bd_from |> Bound.map(t => Terr.face(t).mtrl);
   // if (debug^) {
-  //   P.log("--- Melder.complete_bounded");
   //   P.show("completed slope", Cell.show(fill));
   // };
   Walker.walk_eq(~from=onto, fc_onto, fc_from)

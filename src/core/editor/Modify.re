@@ -154,9 +154,9 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Cell.t, Ctx.t) => {
     // P.show("dn", Slope.Dn.show(dn));
     // P.show("fill", Cell.show(fill));
     let bounds = (l.bound, r.bound);
-    // Melder.dbg := true;
+    // Melder.debug := true;
     let cell = Melder.complete_bounded(~bounds, ~onto=L, dn, ~fill);
-    // Melder.dbg := false;
+    // Melder.debug := false;
     // P.show("completed", Cell.show(cell));
     let hd = ({...l, slope: []}, {...r, slope: []});
     let ctx = Ctx.link_stacks(hd, tl);
@@ -325,13 +325,13 @@ let insert_toks =
   |> Chain.fold_left(
        fill => (ctx, fill),
        ((ctx, fill), tok, next_fill) => {
-         //  P.log("--- insert_toks/tok");
-         //  P.show("ctx", Ctx.show(ctx));
-         //  P.show("fill", Cell.show(fill));
+         //  P.log("--- Modify.insert_toks/tok");
          //  P.show("tok", Token.Unmolded.show(tok));
+         //  P.show("fill", Cell.show(fill));
+         //  P.show("ctx", Ctx.show(ctx));
          switch (mold(ctx, ~fill, tok)) {
          | Ok(ctx) =>
-           //  P.show("molded tok", Ctx.show(ctx));
+           //  P.show("-- Modify.insert_toks/tok/Ok ctx", Ctx.show(ctx));
            let (face, rest) = Ctx.pull(~from=L, ctx);
            switch (face, next_fill.marks.cursor) {
            // if molded token is longer than original, then move cursor out of
@@ -350,6 +350,7 @@ let insert_toks =
            | _ => (ctx, next_fill)
            };
          | Error(fill) =>
+           //  P.log("--- Modify.insert_toks/tok/Error removed");
            // removed empty token
            let next_fill =
              Cell.mark_ends_dirty(Cell.Space.merge(fill, next_fill));
@@ -363,9 +364,17 @@ let meld_remold =
     (~expanding=false, prev, tok: Token.t, next, ctx: Ctx.t)
     : option((Cell.t, Ctx.t)) => {
   open Options.Syntax;
+  // P.log("--- Modify.meld_remold");
+  // P.show("prev", Cell.show(prev));
+  // P.sexp("tok", Token.sexp_of_t(tok));
+  // P.show("next", Cell.show(next));
+  // P.show("ctx", Ctx.show(ctx));
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
   let* (grouted, l) =
     Melder.push(tok, ~fill=prev, l, ~onto=L, ~repair=Molder.remold);
+  // P.log("--- Modify.meld_remold/pushed");
+  // P.show("grouted", Grouted.show(grouted));
+  // P.show("l", Stack.show(l));
   let is_redundant =
     Token.is_empty(tok)
     && (
@@ -480,10 +489,18 @@ let mold_remold =
 
 let insert_remold =
     (toks: Chain.t(Cell.t, Token.Unmolded.t), ctx: Ctx.t): (Cell.t, Ctx.t) => {
+  // P.log("--- Modify.insert_remold");
+  // P.show("ctx", Ctx.show(ctx));
   switch (Chain.(unlink(rev(toks)))) {
   | Error(cell) => remold(~fill=cell, ctx)
   | Ok((next, tok, toks)) =>
+    // P.log("--- Modify.insert_remold/Ok");
+    // P.show("next", Cell.show(next));
+    // P.show("tok", Token.Unmolded.show(tok));
+    // P.show("toks", Chain.show(Cell.pp, Token.Unmolded.pp, toks));
     let (ctx, prev) = insert_toks(Chain.rev(toks), ctx);
+    // P.show("inserted toks ctx", Ctx.show(ctx));
+    // P.show("prev", Cell.show(prev));
     mold_remold(prev, tok, next, ctx);
   };
 };
@@ -513,7 +530,7 @@ let delete_sel = (d: Dir.t, z: Zipper.t): Zipper.t => {
           : Fun.id
       )
       |> delete_toks(d);
-    // P.log("--- delete_sel/Select");
+    // P.log("--- Modify.delete_sel/Select");
     // P.show("ctx sans sites", Ctx.show(ctx));
     // P.show("site l", Zipper.Site.show(l));
     // P.show("site r", Zipper.Site.show(r));
@@ -532,6 +549,7 @@ let try_truncate = (z: Zipper.t) => {
   switch (z.cur) {
   | Point(_) => None
   | Select(sel) =>
+    // P.log("--- Modify.try_truncate");
     // prune ctx of any duplicated tokens
     let (sites, ctx) = Zipper.cursor_site(z);
     let (l, r) = Option.get(Cursor.get_select(sites));
@@ -552,6 +570,7 @@ let try_truncate = (z: Zipper.t) => {
     | [tok] =>
       switch (Token.split_text(tok)) {
       | Some((l, _, "")) when !Strings.is_empty(l) =>
+        // P.log("--- Modify.try_truncate/success");
         let tok = {
           ...tok,
           text: l,
@@ -585,7 +604,7 @@ let delete = (d: Dir.t, z: Zipper.t) => {
   //     Move.perform(Step(H(d)), z)
   //   | _ => None
   //   };
-  // P.log("--- delete");
+  // P.log("--- Modify.delete");
   // P.show("z", Zipper.show(z));
   let+ z =
     Cursor.is_point(z.cur) ? Select.hstep(~char=true, d, z) : return(z);
