@@ -469,9 +469,9 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   let* tok = Delim.is_tok(face);
   // if expandable, consider all expandable const labels
   let* expanded = expand(tok);
-  let (remolded, ctx) =
+  let (molded, (remolded, ctx)) =
     expand_remold(expanded, ~fill=Cell.point(~dirty=true, Focus), rest);
-  return(finalize_(remolded, ctx));
+  molded == tok ? None : return(finalize_(remolded, ctx));
 };
 
 let mold_remold =
