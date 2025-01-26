@@ -424,20 +424,23 @@ let meld_remold =
 };
 
 let expand_remold =
-    (tok: Token.Unmolded.t, ~fill, ctx: Ctx.t): (Cell.t, Ctx.t) => {
+    (tok: Token.Unmolded.t, ~fill, ctx: Ctx.t): (Token.t, (Cell.t, Ctx.t)) => {
   switch (
     Molder.candidates(tok)
     |> Oblig.Delta.minimize(tok =>
          meld_remold(~expanding=true, Cell.dirty, tok, fill, ctx)
+         |> Option.map(r => (tok, r))
        )
   ) {
-  | Some((cell, ctx)) => (cell, ctx)
+  | Some(r) => r
   | None =>
     let tok = Token.Unmolded.defer(tok);
-    meld_remold(~expanding=true, Cell.dirty, tok, fill, ctx)
-    |> Options.get_fail(
-         "bug: at least deferred candidate should have succeeded",
-       );
+    let r =
+      meld_remold(~expanding=true, Cell.dirty, tok, fill, ctx)
+      |> Options.get_fail(
+           "bug: at least deferred candidate should have succeeded",
+         );
+    (tok, r);
   };
 };
 // maybe rename expandable
@@ -455,7 +458,7 @@ let expand = (tok: Token.t): option(Token.Unmolded.t) =>
     };
   | Tile(_) =>
     open Options.Syntax;
-    let* labeled = Labeler.single(tok.text);
+    let* labeled = Labeler.single(~id=tok.id, tok.text);
     Token.Unmolded.expands(labeled);
   };
 let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
