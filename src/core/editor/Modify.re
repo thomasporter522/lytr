@@ -228,9 +228,12 @@ let extend = (~side=Dir.R, s: string, tok: Token.t) =>
   };
 let try_extend = (s: string, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
+  // P.log("--- Modify.try_extend");
   let* () = Options.of_bool(!Strings.is_empty(s));
+  // P.log("not empty");
   let (sites, ctx) = Zipper.cursor_site(z);
   let* site = Cursor.get_point(sites);
+  // P.log("cursor site is point");
   let+ (extended, ctx) =
     switch (site) {
     | Within(tok) =>
@@ -238,14 +241,20 @@ let try_extend = (s: string, z: Zipper.t): option(Zipper.t) => {
       (extended, ctx);
     | Between =>
       let/ () = {
+        // P.log("--- Modify.try_extend/Between/trying left");
         let (face, ctx) = Ctx.pull(~from=L, ctx);
         let* tok = Delim.is_tok(face);
+        // P.log("is tok");
         let+ extended = extend(~side=R, s, tok);
+        // P.log("extended");
         (extended, ctx);
       };
+      // P.log("--- Modify.try_extend/Between/trying right");
       let (face, ctx) = Ctx.pull(~from=R, ctx);
       let* tok = Delim.is_tok(face);
+      // P.log("is tok");
       let+ extended = extend(~side=L, s, tok);
+      // P.log("extended");
       (extended, ctx);
     };
   ctx
@@ -623,8 +632,11 @@ let insert = (s: string, z: Zipper.t) => {
 
   // P.log("--- Modify.insert");
   let- () = try_expand(s, z);
+  // P.log("didn't expand");
   let- () = try_move(s, z);
+  // P.log("didn't move");
   let- () = try_extend(s, z);
+  // P.log("didn't extend");
 
   let (remolded, ctx) =
     relabel(s, z)
