@@ -25,6 +25,7 @@ let save_syntax_key: int => string =
 let save_syntax = (save_idx: int, z: Zipper.t) =>
   LocalStorage.set(save_syntax_key(save_idx), z |> serialize);
 
+let _tasks = [];
 let tasks = [
   //Data.epzz,
   // Data.epz0,
