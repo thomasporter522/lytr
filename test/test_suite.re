@@ -85,6 +85,21 @@ let tab_tests = (
   ],
 );
 
+let modify_tests = (
+  "Modify",
+  [
+    test_case(
+      "consecutive unmolded tokens get molded once the proper left hand context is inserted",
+      `Quick,
+      check_edit(
+        (Path.Cursor.point(Caret.focus([2, 0, 2])), "let a,b)"),
+        [Edit.Insert("(")],
+        (Path.Cursor.point(Caret.focus([2, 2, 0])), "let (a,b)"),
+      ),
+    ),
+  ],
+);
+
 let () = {
-  run("tylr", [move_tests, tab_tests]);
+  run("tylr", [move_tests, tab_tests, modify_tests]);
 };

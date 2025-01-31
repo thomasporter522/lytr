@@ -62,7 +62,8 @@ let relabel = (s: string, z: Zipper.t): list((to_be_inserted, Ctx.t)) => {
     let merged_l =
       switch (l) {
       | Root
-      | Node({mtrl: Space(White(_)) | Grout(_), _}) => []
+      | Node({mtrl: Space(White(_)) | Grout(_), _})
+      | Node({mtrl: Tile(_), text: "", _}) => []
       | Node({mtrl: Space(Unmolded) | Tile(_), text: l, _}) =>
         switch (Labeler.single(l ++ s)) {
         | None => []
@@ -75,7 +76,8 @@ let relabel = (s: string, z: Zipper.t): list((to_be_inserted, Ctx.t)) => {
     let merged_r =
       switch (r) {
       | Root
-      | Node({mtrl: Space(White(_)) | Grout(_), _}) => []
+      | Node({mtrl: Space(White(_)) | Grout(_), _})
+      | Node({mtrl: Tile(_), text: "", _}) => []
       | Node({mtrl: Space(Unmolded) | Tile(_), text: r, _}) =>
         switch (Labeler.single(s ++ r)) {
         | None => []
@@ -322,7 +324,7 @@ let delete_toks =
        },
      )
   // finally, unmold the tokens (only relabeling the last token)
-  |> Chain.mapi_link(i => Token.unmold(~relabel=i - 1 / 2 == n - 1));
+  |> Chain.mapi_link(i => Labeler.unmold(~relabel=i - 1 / 2 == n - 1));
 };
 
 // mold each token against the ctx, using each preceding cell as its fill, and
