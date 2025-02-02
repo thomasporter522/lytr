@@ -201,7 +201,14 @@ let extend = (~side=Dir.R, s: string, tok: Token.t) =>
            ~default=Dir.pick(side, (("", tok.text), (tok.text, ""))),
          );
     let text = l ++ s ++ r;
-    Labeler.single(text) |> Option.map(_ => {...tok, text});
+    let n = Utf8.length(l ++ s);
+    Labeler.single(text)
+    |> Option.map(_ => {...tok, text})
+    |> Option.map(tok =>
+         n >= Token.length(tok)
+           ? Token.clear_marks(tok)
+           : Token.put_cursor(Point(Caret.focus(n)), tok)
+       );
   | Space(_)
   | Grout(_) => None
   | Tile((lbl, _)) =>
