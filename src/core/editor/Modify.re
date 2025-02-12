@@ -481,6 +481,7 @@ let expand = (tok: Token.t): option(Token.Unmolded.t) =>
   };
 let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   open Options.Syntax;
+  let effects = Effects.log^;
   let* () = Options.of_bool(String.starts_with(~prefix=" ", s));
   // todo: check if in middle of token
   let (face, rest) = Ctx.pull(~from=L, z.ctx);
@@ -489,7 +490,12 @@ let try_expand = (s: string, z: Zipper.t): option(Zipper.t) => {
   let* expanded = expand(tok);
   let (molded, (remolded, ctx)) =
     expand_remold(expanded, ~fill=Cell.point(~dirty=true, Focus), rest);
-  molded == tok ? None : return(finalize_(remolded, ctx));
+  molded == tok
+    ? {
+      Effects.log := effects;
+      None;
+    }
+    : return(finalize_(remolded, ctx));
 };
 
 let mold_remold =
