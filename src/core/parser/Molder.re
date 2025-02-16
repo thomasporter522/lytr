@@ -47,7 +47,7 @@ let candidates = (t: Token.Unmolded.t): list(Token.t) =>
   );
 
 let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
-  let (cell, effs) =
+  let (grouted, effs) =
     Effects.dry_run(
       () => Melder.complete_bounded(~bounds, ~onto=L, l.slope, ~fill),
       (),
@@ -67,8 +67,9 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
     ? (l, fill)
     : {
       Effects.commit(effs);
+      let ((_, cell), stack) = Stack.connect_(grouted, {...l, slope: []});
       let (fill, slope) = Slope.Dn.unroll(cell);
-      ({...l, slope}, fill);
+      (Stack.cat(slope, stack), fill);
     };
 };
 

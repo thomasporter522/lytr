@@ -60,7 +60,7 @@ let complete_slope = (~onto: Dir.t, ~fill=Cell.empty) =>
   Slope.fold(fill => complete_terr(~onto, ~fill), fill);
 
 let complete_bounded =
-    (~bounds as (l, r), ~onto: Dir.t, ~fill=Cell.empty, slope) => {
+    (~bounds as (l, r), ~onto: Dir.t, ~fill=Cell.empty, slope): Grouted.t => {
   // from/onto terminology here very confusing...
   // if (debug^) {
   //   P.log("--- Melder.complete_bounded");
@@ -79,7 +79,7 @@ let complete_bounded =
   // };
   Walker.walk_eq(~from=onto, fc_onto, fc_from)
   |> Grouter.pick(~repair=true, [fill], ~from=onto)
-  |> Option.map(grouted => snd(Chain.hd(grouted)))
+  // |> Option.map(grouted => snd(Chain.hd(grouted)))
   |> Options.get_fail("hmmm");
 };
 
