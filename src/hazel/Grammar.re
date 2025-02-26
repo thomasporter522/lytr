@@ -22,7 +22,7 @@ let op = (~space=(true, true), ~break=(false, false), ~indent=true) =>
   c(~p=Padding.op(~space, ~break, ~indent, ()));
 let brc = (side: Dir.t) => c(~p=Padding.brc(side), ~i=true);
 
-let comma = op(~space=(false, true), ",");
+let comma = op(~space=(false, true), ~i=true, ",");
 let comma_sep = atom => seq([atom, Star(seq([comma, atom]))]);
 
 module Typ = {
