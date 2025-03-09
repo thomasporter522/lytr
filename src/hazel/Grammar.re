@@ -29,7 +29,7 @@ module Typ = {
   let sort = Sort.of_str("Typ");
   let typ = nt(sort);
 
-  let cons_ap = seq([typ, brc(L, "("), comma_sep(typ), brc(R, ")")]);
+  let cons_ap = seq([typ, brc(L, "("), typ, brc(R, ")")]);
 
   let operand =
     alt([
@@ -42,14 +42,15 @@ module Typ = {
       seq([brc(L, "["), typ, brc(R, "]")]),
       //seq([c("list"), brc(L, "("), typ, brc(R, ")")]),
       //Tuple type
-      seq([brc(L, "("), comma_sep(typ), brc(R, ")")]),
+      seq([brc(L, "("), typ, brc(R, ")")]),
     ]);
 
   let tbl = [
-    //Arrow
-    //TODO: should the below be "ch" or c? (padding with horizontal spaces or none?)
+    // Product
+    p(comma_sep(typ)),
+    // Arrow
     p(~a=R, seq([typ, op("->"), typ])),
-    //Sum type
+    // Sum
     p(~a=L, seq([typ, op("+"), typ])),
     //Constructor def for sums
     p(cons_ap),
@@ -63,7 +64,7 @@ module Pat = {
 
   // let bool_lit = alt([c("true"), c("false")]);
 
-  let cons_ap = seq([pat, brc(L, "("), comma_sep(pat), brc(R, ")")]);
+  let cons_ap = seq([pat, brc(L, "("), pat, brc(R, ")")]);
   let operand =
     alt([
       t(Int_lit),
@@ -72,13 +73,14 @@ module Pat = {
       // bool_lit,
       //Constructor
       t(Id_upper),
-      seq([brc(L, "("), comma_sep(pat), brc(R, ")")]),
-      seq([brc(L, "["), comma_sep(pat), brc(R, "]")]),
+      seq([brc(L, "("), pat, brc(R, ")")]),
+      seq([brc(L, "["), pat, brc(R, "]")]),
       //Wild
       c("_"),
     ]);
 
   let tbl = [
+    p(comma_sep(pat)),
     //Typeann
     p(seq([pat, op(~space=(false, true), ":"), nt(Typ.sort)])),
     //Cons
@@ -135,8 +137,8 @@ module Exp = {
       t(Id_lower),
       t(Id_upper), // constructors
       // bool_lit,
-      seq([brc(L, "("), comma_sep(exp), brc(R, ")")]),
-      seq([brc(L, "["), comma_sep(exp), brc(R, "]")]),
+      seq([brc(L, "("), exp, brc(R, ")")]),
+      seq([brc(L, "["), exp, brc(R, "]")]),
     ]);
 
   let op_alt = ss => alt(List.map(op, ss));
@@ -149,9 +151,10 @@ module Exp = {
       @ ["<.", "<=.", ">.", ">=.", "==.", "!=."],
     );
 
-  let fn_ap = seq([exp, brc(L, "("), comma_sep(exp), brc(R, ")")]);
+  let fn_ap = seq([exp, brc(L, "("), exp, brc(R, ")")]);
 
   let tbl = [
+    p(comma_sep(exp)),
     //case
     p(case),
     //let
