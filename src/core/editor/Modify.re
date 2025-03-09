@@ -23,6 +23,7 @@ module Change = {
 
 module Changes = {
   // a list of changes along with interleaved cells for holding normalized cursors
+  [@deriving (show({with_path: false}), sexp, yojson)]
   type t = Chain.t(Cell.t, Change.t);
 };
 
@@ -94,12 +95,12 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
       | Node({mtrl: Space(White(_)) | Grout(_), _}) => Choice.nil
       | Node({id, mtrl, text: l, _}) =>
         switch (Labeler.single(~id, l ++ s)) {
-        | None => Choice.nil
-        | Some(tok) =>
+        | Some({mtrl: Tile(_) | Space(Unmolded), _} as tok) =>
           let cs =
             Change.[mk(~src=Src.ins(~l=mtrl, ()), tok)]
             |> restore_and_normalize_cursor(Utf8.length(l ++ s));
           Choice.one((cs, ctx_sans_l));
+        | _ => Choice.nil
         }
       };
     let merged_r =
@@ -108,12 +109,12 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
       | Node({mtrl: Space(White(_)) | Grout(_), _}) => Choice.nil
       | Node({id, mtrl, text: r, _}) =>
         switch (Labeler.single(~id, s ++ r)) {
-        | None => Choice.nil
-        | Some(tok) =>
+        | Some({mtrl: Tile(_) | Space(Unmolded), _} as tok) =>
           let cs =
             Change.[mk(~src=Src.ins(~r=mtrl, ()), tok)]
             |> restore_and_normalize_cursor(Utf8.length(s));
           Choice.one((cs, ctx_sans_r));
+        | _ => Choice.nil
         }
       };
     let merged_lr =
@@ -125,12 +126,12 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
           Node({mtrl: mtrl_r, text: r, _}),
         ) =>
         switch (Labeler.single(~id, l ++ s ++ r)) {
-        | None => Choice.nil
-        | Some(tok) =>
+        | Some({mtrl: Tile(_) | Space(Unmolded), _} as tok) =>
           let cs =
             Change.[mk(~src=Src.ins(~l=mtrl_l, ~r=mtrl_r, ()), tok)]
             |> restore_and_normalize_cursor(Utf8.length(l ++ s));
           Choice.one((cs, ctx_sans_lr));
+        | _ => Choice.nil
         }
       };
     Choice.prefers([merged_lr, merged_l, merged_r, no_merge]);
