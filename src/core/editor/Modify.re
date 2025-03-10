@@ -275,6 +275,43 @@ let delete_toks = (d: Dir.t, toks: list(Token.t)): Changes.t => {
      );
 };
 
+// whether a token is redundant and can be removed given the result of melding
+let is_redundant = (tok: Token.t, grouted: Grouted.t, stack: Stack.t) => {
+  tok.text == ""
+  && (
+    Token.is_complete(tok)
+    || Grouted.is_neq(grouted)
+    || Option.is_some(Grouted.is_eq(grouted))
+    && (
+      stack.slope == []
+      || (
+        // hack to clean up ghosts with starred ctxs in hazel
+        switch (
+          stack |> Stack.face(~from=L) |> Bound.map(Token.mtrl),
+          tok.mtrl,
+        ) {
+        | (
+            Node(Tile((Const(_, _, ","), _))),
+            Tile((Const(_, _, ","), _)),
+          ) =>
+          true
+        | (
+            Node(Tile((Const(_, _, "=>"), m_l))),
+            Tile((Const(_, _, "|"), m_r)),
+          ) =>
+          m_l.prec == m_r.prec
+        | (
+            Node(Tile((Const(_, _, "=>"), m_l))),
+            Tile((Const(_, _, "=>"), m_r)),
+          ) =>
+          m_l.prec == m_r.prec && m_l.prec == 2
+        | _ => false
+        }
+      )
+    )
+  );
+};
+
 let meld =
     (tok: Token.t, ~fill=Cell.dirty, ctx: Ctx.t)
     : option(Result.t(Ctx.t, Cell.t)) => {
@@ -282,15 +319,7 @@ let meld =
   let ((l, r), rest) = Ctx.unlink_stacks(ctx);
   let+ (grouted, l) =
     Melder.push(tok, ~fill, l, ~onto=L, ~repair=Molder.remold);
-  let is_redundant =
-    tok.text == ""
-    && (
-      Token.is_complete(tok)
-      || Grouted.is_neq(grouted)
-      || Option.is_some(Grouted.is_eq(grouted))
-      && l.slope == []
-    );
-  if (is_redundant) {
+  if (is_redundant(tok, grouted, l)) {
     // todo: maybe need to return result here and emit the fill?
     // probably dropping otherwise. this is akin to molder error case.
     // tho molder only does this for the final melded result, does that matter?

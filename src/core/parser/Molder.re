@@ -73,6 +73,44 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
     };
 };
 
+// whether a token is redundant and can be removed given the result of melding
+let is_redundant = (tok: Token.t, grouted: Grouted.t, stack: Stack.t) => {
+  Mtrl.is_tile(tok.mtrl)
+  && Token.is_empty(tok)
+  && (
+    Token.is_complete(tok)
+    || Grouted.is_neq(grouted)
+    || Option.is_some(Grouted.is_eq(grouted))
+    && (
+      stack.slope == []
+      || (
+        // hack to clean up ghosts with starred ctxs in hazel
+        switch (
+          stack |> Stack.face(~from=L) |> Bound.map(Token.mtrl),
+          tok.mtrl,
+        ) {
+        | (
+            Node(Tile((Const(_, _, ","), _))),
+            Tile((Const(_, _, ","), _)),
+          ) =>
+          true
+        | (
+            Node(Tile((Const(_, _, "=>"), m_l))),
+            Tile((Const(_, _, "|"), m_r)),
+          ) =>
+          m_l.prec == m_r.prec
+        | (
+            Node(Tile((Const(_, _, "=>"), m_l))),
+            Tile((Const(_, _, "=>"), m_r)),
+          ) =>
+          m_l.prec == m_r.prec && m_l.prec == 2
+        | _ => false
+        }
+      )
+    )
+  );
+};
+
 // returns Error(fill) if input token is empty
 // re indicates whether token is being remolded
 let rec mold =
@@ -98,14 +136,7 @@ let rec mold =
     // P.show("tok", Token.show(tok));
     // P.show("grouted", Grouted.show(grouted));
     // P.show("stack", Stack.show(stack));
-    Mtrl.is_tile(tok.mtrl)
-    && Token.is_empty(tok)
-    && (
-      Token.is_complete(tok)
-      || Grouted.is_neq(grouted)
-      || Option.is_some(Grouted.is_eq(grouted))
-      && stack.slope == []
-    )
+    is_redundant(tok, grouted, stack)
       ? Error(Cell.mark_degrouted(fill, ~side=R)) : Ok(molded)
   | None =>
     // P.log("--- Molder.mold/deferring");
