@@ -658,12 +658,10 @@ let try_truncate = (z: Zipper.t) => {
       switch (Token.split_text(tok)) {
       | Some((l, _, "")) when !Strings.is_empty(l) =>
         // P.log("--- Modify.try_truncate/success");
-        let tok = {
-          ...tok,
-          text: l,
-          // renormalize cursor
-          marks: Some(Point(Caret.focus(Utf8.length(l)))),
-        };
+        let n = Utf8.length(l);
+        let tok = {...tok, text: l, marks: Some(Point(Caret.focus(n)))};
+        // renormalize cursor
+        let tok = n < Token.length(tok) ? tok : {...tok, marks: None};
         ctx
         |> Ctx.push(~onto=L, tok)
         |> (Token.is_complete(tok) ? Fun.id : Ctx.push(~onto=R, tok))
