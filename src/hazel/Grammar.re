@@ -18,7 +18,7 @@ let c = (~p=Padding.none, ~i=false, s) =>
   t(Label.const(~padding=p, ~instant=i, s));
 let kw = (~space=(true, true), ~break=(false, false), ~indent=true) =>
   c(~p=Padding.kw(~space, ~break, ~indent, ()));
-let op = (~space=(true, true), ~break=(false, false), ~indent=true) =>
+let op = (~space=(true, true), ~break=(false, false), ~indent=false) =>
   c(~p=Padding.op(~space, ~break, ~indent, ()));
 let brc = (side: Dir.t) => c(~p=Padding.brc(side), ~i=true);
 
@@ -82,9 +82,9 @@ module Pat = {
   let tbl = [
     p(comma_sep(pat)),
     //Typeann
-    p(seq([pat, op(~space=(false, true), ":"), nt(Typ.sort)])),
+    p(seq([pat, kw(~space=(false, true), ":"), nt(Typ.sort)])),
     //Cons
-    p(~a=R, seq([pat, c("::"), pat])),
+    p(~a=R, seq([pat, op(~space=(false, false), "::"), pat])),
     //bare tuple
     //p(~a=L, seq([pat, c(","), pat])),
     //ap
@@ -100,7 +100,7 @@ module Exp = {
   // let bool_lit = alt([c("true"), c("false")]);
 
   let rul =
-    seq([op(~break=(true, false), "|"), nt(Pat.sort), op("=>"), exp]);
+    seq([kw(~break=(true, false), "|"), nt(Pat.sort), kw("=>"), exp]);
   let case =
     seq([
       kw(~space=(false, true), "case"),
@@ -114,7 +114,7 @@ module Exp = {
     seq([
       kw("let", ~space=(false, true)),
       nt(Pat.sort),
-      op("="),
+      kw("="),
       exp,
       kw("in", ~break=(false, true), ~indent=false),
       exp,
@@ -124,7 +124,7 @@ module Exp = {
     seq([
       kw("type", ~space=(false, true)),
       nt(Typ.sort),
-      op("="),
+      kw("="),
       Typ.typ,
       kw("in", ~break=(false, true), ~indent=false),
       exp,
@@ -162,7 +162,7 @@ module Exp = {
     p(type_def),
     //fun
     p(
-      seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("=>"), exp]),
+      seq([kw(~space=(false, true), "fun"), nt(Pat.sort), kw("=>"), exp]),
     ),
     //if
     p(
