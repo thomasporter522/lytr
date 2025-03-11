@@ -8,18 +8,9 @@ let catch_exns = ref(true);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
-  // | Set(settings_action)
-  // | UpdateDoubleTap(option(float))
-  // | LoadInit
-  // | LoadDefault
-  // | Load
-  // | Save
-  // | SwitchEditor(int)
   | Warmup
   | SetFont(Font.t)
-  // | SetLogoFont(Font.t)
   | PerformAction(Edit.t)
-  // | FailedInput(FailedInput.reason) //TODO(andrew): refactor as failure?
   | Undo
   | Redo
   | Load(int);
@@ -153,19 +144,11 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
   };
 };
 
-// [@deriving (show, sexp, yojson)]
-// type settings_action =
-//   | Captions
-//   | WhitespaceIcons;
-
 module Failure = {
   [@deriving (show({with_path: false}), sexp, yojson)]
   type t =
     | CantUndo
     | CantRedo
-    // | FailedToLoad
-    // | FailedToSwitch
-    // | UnrecognizedInput(FailedInput.reason)
     | FailedToPerform
     | Exception(string);
 };
@@ -175,47 +158,15 @@ module Result = {
   type t('success) = Result.t('success, Failure.t);
 };
 
-// let save = (model: Model.t): unit =>
-//   switch (model.editor_model) {
-//   | Simple(z) => LocalStorage.save_syntax(0, z)
-//   | Study(n, zs) =>
-//     assert(n < List.length(zs));
-//     LocalStorage.save_syntax(n, List.nth(zs, n));
-//   };
-
-// let update_settings =
-//     (a: settings_action, settings: Model.settings): Model.settings => {
-//   let settings =
-//     switch (a) {
-//     | Captions => {...settings, captions: !settings.captions}
-//     | WhitespaceIcons => {
-//         ...settings,
-//         whitespace_icons: !settings.whitespace_icons,
-//       }
-//     };
-//   LocalStorage.save_settings(settings);
-//   settings;
-// };
-
-// let move_to_start = z =>
-//   switch (
-//     Zipper.do_extreme(Zipper.move(ByToken, Zipper.from_plane(Up)), Up, z)
-//   ) {
-//   | Some(z) => Zipper.update_target(z)
-//   | None => z
-//   };
-
 let apply =
     (model: Model.t, update: t, _: State.t, ~schedule_action as _)
     : Result.t(Model.t) => {
-  //print_endline("apply");
+  // print_endline("apply");
   switch (update) {
   | Warmup =>
     Tylr_core.Walker.warmup();
     Ok(model);
   | SetFont(font) => Ok({...model, font})
-  // | SetLogoFont(logo_font_metrics) =>
-  //   Ok({...model, logo_font_metrics})
   | PerformAction(a) =>
     switch (Edit.perform(a, model.zipper)) {
     | None => Error(FailedToPerform)
@@ -242,71 +193,7 @@ let apply =
       ...model,
       zipper: Store.load_default_syntax(n),
       history: History.empty,
+      hist: [],
     })
-  // | Set(s_action) =>
-  //   Ok({...model, settings: update_settings(s_action, model.settings)})
-  // | LoadInit =>
-  //   let (zs, id_gen) =
-  //     List.fold_left(
-  //       ((z_acc, id_gen: IdGen.state), n) =>
-  //         switch (LocalStorage.load_syntax(n, id_gen)) {
-  //         | Some((z, id_gen)) => (z_acc @ [z], id_gen)
-  //         | None => (z_acc @ [Model.empty_zipper], id_gen)
-  //         },
-  //       ([], model.id_gen),
-  //       List.init(LocalStorage.num_editors, n => n),
-  //     );
-  //   let zs = List.map(move_to_start, zs);
-  //   Ok({
-  //     ...model,
-  //     history: History.empty,
-  //     id_gen,
-  //     settings: LocalStorage.load_settings(),
-  //     editor_model: Study(LocalStorage.load_editor_idx(), zs),
-  //   });
-  // | LoadDefault =>
-  //   let n = Model.current_editor(model);
-  //   switch (LocalStorage.load_default_syntax(n, model.id_gen)) {
-  //   | Some((z, id_gen)) =>
-  //     Ok({
-  //       ...model,
-  //       history: History.empty,
-  //       editor_model: Model.put_zipper(model, move_to_start(z)),
-  //       id_gen,
-  //     })
-  //   | None => Error(FailedToLoad)
-  //   };
-  // | Load =>
-  //   let n = Model.current_editor(model);
-  //   switch (LocalStorage.load_syntax(n, model.id_gen)) {
-  //   | Some((z, id_gen)) =>
-  //     Ok({
-  //       ...model,
-  //       history: History.empty,
-  //       editor_model: Model.put_zipper(model, move_to_start(z)),
-  //       id_gen,
-  //     })
-  //   | None => Error(FailedToLoad)
-  //   };
-  // | Save =>
-  //   save(model);
-  //   Ok(model);
-  // | SwitchEditor(n) =>
-  //   switch (model.editor_model) {
-  //   | Simple(_) => Error(FailedToSwitch)
-  //   | Study(m, _) when m == n => Error(FailedToSwitch)
-  //   | Study(_, zs) =>
-  //     switch (n < List.length(zs)) {
-  //     | false => Error(FailedToSwitch)
-  //     | true =>
-  //       assert(n < List.length(zs));
-  //       LocalStorage.save_editor_idx(n);
-  //       Ok({
-  //         ...model,
-  //         history: History.empty,
-  //         editor_model: Study(n, zs),
-  //       });
-  //     }
-  //   }
   };
 };
