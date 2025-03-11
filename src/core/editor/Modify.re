@@ -93,6 +93,16 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
       switch (l) {
       | Root
       | Node({mtrl: Space(White(_)) | Grout(_), _}) => Choice.nil
+      | Node({id, mtrl: Tile((lbl, _)) as mtrl, text: l, _} as tok)
+          when !Token.is_complete(tok) =>
+        switch (Labeler.single(~id, l ++ s)) {
+        | Some({mtrl: Tile(lbls), _} as tok) when List.mem(lbl, lbls) =>
+          let cs =
+            Change.[mk(~src=Src.ins(~l=mtrl, ()), tok)]
+            |> restore_and_normalize_cursor(Utf8.length(l ++ s));
+          Choice.one((cs, ctx_sans_l));
+        | _ => Choice.nil
+        }
       | Node({id, mtrl, text: l, _}) =>
         switch (Labeler.single(~id, l ++ s)) {
         | Some({mtrl: Tile(_) | Space(Unmolded), _} as tok) =>
@@ -107,6 +117,16 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
       switch (r) {
       | Root
       | Node({mtrl: Space(White(_)) | Grout(_), _}) => Choice.nil
+      | Node({id, mtrl: Tile((lbl, _)) as mtrl, text: r, _} as tok)
+          when !Token.is_complete(tok) =>
+        switch (Labeler.single(~id, s ++ r)) {
+        | Some({mtrl: Tile(lbls), _} as tok) when List.mem(lbl, lbls) =>
+          let cs =
+            Change.[mk(~src=Src.ins(~r=mtrl, ()), tok)]
+            |> restore_and_normalize_cursor(Utf8.length(s));
+          Choice.one((cs, ctx_sans_r));
+        | _ => Choice.nil
+        }
       | Node({id, mtrl, text: r, _}) =>
         switch (Labeler.single(~id, s ++ r)) {
         | Some({mtrl: Tile(_) | Space(Unmolded), _} as tok) =>
@@ -121,6 +141,7 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
       switch (l, r) {
       | (Root | Node({mtrl: Space(White(_)) | Grout(_), _}), _)
       | (_, Root | Node({mtrl: Space(White(_)) | Grout(_), _})) => Choice.nil
+      | (Node({text: l, _}), Node({text: r, _})) when l == "" || r == "" => Choice.nil
       | (
           Node({mtrl: mtrl_l, text: l, id, _}),
           Node({mtrl: mtrl_r, text: r, _}),
@@ -570,6 +591,9 @@ let apply_changes =
 
 let apply_remold = (changes, ctx) => {
   open Choice.Syntax;
+  // P.log("--- Modify.apply_remold");
+  // P.show("changes", Changes.show(changes));
+  // P.show("ctx", Ctx.show(ctx));
   let+ changed = apply_changes(changes, ctx);
   () => {
     open Options.Syntax;
@@ -580,6 +604,9 @@ let apply_remold = (changes, ctx) => {
     // P.show("expanded", string_of_bool(expanded));
     // P.show("restrict_obligs", string_of_bool(restrict_obligs));
     let (remolded, ctx) = remold(~fill, ctx);
+    // P.log("--- Modify.apply_remold/remolded");
+    // P.show("remolded", Grouted.show(remolded));
+    // P.show("ctx", Ctx.show(ctx));
     // P.show("effects", Fmt.(to_to_string(list(Effects.pp), Effects.log^)));
     // P.show("delta", Oblig.Delta.show(Oblig.Delta.of_effects(Effects.log^)));
     !expanded
