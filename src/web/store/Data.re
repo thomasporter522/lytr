@@ -5,49 +5,49 @@ let t0_modify = {|let x = 1 in
 let y = 2 in
 x + y|};
 
-let t1_transcribe = {|fun (center, p) ->
+let t1_transcribe = {|fun (center, p) =>
 let (x1, y1) = center in
 let (x2, y2) = p in
 let r = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2)) in
 circle(center, r)|};
 
 let t1_modify = {|let dist =
-fun (p1, p2) ->
+fun (p1, p2) =>
 let (x1, y1) = p1 in
 let (x2, y2) = p2 in
 sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2))
 in
-fun (center, p) ->
+fun (center, p) =>
 let r = dist(center, p) in
 circle(center, r)|};
 
-let t2_transcribe = {|fun (p1, p2) ->
+let t2_transcribe = {|fun (p1, p2) =>
 let mark =
-fun center ->
+fun center =>
 let r = 4 in
 circle(center, r)
 in
 [mark(p1), line(p1, p2), mark(p2)]|};
 
-let t2_modify_start = {|fun (square, p1, p2) ->
+let t2_modify_start = {|fun (square, p1, p2) =>
 if square then
 let mark =
-fun center ->
+fun center =>
 let (x, y) = center in
 rect(x - 2, y - 2, 4, 4)
 in
 [mark(p1), line(p1, p2), mark(p2)]
 else
 let mark =
-fun center ->
+fun center =>
 let r = 4 in
 circle(center, r)
 in
 [mark(p1), line(p1, p2), mark(p2)]|};
 
-let t2_modify = {|fun (square, p1, p2) ->
+let t2_modify = {|fun (square, p1, p2) =>
 let mark =
-fun center ->
+fun center =>
 if square then
 let (x, y) = center in
 rect(x - 2, y - 2, 4, 4)
@@ -60,11 +60,11 @@ in
 let t3_transcribe = {|shapes
 |> map(rotate(pi / 4))
 |> map(translate(6, 7))
-|> filter(fun shape -> area(shape) < 50)
+|> filter(fun shape => area(shape) < 50)
 |> map(dilate(5))|};
 
 let t3_modify = {|shapes
-|> filter(fun shape -> area(shape) < 50)
+|> filter(fun shape => area(shape) < 50)
 |> map(dilate(5))
 |> map(rotate(pi / 4))
 |> map(translate(6, 7))|};
@@ -72,7 +72,7 @@ let t3_modify = {|shapes
 let t4_transcribe = {|type Point = (Int, Int) in
 type Rect = (Point, Int, Int) in
 
-let contains = fun (r: Rect, p: Point) ->
+let contains = fun (r: Rect, p: Point) =>
   let (x, y) = p in
   let ((x_min, y_min), x_len, y_len) = r in
   x_min <= x && x <= x_min + x_len
@@ -84,7 +84,7 @@ type Rect = (Point, Int, Int) in
 type Circ = (Point, Int) in
 type Shape = R(Rect) + C(Circ) in
 
-let contains = fun (s: Shape, p: Point) ->
+let contains = fun (s: Shape, p: Point) =>
   let (x, y) = p in
   case s
   | R(((x_min, y_min), x_len, y_len)) =>
@@ -95,11 +95,11 @@ in|};
 
 let uncurry_modify = {|let fold_right:
 (A -> Acc -> Acc) -> List(A) -> Acc -> Acc = in
-fold_right(fun n -> fun sum -> n + sum)(ns)(0)|};
+fold_right(fun n => fun sum => n + sum)(ns)(0)|};
 
 let fuse_modify = {|shapes
-|> List.filter(fun s -> area(s) < 100)
-|> List.map(fun s ->
+|> List.filter(fun s => area(s) < 100)
+|> List.map(fun s =>
 let stdDev = if area(s) < 50 then 2 else 4 in
 let blurred = blur(stdDev, s) in
 blend(blurred, greenRect)
@@ -137,11 +137,11 @@ let init: Model = (
   ]) in
 
 let updateGrid: (Grid, Row, Col, Emoji) -> Grid =
-  fun (grid, row, col, emoji) ->
+  fun (grid, row, col, emoji) =>
     List.mapi(
-      fun (i, r) ->
+      fun (i, r) =>
         if i == row
-        then List.mapi(fun (j, c) -> if j == col then emoji else c, r)
+        then List.mapi(fun (j, c) => if j == col then emoji else c, r)
         else r,
      grid
   ) in
@@ -181,7 +181,7 @@ in
 let init: Model = (None, Smile)  in
 
 let update: (Model, Action) -> Model =
-  fun ((canvas, selectedEmoji), action) ->
+  fun ((canvas, selectedEmoji), action) =>
     case action
       | SelectEmoji(emoji) =>
       (canvas, emoji)
@@ -199,12 +199,12 @@ in
 let init: Model = ([None, None, None], Smile) in
 
 let update: (Model, Action) -> Model =
-  fun ((canvas, selectedEmoji), action) ->
+  fun ((canvas, selectedEmoji), action) =>
     case action
       | StampEmoji(index) =>
       let new_canvas =
         List.mapi(
-          (fun (i, currentEmoji) ->
+          (fun (i, currentEmoji) =>
             if i == index
             then selectedEmoji
           else currentEmoji),
@@ -226,9 +226,9 @@ in
 let init: Model = ([Smile, None, None], Smile) in
 
 let update_canvas =
-  fun (index, emoji, canvas) ->
+  fun (index, emoji, canvas) =>
     List.mapi(
-      (fun (i, currentEmoji) ->
+      (fun (i, currentEmoji) =>
         if i == index
         then emoji
       else currentEmoji),
@@ -236,7 +236,7 @@ let update_canvas =
 in
 
 let update: (Model, Action) -> Model =
-  fun ((canvas, selectedEmoji), action) ->
+  fun ((canvas, selectedEmoji), action) =>
     case action
       | StampEmoji(index) =>
       (update_canvas(index, selectedEmoji, canvas), selectedEmoji)
@@ -265,16 +265,16 @@ Smile)
 in
 
 let update_row =
-  fun (target_col, emoji, row) ->
+  fun (target_col, emoji, row) =>
     List.mapi(
-      (fun (col_index, col) ->
+      (fun (col_index, col) =>
       if col_index == target_col then emoji else col),
 row) in
 
 let update_canvas =
-  fun (target_row, target_col, emoji, canvas) ->
+  fun (target_row, target_col, emoji, canvas) =>
     List.mapi(
-      (fun (row_index, row) ->
+      (fun (row_index, row) =>
         if row_index == target_row
         then update_row(target_col, emoji, row)
       else row),
@@ -282,7 +282,7 @@ let update_canvas =
 in
 
 let update: (Model, Action) -> Model =
-  fun ((canvas, selectedEmoji), action) ->
+  fun ((canvas, selectedEmoji), action) =>
     case action
       | StampEmoji(row, col) =>
       (update_canvas(row, col, selectedEmoji, canvas), selectedEmoji)
@@ -299,7 +299,7 @@ type Action = in
 let init: Model = TODO in
 
 let update: (Model, Action) -> Model =
-  fun (model, action) ->
+  fun (model, action) =>
     case action
     | => TODO
 in
@@ -313,7 +313,7 @@ type Action = StampEmoji in
 let init: Model = None in
 
 let update: (Model, Action) -> Model =
-  fun (_cell, action) ->
+  fun (_cell, action) =>
     case action
     | StampEmoji => Smile
 in
@@ -328,7 +328,7 @@ type Action = StampEmoji(Int) in
 let init: Model = [None, None, None] in
 
 let update: (Model, Action) -> Model =
-  fun (cells, action) ->
+  fun (cells, action) =>
     case action
     | StampEmoji(index) => update_nth(index, Stamped(Smile), cells)
 in
@@ -343,7 +343,7 @@ type Action = StampEmoji(Int) + SelectEmoji(Emoji) in
 let init: Model = ([None, None, None], Smile) in
 
 let update: (Model, Action) -> Model =
-  fun ((cells, selected), action) ->
+  fun ((cells, selected), action) =>
     case action
     | StampEmoji(index) =>
       (update_nth(index, Stamped(Smile), cells), selected)
@@ -364,7 +364,7 @@ in
 let init: Model = ([None, None, None], Smile) in
 
 let update: (Model, Action) -> Model =
-  fun ((cells, selected), action) ->
+  fun ((cells, selected), action) =>
     case action
     | StampEmoji(index) =>
       (update_nth(index, Stamped(Smile), cells), selected)
@@ -392,12 +392,12 @@ let init: Model = (
 in
 
 let update_grid: (Int, Int, Cell, [[Cell]]) -> [[Cell]] =
-  fun (row, col, cell, grid) ->
+  fun (row, col, cell, grid) =>
     update_nth(row, update_nth(col, cell, List.nth(row, grid)), grid)
 in
 
 let update: (Model, Action) -> Model =
-  fun ((cells, selected), action) ->
+  fun ((cells, selected), action) =>
     case action
     | StampEmoji(row, col) =>
       (update_grid(row, col, Stamped(Smile), cells), selected)

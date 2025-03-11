@@ -162,7 +162,7 @@ module Exp = {
     p(type_def),
     //fun
     p(
-      seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("->"), exp]),
+      seq([kw(~space=(false, true), "fun"), nt(Pat.sort), op("=>"), exp]),
     ),
     //if
     p(
