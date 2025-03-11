@@ -141,10 +141,10 @@ module Exp = {
       seq([brc(L, "["), exp, brc(R, "]")]),
     ]);
 
-  let op_alt = ss => alt(List.map(op, ss));
+  let op_alt = (~space=(true, true), ss) => alt(List.map(op(~space), ss));
   let add_op = op_alt(["+", "+.", "-", "-.", "@", "++"]);
   let mult_op = op_alt(["*", "*.", "/", "/."]);
-  let neg_op = op_alt(["-", "-."]);
+  let neg_op = op_alt(~space=(false, false), ["-", "-."]);
   let comp_op =
     op_alt(
       ["<", "<=", ">", ">=", "==", "!="]
