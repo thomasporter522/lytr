@@ -106,6 +106,12 @@ blend(blurred, greenRect)
 )
 |> List.map(skew(4))|};
 
+let ttt = {|type Player = X + O in
+type Model = in
+type Action = in
+
+let update: (Action, Model) -> Model = in|};
+
 let emoji_paint = {|type Emoji = None + Smile + Laugh in
 let Row = Int in
 let Col = Int in
