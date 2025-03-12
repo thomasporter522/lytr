@@ -42,8 +42,9 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
       catch_exns := ! catch_exns^;
       [];
     } else {
-      let index = int_of_string(String.sub(key, 1, 1)) - 1;
-      print_endline("F key pressed: index: " ++ string_of_int(index));
+      let index =
+        int_of_string(Base.String.chop_prefix_exn(~prefix="F", key)) - 1;
+      print_endline("F key pressed: index = " ++ string_of_int(index));
       now_save_u(Load(index));
     }
   | {key: D(key), sys: _, shift, meta: Up, ctrl: Up, alt: Up} =>

@@ -112,6 +112,25 @@ type Action = in
 
 let update: (Action, Model) -> Model = in|};
 
+let safe_div = {|let safe_div =
+fun m: Nat, n: Nat =>
+if n == 0 then 0 else m / n
+in
+safe_div(7, 0)|};
+
+let idiv = {|type INat = Infinity + N(Nat) in
+
+let idiv: (INat, INat) -> INat =
+  fun m, n =>
+    case m, n
+    | N(0), N(0) => N(0)
+    | Infinity, _ => Infinity
+    | _, N(0) => Infinity
+    | _, _ => N(m / n)
+    end
+in
+idiv(N(7), N(0))|};
+
 let emoji_paint = {|type Emoji = None + Smile + Laugh in
 let Row = Int in
 let Col = Int in
