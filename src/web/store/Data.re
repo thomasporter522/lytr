@@ -5,23 +5,23 @@ let t0_modify = {|let x = 1 in
 let y = 2 in
 x + y|};
 
-let t1_transcribe = {|fun (center, p) =>
-let (x1, y1) = center in
-let (x2, y2) = p in
+let t1_transcribe = {|fun center, p =>
+let x1, y1 = center in
+let x2, y2 = p in
 let r = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2)) in
 circle(center, r)|};
 
 let t1_modify = {|let dist =
-fun (p1, p2) =>
-let (x1, y1) = p1 in
-let (x2, y2) = p2 in
+fun p1, p2 =>
+let x1, y1 = p1 in
+let x2, y2 = p2 in
 sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2))
 in
-fun (center, p) =>
+fun center, p =>
 let r = dist(center, p) in
 circle(center, r)|};
 
-let t2_transcribe = {|fun (p1, p2) =>
+let t2_transcribe = {|fun p1, p2 =>
 let mark =
 fun center =>
 let r = 4 in
@@ -29,11 +29,11 @@ circle(center, r)
 in
 [mark(p1), line(p1, p2), mark(p2)]|};
 
-let t2_modify_start = {|fun (square, p1, p2) =>
+let t2_modify_start = {|fun square, p1, p2 =>
 if square then
 let mark =
 fun center =>
-let (x, y) = center in
+let x, y = center in
 rect(x - 2, y - 2, 4, 4)
 in
 [mark(p1), line(p1, p2), mark(p2)]
@@ -45,11 +45,11 @@ circle(center, r)
 in
 [mark(p1), line(p1, p2), mark(p2)]|};
 
-let t2_modify = {|fun (square, p1, p2) =>
+let t2_modify = {|fun square, p1, p2 =>
 let mark =
 fun center =>
 if square then
-let (x, y) = center in
+let x, y = center in
 rect(x - 2, y - 2, 4, 4)
 else
 let r = 4 in
@@ -69,28 +69,28 @@ let t3_modify = {|shapes
 |> map(rotate(pi / 4))
 |> map(translate(6, 7))|};
 
-let t4_transcribe = {|type Point = (Int, Int) in
-type Rect = (Point, Int, Int) in
+let t4_transcribe = {|type Point = Int, Int in
+type Rect = Point, Int, Int in
 
-let contains = fun (r: Rect, p: Point) =>
-  let (x, y) = p in
-  let ((x_min, y_min), x_len, y_len) = r in
+let contains = fun r: Rect, p: Point =>
+  let x, y = p in
+  let (x_min, y_min), x_len, y_len = r in
   x_min <= x && x <= x_min + x_len
   && y_min <= y && y <= y_min + y_len
 in|};
 
-let t4_modify = {|type Point = (Int, Int) in
-type Rect = (Point, Int, Int) in
-type Circ = (Point, Int) in
+let t4_modify = {|type Point = Int, Int in
+type Rect = Point, Int, Int in
+type Circ = Point, Int in
 type Shape = R(Rect) + C(Circ) in
 
-let contains = fun (s: Shape, p: Point) =>
-  let (x, y) = p in
+let contains = fun s: Shape, p: Point =>
+  let x, y = p in
   case s
-  | R(((x_min, y_min), x_len, y_len)) =>
+  | R((x_min, y_min), x_len, y_len) =>
  x_min <= x && x <= x_min + x_len
  && y_min <= y && y <= y_min + y_len
-  | C((center, r)) => dist(center, p) <= r
+  | C(center, r) => dist(center, p) <= r
 in|};
 
 let uncurry_modify = {|let fold_right:
