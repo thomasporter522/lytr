@@ -22,7 +22,8 @@ open Stds;
 
 let debug = ref(false);
 
-let candidates = (t: Token.Unmolded.t): list(Token.t) =>
+let candidates =
+    (~re: option(Mtrl.T.t)=?, t: Token.Unmolded.t): list(Token.t) =>
   List.map(
     Token.mk(~id=t.id, ~marks=?t.marks, ~text=t.text),
     switch (t.mtrl) {
@@ -33,8 +34,15 @@ let candidates = (t: Token.Unmolded.t): list(Token.t) =>
       |> List.concat_map(lbl =>
            Molds.with_label(lbl) |> List.map(mold => (lbl, mold))
          )
-      |> List.stable_sort(((lbl_l, m_l: Mold.t), (lbl_r, m_r: Mold.t)) => {
+      |> List.stable_sort(
+           ((lbl_l, m_l: Mold.t) as l, (lbl_r, m_r: Mold.t) as r) => {
            open Compare.Syntax;
+           let/ () =
+             switch (re) {
+             | Some(Tile(t)) when t == l => (-1)
+             | Some(Tile(t)) when t == r => 1
+             | _ => 0
+             };
            let/ () = Sort.compare(m_l.sort, m_r.sort);
            (-1)
            * Bool.compare(
@@ -114,7 +122,7 @@ let is_redundant = (tok: Token.t, grouted: Grouted.t, stack: Stack.t) => {
 // returns Error(fill) if input token is empty
 // re indicates whether token is being remolded
 let rec mold =
-        (~re=false, stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
+        (~re=?, stack: Stack.t, ~fill=Cell.empty, t: Token.Unmolded.t)
         : Result.t((Token.t, Grouted.t, Stack.t), Cell.t) => {
   // if (debug^) {
   //   P.log("--- Molder.mold");
@@ -124,9 +132,16 @@ let rec mold =
   //   P.show("t", Token.Unmolded.show(t));
   // };
   switch (
-    candidates(t)
+    candidates(~re?, t)
     |> Oblig.Delta.minimize(tok => {
-         Melder.push(~no_eq=re, tok, ~fill, stack, ~onto=L, ~repair=remold)
+         Melder.push(
+           ~no_eq=Option.is_some(re),
+           tok,
+           ~fill,
+           stack,
+           ~onto=L,
+           ~repair=remold,
+         )
          |> Option.map(((grouted, stack)) => (tok, grouted, stack))
        })
   ) {
@@ -147,7 +162,13 @@ let rec mold =
           {
             let (fill, slope) = Slope.Dn.unroll(fill);
             let stack = Stack.cat(slope, stack);
-            Melder.push(~no_eq=re, deferred, ~fill, stack, ~onto=L)
+            Melder.push(
+              ~no_eq=Option.is_some(re),
+              deferred,
+              ~fill,
+              stack,
+              ~onto=L,
+            )
             |> Option.map(((grouted, stack)) => (deferred, grouted, stack))
             |> Options.get_fail("bug: failed to push space");
           },
@@ -194,7 +215,7 @@ and remold =
     // P.show("l", Stack.show(l));
     // P.show("fill", Cell.show(fill));
     // P.show("hd_w", Token.show(hd_w));
-    switch (mold(~re=true, l, ~fill, Labeler.unmold(hd_w))) {
+    switch (mold(~re=hd_w.mtrl, l, ~fill, Labeler.unmold(hd_w))) {
     | Error(fill) =>
       // P.log("--- Molder.remold/continue/molding/error");
       // P.show("fill", Cell.show(fill));
