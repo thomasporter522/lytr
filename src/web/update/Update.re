@@ -17,7 +17,7 @@ type t =
 
 let is_f_key = s => Re.Str.(string_match(regexp("^F[0-9][0-9]*$"), s, 0));
 
-let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
+let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
   // let zipper = model.zipper;
   // let restricted = Backpack.restricted(zipper.backpack);
   // let now = a => [PerformAction(a), UpdateDoubleTap(None)];
@@ -126,6 +126,9 @@ let handle_key_event = (k: Util.Key.t, ~model as _: Model.t): list(t) => {
     switch (key) {
     | "a" => now(Move(Skip(H(L))))
     | "e" => now(Move(Skip(H(R))))
+    | "s" =>
+      print_endline(Store.serialize(model.zipper));
+      [];
     | _ => []
     }
   // | {key: D(key), sys, shift: Up, meta: Up, ctrl: Up, alt: Down} =>
@@ -192,6 +195,7 @@ let apply =
   | Load(n) =>
     Ok({
       ...model,
+      editor: n,
       zipper: Store.load_default_syntax(n),
       history: History.empty,
       hist: [],

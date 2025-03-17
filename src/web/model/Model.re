@@ -7,6 +7,7 @@ module History = History;
 type hist = list((string, string));
 
 type t = {
+  editor: int,
   zipper: Zipper.t,
   history: History.t,
   font: Font.t,
@@ -16,6 +17,7 @@ type t = {
 let cutoff = (==);
 
 let init = {
+  editor: 0,
   zipper: Zipper.empty,
   history: History.empty,
   font: Font.init,

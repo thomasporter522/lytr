@@ -152,7 +152,7 @@ module App = {
       ~apply_action=apply(model),
       // ~on_display= (_, ~schedule_action as _) => {print_endline("on_display")},
       model,
-      View.Page.view(~inject, model),
+      View.Page.view(~inject, ~stored=Store.size, model),
     );
   };
 };

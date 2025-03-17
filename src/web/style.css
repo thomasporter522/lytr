@@ -26,6 +26,9 @@
   --light-page-color: #fdf6e3;
   --light-text-color: #586e75;
 
+  --top_bar_icon_fill: #c7b480;
+  --top-bar-text: #a79f89;
+
   --selection-color: #ffd5be;
   --selection-shadow-color: rosybrown;
 
@@ -174,9 +177,10 @@
   position: fixed;
   box-sizing: border-box;
   width: 100vw;
+  height: 2em;
   padding: 0.8em;
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
 }
 
 #editor-id {
@@ -220,7 +224,7 @@
 }
 
 #code-container {
-  margin: 1em 6em 6em 6em;
+  margin: 3em 6em 6em 6em;
   cursor: text;
   user-select: none;
   /* height: calc(100vw - 18.2em);
