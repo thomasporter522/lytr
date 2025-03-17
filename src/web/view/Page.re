@@ -254,7 +254,12 @@ let load_button = (~inject, idx) => {
     ~attrs=[
       Attr.id("editor-id"),
       Attr.class_("topbar-icon"),
-      Attr.on_mousedown(_ => inject(Update.Load(idx))),
+      Attr.on_mousedown(_ =>
+        Effect.sequence_as_sibling(
+          inject(Update.Load(idx)), ~unless_stopped=() =>
+          Effect.Stop_propagation
+        )
+      ),
     ],
     [Node.text(string_of_int(idx + 1))],
   );
