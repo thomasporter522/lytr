@@ -179,8 +179,10 @@
   width: 100vw;
   height: 2em;
   padding: 0.8em;
+  padding-left: 1.5em;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 1em;
 }
 
 #editor-id {
@@ -224,7 +226,7 @@
 }
 
 #code-container {
-  margin: 3em 6em 6em 6em;
+  margin: 4em 6em 6em 6em;
   cursor: text;
   user-select: none;
   /* height: calc(100vw - 18.2em);

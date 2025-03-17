@@ -249,6 +249,17 @@ let center_panel_view = (~inject, cur_idx, stored) => {
   );
 };
 
+let load_button = (~inject, idx) => {
+  div(
+    ~attrs=[
+      Attr.id("editor-id"),
+      Attr.class_("topbar-icon"),
+      Attr.on_mousedown(_ => inject(Update.Load(idx))),
+    ],
+    [Node.text(string_of_int(idx + 1))],
+  );
+};
+
 let view = (~inject, ~stored, model: Model.t) => {
   div(
     ~attrs=
@@ -300,7 +311,7 @@ let view = (~inject, ~stored, model: Model.t) => {
       // editor_caption_view(model),
       div(
         ~attrs=[Attr.id("top-bar")],
-        [center_panel_view(~inject, model.editor, stored)],
+        List.init(stored, load_button(~inject)),
       ),
       editor_view(model),
       History.view(model),
