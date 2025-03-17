@@ -220,9 +220,13 @@ and remold =
       // P.log("--- Molder.remold/continue/molding/error");
       // P.show("fill", Cell.show(fill));
       Effects.remove(hd_w);
-      let (c, up) = unroll_tl_w_hd_cell();
-      let fill = fill |> Cell.pad(~r=c) |> Cell.mark_ends_dirty;
-      (l, r_tl) |> Stack.Frame.cat(([], up)) |> remold(~fill);
+      // if we remove hd_w, then it's no longer guaranteed that the next token
+      // can be molded to yield precedence to current fill, so we need to unroll
+      let (c_l, dn) = Slope.Dn.unroll(fill);
+      let (c_r, up) = unroll_tl_w_hd_cell();
+      let fill =
+        Cell.degrouted |> Cell.pad(~l=c_l, ~r=c_r) |> Cell.mark_ends_dirty;
+      (l, r_tl) |> Stack.Frame.cat((dn, up)) |> remold(~fill);
     | Ok((t, grouted, rest)) when t.mtrl == hd_w.mtrl =>
       // fast path for when hd_w retains original meld
       // P.log("--- Molder.remold/continue/molding/fast path");
