@@ -28,11 +28,11 @@ let save_syntax = (save_idx: int, z: Zipper.t) =>
 let _tasks = [];
 let tasks =
   Data.[
+    t3_transcribe,
     t1_transcribe,
     circle_point_q,
     t2_modify_start,
     line_segment_q,
-    t3_transcribe,
     t4_transcribe,
     contains_q,
     uncurry_modify,
