@@ -136,11 +136,12 @@ let update: (Action, Model) -> Model = in|};
 
 let safe_div =
   Text(
-    {|let safe_div =
-fun m: Nat, n: Nat =>
-if n == 0 then 0 else m / n
-in
-safe_div(7, 0)|},
+    {|type Option(A) = None + Some(A) in
+fun m: Int, n: Int =>
+case n
+| 0 => None
+| _ => Some(m / n)
+end|},
   );
 
 let idiv =

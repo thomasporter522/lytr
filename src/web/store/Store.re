@@ -28,6 +28,7 @@ let save_syntax = (save_idx: int, z: Zipper.t) =>
 let _tasks = [];
 let tasks =
   Data.[
+    safe_div,
     t3_transcribe,
     t1_transcribe,
     circle_point_q,
@@ -39,8 +40,6 @@ let tasks =
     uncurry_q,
     fuse_modify,
     fuse_q,
-    safe_div,
-    idiv,
   ];
 let size = List.length(tasks);
 

@@ -311,7 +311,7 @@ let view = (~inject, ~stored, model: Model.t) => {
       // editor_caption_view(model),
       div(
         ~attrs=[Attr.id("top-bar")],
-        List.init(stored, load_button(~inject)),
+        List.init(1 + stored, load_button(~inject)),
       ),
       editor_view(model),
       History.view(model),
