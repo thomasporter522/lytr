@@ -35,18 +35,18 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
   //   | "Alt" => [SetShowBackpackTargets(false)]
   //   | _ => [UpdateDoubleTap(None)]
   //   }
-  | {key: D(key), sys: _, shift: Down, meta: Up, ctrl: Up, alt: Up}
-      when is_f_key(key) =>
-    if (key == "F12") {
-      print_endline("Catch exceptions: " ++ string_of_bool(! catch_exns^));
-      catch_exns := ! catch_exns^;
-      [];
-    } else {
-      let index =
-        int_of_string(Base.String.chop_prefix_exn(~prefix="F", key)) - 1;
-      print_endline("F key pressed: index = " ++ string_of_int(index));
-      now_save_u(Load(index));
-    }
+  // | {key: D(key), sys: _, shift: Down, meta: Up, ctrl: Up, alt: Up}
+  //     when is_f_key(key) =>
+  //   if (key == "F12") {
+  //     print_endline("Catch exceptions: " ++ string_of_bool(! catch_exns^));
+  //     catch_exns := ! catch_exns^;
+  //     [];
+  //   } else {
+  //     let index =
+  //       int_of_string(Base.String.chop_prefix_exn(~prefix="F", key)) - 1;
+  //     print_endline("F key pressed: index = " ++ string_of_int(index));
+  //     now_save_u(Load(index));
+  //   }
   | {key: D(key), sys: _, shift, meta: Up, ctrl: Up, alt: Up} =>
     switch (shift, key) {
     | (Up, "ArrowLeft") => now(Move(Step(H(L))))
