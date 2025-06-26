@@ -16,20 +16,39 @@ jobs:
           path: source
       - name: Add name of current branch to environment as BRANCH_NAME
         uses: nelonoel/branch-name@v1.0.1
-      - name: Retrieve build environment if cached # STEP 2
-        id: opam-cache
-        uses: actions/cache@v3
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
         with:
-          path: '/home/runner/.opam/'
+          ocaml-compiler: 5.0.0
+          dune-cache: true
+      - name: Retrieve the switch environment if cached
+        id: opam-cache-switch
+        uses: actions/cache@v4
+        with:
+          path: "_opam"
           key: ${{ runner.os }}-modules-${{ hashFiles('./source/opam.export') }}
-      - name: Install dependencies and build tylr # STEP 3
+      - name: Add opam repository archive
         run: |
-          sudo apt --assume-yes install opam
-          export OPAMYES=1
-          opam init --compiler=ocaml-base-compiler.5.0.0
           eval $(opam env)
+          export OPAMYES=1
+          opam repo add archive git+https://github.com/ocaml/opam-repository-archive
+      - name: Install dependencies
+        run: |
+          eval $(opam env)
+          export OPAMYES=1
+          export DUNE_CACHE=enabled
+          # opam install . --deps-only --with-test --locked
           make deps
-          make release
+        working-directory: ./source
+      - name: Clean opam switch
+        run: |
+          eval $(opam env)
+          export OPAMYES=1
+          opam clean --all-switches --download-cache --logs --repo-cache --unused-repositories
+      - name: Build Release
+        run: |
+          export DUNE_CACHE=enabled
+          opam exec -- dune build @src/fmt --auto-promote src --profile release
         working-directory: ./source
       - name: Checkout website build artifacts repo # STEP 4
         uses: actions/checkout@v2
