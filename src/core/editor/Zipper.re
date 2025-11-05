@@ -61,10 +61,17 @@ module Base = {
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t = Base.t(Token.t);
 
-let mk = (~cur=Cursor.point(Caret.focus()), ctx) => Base.{cur, ctx};
+let mk = (~cur=Cursor.point(Caret.focus()), ctx) =>
+  Base.{
+    cur,
+    ctx,
+  };
 
 let map_toks = (f, {cur, ctx}: t) =>
-  Base.{cur: Cursor.map_toks(f, cur), ctx: Ctx.map_toks(f, ctx)};
+  Base.{
+    cur: Cursor.map_toks(f, cur),
+    ctx: Ctx.map_toks(f, ctx),
+  };
 
 let empty =
   mk(
@@ -199,7 +206,14 @@ and unzip_select = (~ctx=Ctx.empty, sel: Path.Selection.t, meld: Meld.t) => {
     };
   let zigg = Zigg.mk(~up=pre_up, top, ~dn=suf_dn);
   let ctx = Ctx.map_hd(Frame.Open.cat((pre_dn, suf_up)), ctx);
-  mk(~cur=Select({focus: sel.focus, range: zigg}), ctx);
+  mk(
+    ~cur=
+      Select({
+        focus: sel.focus,
+        range: zigg,
+      }),
+    ctx,
+  );
 };
 
 let unzip_exn = (~ctx=Ctx.empty, c: Cell.t) =>

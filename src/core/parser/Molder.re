@@ -75,7 +75,14 @@ let complete_pending_ghosts = (~bounds, l: Stack.t, ~fill) => {
     ? (l, fill)
     : {
       Effects.commit(effs);
-      let ((_, cell), stack) = Stack.connect_(grouted, {...l, slope: []});
+      let ((_, cell), stack) =
+        Stack.connect_(
+          grouted,
+          {
+            ...l,
+            slope: [],
+          },
+        );
       let (fill, slope) = Slope.Dn.unroll(cell);
       (Stack.cat(slope, stack), fill);
     };
@@ -200,14 +207,24 @@ and remold =
       |> List.map(Token.height)
       |> List.fold_left((+), 0) == 0
         ? (l, fill) : complete_pending_ghosts(~bounds, l, ~fill);
-    let r_tl = {...r, slope: tl};
+    let r_tl = {
+      ...r,
+      slope: tl,
+    };
     let (hd_w, tl_w) = Wald.uncons(hd.wald);
     // tl_w unrolled to up slope
     let unroll_tl_w_hd_cell = () =>
       Chain.Affix.uncons(tl_w)
       |> Option.map(((cell, (ts, cs))) => {
            let (c, up) = Slope.Up.unroll(cell);
-           let up = up @ [{wald: Wald.mk(ts, cs), cell: hd.cell}];
+           let up =
+             up
+             @ [
+               {
+                 wald: Wald.mk(ts, cs),
+                 cell: hd.cell,
+               },
+             ];
            (c, up);
          })
       |> Option.value(~default=Slope.Up.unroll(hd.cell));

@@ -15,20 +15,34 @@ module Base = {
   };
   let mk = (~id=?, ~text="", ~marks=?, mtrl) => {
     let id = Id.Gen.value(id);
-    {id, mtrl, marks, text};
+    {
+      id,
+      mtrl,
+      marks,
+      text,
+    };
   };
-  let map = (f, tok) => {...tok, mtrl: f(tok.mtrl)};
+  let map = (f, tok) => {
+    ...tok,
+    mtrl: f(tok.mtrl),
+  };
   let id = (tok: t(_)) => tok.id;
   let mtrl = (tok: t(_)) => tok.mtrl;
   let is_empty = (tok: t(_)) => String.equal(tok.text, "");
-  let add_mark = (p, tok) => {...tok, marks: Marks.add(p, tok.marks)};
+  let add_mark = (p, tok) => {
+    ...tok,
+    marks: Marks.add(p, tok.marks),
+  };
   // let add_mark = (mark, tok) => {...tok, marks: [mark, ...tok.marks]};
   // let add_marks = (marks, tok) => {...tok, marks: marks @ tok.marks};
   let put_cursor = (cursor: Step.Cursor.t, tok) => {
     ...tok,
     marks: Some(cursor),
   };
-  let map_marks = (f, tok: t(_)): t(_) => {...tok, marks: f(tok.marks)};
+  let map_marks = (f, tok: t(_)): t(_) => {
+    ...tok,
+    marks: f(tok.marks),
+  };
   let put_marks = marks => map_marks(Fun.const(marks));
   let clear_marks = tok => put_marks(None, tok);
   let pop_marks = tok => (tok.marks, clear_marks(tok));
@@ -121,13 +135,23 @@ module Molded = {
     | Space(_)
     | Grout(_) => None
     | Tile((lbl, _)) =>
-      Label.complete(tok.text, lbl) |> Option.map(text => {...tok, text})
+      Label.complete(tok.text, lbl)
+      |> Option.map(text =>
+           {
+             ...tok,
+             text,
+           }
+         )
     };
 
   let cat = (l: t, ~caret=?, r: t) => {
     let n = Utf8.length(l.text);
     let marks = r.marks |> Marks.shift(n) |> Marks.union(l.marks);
-    {...l, marks, text: l.text ++ r.text}
+    {
+      ...l,
+      marks,
+      text: l.text ++ r.text,
+    }
     |> (
       switch (caret) {
       | None => Fun.id
@@ -182,7 +206,10 @@ module Molded = {
       let (l_r, tok_r, r_r) = pop_end_carets(put_cursor(Point(r), tok));
       let l = Options.merge(l_l, l_r, ~f=(l, _) => l);
       let r = Options.merge(r_l, r_r, ~f=(_, r) => r);
-      let tok = {...tok, marks: Marks.union(tok_l.marks, tok_r.marks)};
+      let tok = {
+        ...tok,
+        marks: Marks.union(tok_l.marks, tok_r.marks),
+      };
       (l, tok, r);
     };
 
@@ -304,7 +331,11 @@ module Unmolded = {
            );
       switch (expanding_lbls) {
       | [] => None
-      | [_, ..._] => Some({...tok, mtrl: Mtrl.Tile(expanding_lbls)})
+      | [_, ..._] =>
+        Some({
+          ...tok,
+          mtrl: Mtrl.Tile(expanding_lbls),
+        })
       };
     };
 };

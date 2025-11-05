@@ -10,7 +10,10 @@ module Base = {
     let (cells, cell) =
       Stds.Lists.Framed.ft(cells)
       |> Options.get_exn(Invalid_argument("Terr.mk"));
-    Base.{wald: Wald.Base.mk(toks, List.rev(cells)), cell};
+    Base.{
+      wald: Wald.Base.mk(toks, List.rev(cells)),
+      cell,
+    };
   };
   let mk' = ((toks, cells)) =>
     switch (mk(toks, cells)) {
@@ -35,7 +38,10 @@ let length = (terr: t) => Wald.length(terr.wald) + 1;
 
 // todo: clean up, subsumed by face
 let hd = (terr: t) => Wald.hd(terr.wald);
-let put_hd = (hd, terr: t) => {...terr, wald: Wald.put_hd(hd, terr.wald)};
+let put_hd = (hd, terr: t) => {
+  ...terr,
+  wald: Wald.put_hd(hd, terr.wald),
+};
 let tokens = (terr: t) => Wald.tokens(terr.wald);
 
 let hd_cell = (terr: t) =>
@@ -45,20 +51,40 @@ let hd_cell = (terr: t) =>
   };
 
 let face = (terr: t) => Wald.hd(terr.wald);
-let map_face = (f, terr: t) => {...terr, wald: Wald.map_hd(f, terr.wald)};
+let map_face = (f, terr: t) => {
+  ...terr,
+  wald: Wald.map_hd(f, terr.wald),
+};
 
 let sort = (terr: t) => Wald.sort(terr.wald);
 let cells = (terr: t) => Wald.cells(terr.wald) @ [terr.cell];
 
-let of_wald = (~cell=Cell.empty, wald) => Base.{cell, wald};
+let of_wald = (~cell=Cell.empty, wald) =>
+  Base.{
+    cell,
+    wald,
+  };
 let of_tok = tok => of_wald(Wald.of_tok(tok));
 
-let link = (t, c, terr: t) => {...terr, wald: Wald.link(t, c, terr.wald)};
-let extend = (tl, terr: t) => {...terr, wald: Wald.extend(tl, terr.wald)};
+let link = (t, c, terr: t) => {
+  ...terr,
+  wald: Wald.link(t, c, terr.wald),
+};
+let extend = (tl, terr: t) => {
+  ...terr,
+  wald: Wald.extend(tl, terr.wald),
+};
 
 let unlink = (terr: t) =>
   switch (Wald.unlink(terr.wald)) {
-  | Ok((tok, cell, wald)) => (tok, cell, Some({...terr, wald}))
+  | Ok((tok, cell, wald)) => (
+      tok,
+      cell,
+      Some({
+        ...terr,
+        wald,
+      }),
+    )
   | Error(tok) => (tok, terr.cell, None)
   };
 

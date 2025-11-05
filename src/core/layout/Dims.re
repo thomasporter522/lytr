@@ -70,13 +70,25 @@ module Width = {
     // column count of the rest of the line
     rest: int,
   };
-  let mk = (~pad=0, rest) => {pad, rest};
-  let zero = {pad: 0, rest: 0};
+  let mk = (~pad=0, rest) => {
+    pad,
+    rest,
+  };
+  let zero = {
+    pad: 0,
+    rest: 0,
+  };
   let total = ({pad, rest}: t) => pad + rest;
   let add_same = (outer: t, inner: t) =>
     outer.rest == 0
-      ? {pad: outer.pad + inner.pad, rest: inner.rest}
-      : {pad: outer.pad, rest: outer.rest + total(inner)};
+      ? {
+        pad: outer.pad + inner.pad,
+        rest: inner.rest,
+      }
+      : {
+        pad: outer.pad,
+        rest: outer.rest + total(inner),
+      };
 };
 
 [@deriving (show({with_path: false}), sexp, yojson)]
@@ -87,14 +99,30 @@ type t = {
   widths: (Width.t, Width.t),
 };
 
-let zero = {height: 0, widths: Width.(zero, zero)};
-let newline = {height: 1, widths: Width.(zero, zero)};
+let zero = {
+  height: 0,
+  widths: Width.(zero, zero),
+};
+let newline = {
+  height: 1,
+  widths: Width.(zero, zero),
+};
 let indent = (n: int, {height, widths: (top, bot)}: t) => {
   height,
   widths: (
-    {...top, pad: n + top.pad},
+    {
+      ...top,
+      pad: n + top.pad,
+    },
     bot.rest == 0
-      ? {...bot, pad: n + bot.pad} : {...bot, rest: n + bot.rest},
+      ? {
+        ...bot,
+        pad: n + bot.pad,
+      }
+      : {
+        ...bot,
+        rest: n + bot.rest,
+      },
   ),
 };
 
@@ -110,7 +138,10 @@ let add = (l: t, r: t) => {
 };
 let sum = List.fold_left(add, zero);
 
-let tok = (~height=0, width: Width.t) => {height, widths: (width, width)};
+let tok = (~height=0, width: Width.t) => {
+  height,
+  widths: (width, width),
+};
 
 let of_space = (spc: string) => {
   let lines = String.split_on_char('\n', spc);

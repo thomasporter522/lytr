@@ -13,7 +13,11 @@ type t = {
   indent: bool,
 };
 
-let none = {space: (false, false), break: (false, false), indent: false};
+let none = {
+  space: (false, false),
+  break: (false, false),
+  indent: false,
+};
 
 let kw = (~space=(true, true), ~break=(false, false), ~indent=true, ()) => {
   space,

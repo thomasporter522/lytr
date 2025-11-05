@@ -18,12 +18,18 @@ type t('path) = {
 
 let hand = car => car.hand;
 
-let mk = (hand: Hand.t, path) => {hand, path};
+let mk = (hand: Hand.t, path) => {
+  hand,
+  path,
+};
 let focus = path => mk(Focus, path);
 let anchor = path => mk(Anchor, path);
 
 let get = (f, p) => f(p.path);
-let map = (f, p) => {...p, path: f(p.path)};
+let map = (f, p) => {
+  ...p,
+  path: f(p.path),
+};
 
 let map_focus = (f, car) =>
   switch (car.hand) {

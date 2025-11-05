@@ -173,5 +173,12 @@ let view = (~font, p: Profile.t) => {
         |> Util.Nodes.add_classes(["child-line", "silhouette"]),
       ]
       : [];
-  Box.mk(~font, ~loc={row: 0, col: 0}, sil @ line);
+  Box.mk(
+    ~font,
+    ~loc={
+      row: 0,
+      col: 0,
+    },
+    sil @ line,
+  );
 };

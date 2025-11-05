@@ -47,7 +47,10 @@ module Cursor = {
     | (Select(_), _) => l
     | (_, Select(_)) => r
     | (Point({path: l, hand}), Point({path: r, _})) =>
-      Select({focus: hand == Focus ? L : R, range: (l, r)})
+      Select({
+        focus: hand == Focus ? L : R,
+        range: (l, r),
+      })
     };
   let mk = (c1: Caret.t, c2: Caret.t) =>
     Base.compare(c1.path, c2.path) == 0

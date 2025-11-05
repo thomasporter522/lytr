@@ -25,5 +25,8 @@ let init = {
 };
 
 let init_from_store = _ => {
-  {...init, zipper: Store.load_syntax(0)};
+  {
+    ...init,
+    zipper: Store.load_syntax(0),
+  };
 };

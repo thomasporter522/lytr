@@ -50,7 +50,11 @@ module Profile = {
           ),
         ]
         : [];
-    let p = {...wald, inner, cells: wald.cells @ [cell]};
+    let p = {
+      ...wald,
+      inner,
+      cells: wald.cells @ [cell],
+    };
 
     L.State.clear_log();
     let state = L.State.jump_cell(state, ~over=p_r);
@@ -107,7 +111,11 @@ module Profile = {
         : [];
 
     let ns = List.concat([p_l_ns, cell_ns, wald_ns]);
-    let p = {...wald, inner, cells: [cell] @ wald.cells};
+    let p = {
+      ...wald,
+      inner,
+      cells: [cell] @ wald.cells,
+    };
     ((state, ns), p);
   };
 };

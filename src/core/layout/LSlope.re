@@ -20,8 +20,20 @@ let unroll = (~from: Dir.t, cell: LCell.t) => {
     | Some(M(l, w, r)) =>
       let (cell, terr) =
         switch (from) {
-        | L => (r, Terr.Base.{wald: LWald.rev(w), cell: l})
-        | R => (l, Terr.Base.{wald: w, cell: r})
+        | L => (
+            r,
+            Terr.Base.{
+              wald: LWald.rev(w),
+              cell: l,
+            },
+          )
+        | R => (
+            l,
+            Terr.Base.{
+              wald: w,
+              cell: r,
+            },
+          )
         };
       go(cell, [terr, ...unrolled]);
     };

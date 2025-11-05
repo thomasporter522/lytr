@@ -165,7 +165,11 @@ module Profile = {
       | Neq(L) =>
         let hd =
           switch (rolled_z.up) {
-          | [] => Terr.Base.{wald: rolled_z.top, cell: LCell.empty}
+          | [] =>
+            Terr.Base.{
+              wald: rolled_z.top,
+              cell: LCell.empty,
+            }
           | [hd, ..._] => hd
           };
         Some(hd);
@@ -211,7 +215,11 @@ module Profile = {
       | Neq(R) =>
         let hd =
           switch (rolled_z.dn) {
-          | [] => Terr.Base.{wald: rolled_z.top, cell: LCell.empty}
+          | [] =>
+            Terr.Base.{
+              wald: rolled_z.top,
+              cell: LCell.empty,
+            }
           | [hd, ..._] => hd
           };
         Some((state_before_right_hd^, hd));
@@ -223,6 +231,9 @@ module Profile = {
     let outer_sil =
       Silhouette.Outer.Profile.mk(Lists.consnoc_pairs(s_init, ns, state));
 
-    {...Layers.concat([m_l, up, top, dn, m_r]), outer: [outer_sil]};
+    {
+      ...Layers.concat([m_l, up, top, dn, m_r]),
+      outer: [outer_sil],
+    };
   };
 };

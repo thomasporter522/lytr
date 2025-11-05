@@ -16,13 +16,23 @@ let mk = (~outer=[], ~inner=[], ~cells=[], ~tokens=[], ()) => {
   cells,
   tokens,
 };
-let empty = {outer: [], inner: [], tokens: [], cells: []};
+let empty = {
+  outer: [],
+  inner: [],
+  tokens: [],
+  cells: [],
+};
 let cat = (l: t, r: t) => {
   let outer = l.outer @ r.outer;
   let inner = l.inner @ r.inner;
   let cells = l.cells @ r.cells;
   let tokens = l.tokens @ r.tokens;
-  {outer, inner, tokens, cells};
+  {
+    outer,
+    inner,
+    tokens,
+    cells,
+  };
 };
 let concat = List.fold_left(cat, empty);
 

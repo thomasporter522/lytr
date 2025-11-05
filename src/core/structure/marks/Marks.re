@@ -14,11 +14,21 @@ module Token = {
     | Some(Point(q)) =>
       let (l, r) = Step.compare(p.path, q.path) <= 0 ? (p, q) : (q, p);
       let focus = Dir.(l.hand == Focus ? L : R);
-      Some(Select({focus, range: (l.path, r.path)}));
+      Some(
+        Select({
+          focus,
+          range: (l.path, r.path),
+        }),
+      );
     | Some(Select({focus, range})) =>
       let (foc, anc) = Dir.order(focus, range);
       let (foc, anc) = p.hand == Focus ? (p.path, anc) : (foc, p.path);
-      Some(Select({focus, range: Dir.order(focus, (foc, anc))}));
+      Some(
+        Select({
+          focus,
+          range: Dir.order(focus, (foc, anc)),
+        }),
+      );
     };
   let shift = n => Option.map(Step.Cursor.map(Step.shift(n)));
   let union = Options.merge(~f=Step.Cursor.union);
@@ -81,7 +91,10 @@ module Cell = {
     };
   let show = Fmt.to_to_string(pp);
 
-  let put_cursor = (cur, marks) => {...marks, cursor: Some(cur)};
+  let put_cursor = (cur, marks) => {
+    ...marks,
+    cursor: Some(cur),
+  };
   let get_focus = (marks: t) =>
     Option.bind(marks.cursor, Path.Cursor.get_focus);
   // let map_focus = (marks: t) => Path.Cursor.get_focus(marks.cursor);
@@ -116,7 +129,10 @@ module Cell = {
     ...marks,
     dirty: Path.Map.add(path, (), marks.dirty),
   };
-  let mark_clean = marks => {...marks, dirty: Path.Map.empty};
+  let mark_clean = marks => {
+    ...marks,
+    dirty: Path.Map.empty,
+  };
 
   let mark_degrouted = (path, marks) => {
     ...marks,

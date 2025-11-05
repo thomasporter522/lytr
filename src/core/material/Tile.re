@@ -28,7 +28,12 @@ module Sym = {
   [@deriving (show({with_path: false}), sexp, yojson, ord)]
   type t = Sym.t(T.t, NT.t);
   let mk = (sort, prec, (sym, rctx): RZipper.t(_)): t => {
-    let mold = Mold.{sort, prec, rctx};
+    let mold =
+      Mold.{
+        sort,
+        prec,
+        rctx,
+      };
     switch (sym) {
     | T(lbl) => T((lbl, mold))
     | NT(s) => NT((s, Node(mold)))

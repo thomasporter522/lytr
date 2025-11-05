@@ -15,8 +15,14 @@ module Base = {
 };
 include Base;
 
-let mk = (~slope=Slope.empty, bound) => {slope, bound};
-let empty = {slope: Slope.empty, bound: Bound.root};
+let mk = (~slope=Slope.empty, bound) => {
+  slope,
+  bound,
+};
+let empty = {
+  slope: Slope.empty,
+  bound: Bound.root,
+};
 
 let cat = (slope: Slope.t, stack: t) => {
   ...stack,
@@ -37,10 +43,20 @@ let merge_hd = (~onto: Dir.t, t: Token.t, stack: t) =>
   | {slope: [], bound: Root} => None
   | {slope: [], bound: Node(terr)} =>
     Terr.merge_hd(~onto, t, terr)
-    |> Option.map(terr => {...stack, bound: Node(terr)})
+    |> Option.map(terr =>
+         {
+           ...stack,
+           bound: Node(terr),
+         }
+       )
   | {slope: [_, ..._], _} =>
     Slope.merge_hd(~onto, t, stack.slope)
-    |> Option.map(slope => {...stack, slope})
+    |> Option.map(slope =>
+         {
+           ...stack,
+           slope,
+         }
+       )
   };
 
 let to_slope = (stack: t) =>
@@ -48,8 +64,14 @@ let to_slope = (stack: t) =>
 
 let extend = (tl, stack) =>
   switch (stack.slope) {
-  | [] => {...stack, bound: Bound.map(Terr.extend(tl), stack.bound)}
-  | [_, ..._] => {...stack, slope: Slope.extend(tl, stack.slope)}
+  | [] => {
+      ...stack,
+      bound: Bound.map(Terr.extend(tl), stack.bound),
+    }
+  | [_, ..._] => {
+      ...stack,
+      slope: Slope.extend(tl, stack.slope),
+    }
   };
 
 let link = (t: Token.t, (sw: Walk.Swing.t, c: Cell.t), stack: t) =>
@@ -70,16 +92,33 @@ let link = (t: Token.t, (sw: Walk.Swing.t, c: Cell.t), stack: t) =>
         P.show("stack", show(stack));
         failwith("expected neq swing to link to root bound");
       };
-      let terr = Terr.Base.{wald: Wald.of_tok(t), cell: c};
-      {...stack, slope: [terr]};
+      let terr =
+        Terr.Base.{
+          wald: Wald.of_tok(t),
+          cell: c,
+        };
+      {
+        ...stack,
+        slope: [terr],
+      };
     }
   | [hd, ...tl] =>
     if (Walk.Swing.is_eq(sw)) {
       let hd = Terr.link(t, c, hd);
-      {...stack, slope: [hd, ...tl]};
+      {
+        ...stack,
+        slope: [hd, ...tl],
+      };
     } else {
-      let terr = Terr.Base.{wald: Wald.of_tok(t), cell: c};
-      {...stack, slope: [terr, hd, ...tl]};
+      let terr =
+        Terr.Base.{
+          wald: Wald.of_tok(t),
+          cell: c,
+        };
+      {
+        ...stack,
+        slope: [terr, hd, ...tl],
+      };
     }
   };
 

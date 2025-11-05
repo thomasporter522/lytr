@@ -95,7 +95,10 @@ let single = (~id=?, s: string): option(Token.Unmolded.t) =>
     Some(
       switch (id) {
       | None => tok
-      | Some(id) => {...tok, id}
+      | Some(id) => {
+          ...tok,
+          id,
+        }
       },
     )
   | _ => None

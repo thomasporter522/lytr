@@ -75,8 +75,20 @@ let unroll = (~from: Dir.t, cell: Cell.t) => {
     | Some(M(l, w, r)) =>
       let (cell, terr) =
         switch (from) {
-        | L => (r, Terr.Base.{wald: Wald.rev(w), cell: l})
-        | R => (l, Terr.Base.{wald: w, cell: r})
+        | L => (
+            r,
+            Terr.Base.{
+              wald: Wald.rev(w),
+              cell: l,
+            },
+          )
+        | R => (
+            l,
+            Terr.Base.{
+              wald: w,
+              cell: r,
+            },
+          )
         };
       go(cell, [terr, ...unrolled]);
     };
@@ -94,7 +106,10 @@ let unroll_s = (~from: Dir.t, cs: list(Cell.t)) =>
            | Some((pre, ft: Terr.t)) =>
              let cell =
                from == L ? Cell.pad(~l=c, ft.cell) : Cell.pad(ft.cell, ~r=c);
-             let ft = {...ft, cell};
+             let ft = {
+               ...ft,
+               cell,
+             };
              (c, Lists.Framed.put_ft(pre, ft));
            };
          (c, cat(unrolled, unrolled_acc));
@@ -119,7 +134,10 @@ let pull_terr = (~from: Dir.t, terr: Terr.t): (Token.t, t) => {
     switch (rest) {
     | ([], _) => snd(unroll(~from, terr.cell))
     | ([cell, ...cells], toks) =>
-      let terr = {...terr, wald: Wald.mk(toks, cells)};
+      let terr = {
+        ...terr,
+        wald: Wald.mk(toks, cells),
+      };
       cat(snd(unroll(~from, cell)), [terr]);
     };
   (tok, slope);

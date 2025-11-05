@@ -75,7 +75,13 @@ module Caret = {
   let mk = (~path=Base.empty, hand: Caret.Hand.t) => mk(hand, path);
   let cons = n => map(Base.cons(n));
   let peel = (n: Step.t, car: t) =>
-    Base.peel(n, car.path) |> Option.map(path => {...car, path});
+    Base.peel(n, car.path)
+    |> Option.map(path =>
+         {
+           ...car,
+           path,
+         }
+       );
   let hd = (car: t) =>
     Head.map_err(Fun.const(Caret.mk(car.hand, ())), get(Base.hd, car));
 };
@@ -95,7 +101,10 @@ module Selection = {
   let get_anchor = (sel: t) => Dir.(pick(toggle(sel.focus), sel.range));
   let put_focus = (foc, sel: t) => {
     let (_foc, anc) = Dir.order(sel.focus, sel.range);
-    {...sel, range: Dir.order(sel.focus, (foc, anc))};
+    {
+      ...sel,
+      range: Dir.order(sel.focus, (foc, anc)),
+    };
   };
   let carets: t => (Caret.t, Caret.t) =
     Selection.carets(~split_range=Fun.id);
@@ -106,7 +115,10 @@ module Selection = {
     } else if (c > 0) {
       Ok(mk(~focus=c2.hand == Focus ? L : R, (c2.path, c1.path)));
     } else {
-      Error({...c1, hand: Caret.Hand.merge(c1.hand, c2.hand)});
+      Error({
+        ...c1,
+        hand: Caret.Hand.merge(c1.hand, c2.hand),
+      });
     };
   };
 };

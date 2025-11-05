@@ -57,7 +57,10 @@ module Base = {
     marks: Marks.t,
     meld: option(Meld.t(t('tok), 'tok)),
   };
-  let mk = (~marks=Marks.empty, ~meld=?, ()) => {marks, meld};
+  let mk = (~marks=Marks.empty, ~meld=?, ()) => {
+    marks,
+    meld,
+  };
   let empty = mk();
   let wrap = meld => mk(~meld, ());
   let rec map_toks = (f, c: t(_)) => {
@@ -122,33 +125,60 @@ let rec height = (~side: Dir.t, c: t) =>
 // let flatten = (cell: t) =>
 //   cell.meld |> Option.map(Meld.flatten) |> Option.to_list |> List.flatten;
 
-let map_marks = (f, cell: t) => {...cell, marks: f(cell.marks)};
+let map_marks = (f, cell: t) => {
+  ...cell,
+  marks: f(cell.marks),
+};
 let add_marks = marks => map_marks(Marks.union(marks));
-let clear_marks = (cell: t) => {...cell, marks: Marks.empty};
+let clear_marks = (cell: t) => {
+  ...cell,
+  marks: Marks.empty,
+};
 let pop_marks = (cell: t) => (cell.marks, clear_marks(cell));
 
 let degrouted = {
   let marks = Marks.mk(~degrouted=Path.Map.singleton(Path.empty, ()), ());
-  {...empty, marks};
+  {
+    ...empty,
+    marks,
+  };
 };
 let rec mark_degrouted = (~side: Dir.t, c: t) =>
   switch (c.meld) {
   | None =>
-    let marks = {...c.marks, degrouted: Path.Map.singleton(Path.empty, ())};
-    {...c, marks};
+    let marks = {
+      ...c.marks,
+      degrouted: Path.Map.singleton(Path.empty, ()),
+    };
+    {
+      ...c,
+      marks,
+    };
   | Some(M(l, w, r)) =>
     switch (side) {
     | L =>
       let l = mark_degrouted(~side, l);
-      {...c, meld: Some(M(l, w, r))};
+      {
+        ...c,
+        meld: Some(M(l, w, r)),
+      };
     | R =>
       let r = mark_degrouted(~side, r);
-      {...c, meld: Some(M(l, w, r))};
+      {
+        ...c,
+        meld: Some(M(l, w, r)),
+      };
     }
   };
 let unmark_degrouted = (c: t) => {
-  let marks = {...c.marks, degrouted: Path.Map.empty};
-  {...c, marks};
+  let marks = {
+    ...c.marks,
+    degrouted: Path.Map.empty,
+  };
+  {
+    ...c,
+    marks,
+  };
 };
 
 let rec end_path = (~sans_padding=false, ~side: Dir.t, c: t) =>
@@ -337,7 +367,10 @@ module Space = {
     | (None, Some(_)) =>
       let marks =
         Marks.(union_all([cons(0, l.marks), cons(0, fill.marks), r.marks]));
-      {...r, marks};
+      {
+        ...r,
+        marks,
+      };
     | (Some(m_l), None) =>
       let shift = 2 * List.length(Meld.tokens(m_l));
       let marks =
@@ -348,7 +381,10 @@ module Space = {
             cons(shift, r.marks),
           ])
         );
-      {...l, marks};
+      {
+        ...l,
+        marks,
+      };
     | (Some(M(c_l, w_l, c_m_l)), Some(M(c_m_r, w_r, c_r))) =>
       assert(c_m_l.meld == None && c_m_r.meld == None);
       let c_m = {
@@ -401,12 +437,21 @@ let prune_sys = (c: t) =>
   };
 
 let is_clean = (c: t) => Path.Map.is_empty(c.marks.dirty);
-let mark_clean = (c: t) => {...c, marks: Marks.mark_clean(c.marks)};
+let mark_clean = (c: t) => {
+  ...c,
+  marks: Marks.mark_clean(c.marks),
+};
 let mark_ends_dirty = (c: t) => {
   let (l, r) = (end_path(~side=L, c), end_path(~side=R, c));
   let dirty = c.marks.dirty |> Path.Map.add(l, ()) |> Path.Map.add(r, ());
-  let marks = {...c.marks, dirty};
-  {...c, marks};
+  let marks = {
+    ...c.marks,
+    dirty,
+  };
+  {
+    ...c,
+    marks,
+  };
 };
 let mark_end_ungrouted = (~side: Dir.t, c: t) => {
   let p = end_path(~side, c);

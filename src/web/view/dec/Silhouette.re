@@ -22,7 +22,10 @@ module Style = {
 };
 
 let point_of_loc = (loc: Loc.t) =>
-  Point.{x: Float.of_int(loc.col), y: Float.of_int(loc.row)};
+  Point.{
+    x: Float.of_int(loc.col),
+    y: Float.of_int(loc.row),
+  };
 
 module Contour = {
   module Profile = {
@@ -45,7 +48,10 @@ module Contour = {
                (sol, (sol, eol));
              },
            );
-      {row, cols};
+      {
+        row,
+        cols,
+      };
     };
   };
 };

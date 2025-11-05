@@ -17,11 +17,20 @@ module Style = {
   let mk = (~sil=false, ~null as (l, r), mtrl: Mtrl.T.t): option(t) =>
     switch (mtrl) {
     | Space(_) => None
-    | Grout((sort, shape)) => Some({sort, shape, sil})
+    | Grout((sort, shape)) =>
+      Some({
+        sort,
+        shape,
+        sil,
+      })
     | Tile(t) =>
       let sort = Tile.T.sort(t);
       let shape = Tip.(l ? Conv : Conc, r ? Conv : Conc);
-      Some({sort, shape, sil});
+      Some({
+        sort,
+        shape,
+        sil,
+      });
     };
 };
 
@@ -68,8 +77,14 @@ let adj: Tip.t => float =
 
 let tip = (t: Tip.t): Path.t => [
   H_({dx: +. adj(t)}),
-  L_({dx: +. run(t), dy: 0.5 -. v_trunc}),
-  L_({dx: -. run(t), dy: 0.5 -. v_trunc}),
+  L_({
+    dx: +. run(t),
+    dy: 0.5 -. v_trunc,
+  }),
+  L_({
+    dx: -. run(t),
+    dy: 0.5 -. v_trunc,
+  }),
   H_({dx: -. adj(t)}),
 ];
 

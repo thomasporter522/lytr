@@ -103,15 +103,25 @@ module T = {
       mid: list(Mtrl.Sorted.t),
       top: option(Mtrl.Sorted.t),
     };
-    let empty = {top: None, mid: [], bot: None};
+    let empty = {
+      top: None,
+      mid: [],
+      bot: None,
+    };
     let try_put_top = (s, sorted) =>
       switch (sorted.top) {
-      | None => {...sorted, top: Some(s)}
+      | None => {
+          ...sorted,
+          top: Some(s),
+        }
       | Some(_) => sorted
       };
     let try_put_bot = (s, sorted) =>
       switch (sorted.bot) {
-      | None => {...sorted, bot: Some(s)}
+      | None => {
+          ...sorted,
+          bot: Some(s),
+        }
       | Some(_) => sorted
       };
     // top-down comparison
@@ -138,7 +148,10 @@ module T = {
              } else if (num_neq == h) {
                Sorted.try_put_bot(Mtrl.T.sort(st), sorted);
              } else {
-               {...sorted, mid: [Mtrl.T.sort(st), ...sorted.mid]};
+               {
+                 ...sorted,
+                 mid: [Mtrl.T.sort(st), ...sorted.mid],
+               };
              };
            ((sw, num_neq), sorted);
          },

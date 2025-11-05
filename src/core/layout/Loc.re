@@ -16,8 +16,14 @@ module Base = {
     col: Col.t,
   };
 
-  let zero = {row: 0, col: 0};
-  let maximum = {row: Int.max_int, col: Int.max_int};
+  let zero = {
+    row: 0,
+    col: 0,
+  };
+  let maximum = {
+    row: Int.max_int,
+    col: Int.max_int,
+  };
 
   let compare = (l, r) => {
     let c = Row.compare(l.row, r.row);
@@ -32,9 +38,15 @@ module Base = {
 
   let bound = (~min as l=zero, ~max as r: t, pos: t) => min(max(l, pos), r);
 
-  let shift = (n, loc: t) => {...loc, col: loc.col + n};
+  let shift = (n, loc: t) => {
+    ...loc,
+    col: loc.col + n,
+  };
 
-  let return = (loc: t, ~ind: Col.t) => {row: loc.row + 1, col: ind};
+  let return = (loc: t, ~ind: Col.t) => {
+    row: loc.row + 1,
+    col: ind,
+  };
 };
 include Base;
 

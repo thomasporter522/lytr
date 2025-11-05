@@ -18,7 +18,10 @@ module Indent = {
     bi: list((int, int)),
   };
 
-  let init = {bi: [], uni: 0};
+  let init = {
+    bi: [],
+    uni: 0,
+  };
 
   let peek = (ind: t) =>
     switch (ind.bi) {
@@ -28,7 +31,10 @@ module Indent = {
 
   let curr = (ind: t) => ind.uni + peek(ind);
 
-  let push = (ind: t) => {uni: 0, bi: [(peek(ind), ind.uni), ...ind.bi]};
+  let push = (ind: t) => {
+    uni: 0,
+    bi: [(peek(ind), ind.uni), ...ind.bi],
+  };
   let pop = (ind: t) => {
     uni: Lists.hd(ind.bi) |> Option.map(snd) |> Option.value(~default=0),
     bi: Option.value(Lists.tl(ind.bi), ~default=[]),
@@ -46,12 +52,24 @@ module State = {
 
   let debug = ref(false);
 
-  let init = {ind: Indent.init, loc: Loc.zero};
+  let init = {
+    ind: Indent.init,
+    loc: Loc.zero,
+  };
 
-  let map = (f, s: t) => {...s, loc: f(s.loc)};
+  let map = (f, s: t) => {
+    ...s,
+    loc: f(s.loc),
+  };
 
-  let push_ind = (s: t) => {...s, ind: Indent.push(s.ind)};
-  let pop_ind = (s: t) => {...s, ind: Indent.pop(s.ind)};
+  let push_ind = (s: t) => {
+    ...s,
+    ind: Indent.push(s.ind),
+  };
+  let pop_ind = (s: t) => {
+    ...s,
+    ind: Indent.pop(s.ind),
+  };
 
   // pairs of states recorded immediately before and after newlines.
   // used to calculate selection silhouettes.
@@ -83,7 +101,10 @@ module State = {
     | Block(b) =>
       let committed = push_ind(s);
       let jumped = jump_block(committed, ~over=b);
-      {...s, loc: jumped.loc};
+      {
+        ...s,
+        loc: jumped.loc,
+      };
     };
 
   let jump_cell = (s: t, ~over: LCell.t) => {
@@ -209,7 +230,12 @@ let step_of_loc =
          },
        );
   }
-  |> Result.map_error(~f=((_, loc)) => {...state, loc});
+  |> Result.map_error(~f=((_, loc)) =>
+       {
+         ...state,
+         loc,
+       }
+     );
 
 let loc_of_step =
     (~state: State.t, ~block as B(b): Block.t, step: Step.t): Loc.t =>
@@ -250,7 +276,10 @@ let path_of_loc =
   let rec go = (~state, t: LCell.t) => {
     let s_end = State.jump_cell(state, ~over=t);
     if (Loc.lt(s_end.loc, target)) {
-      Error({...s_end, ind: state.ind});
+      Error({
+        ...s_end,
+        ind: state.ind,
+      });
     } else if (Loc.eq(s_end.loc, target)) {
       Ok(LCell.end_path(t, ~side=R));
     } else {
@@ -311,8 +340,22 @@ let rec state_of_path =
         let ind = state.ind;
         let b = Block.hcats(List.rev(b_toks));
         let s = State.jump_block(state, ~over=b);
-        let loc = loc_of_step(~state={...s, ind}, ~block=b_tok, hd);
-        ({...state, loc}, None);
+        let loc =
+          loc_of_step(
+            ~state={
+              ...s,
+              ind,
+            },
+            ~block=b_tok,
+            hd,
+          );
+        (
+          {
+            ...state,
+            loc,
+          },
+          None,
+        );
       }
     }
   | [hd, ...tl] =>
@@ -353,7 +396,13 @@ let rec state_of_path =
       | [hd, ..._] =>
         let loc = loc_of_step(~state, ~block=b_tok, hd);
         // (state.ind, (loc, loc));
-        ({...state, loc}, None);
+        (
+          {
+            ...state,
+            loc,
+          },
+          None,
+        );
       };
     }
   };

@@ -170,7 +170,11 @@ let apply =
   | Warmup =>
     Tylr_core.Walker.warmup();
     Ok(model);
-  | SetFont(font) => Ok({...model, font})
+  | SetFont(font) =>
+    Ok({
+      ...model,
+      font,
+    })
   | PerformAction(a) =>
     switch (Edit.perform(a, model.zipper)) {
     | None => Error(FailedToPerform)
@@ -185,12 +189,22 @@ let apply =
   | Undo =>
     switch (History.undo(model.zipper, model.history)) {
     | None => Error(CantUndo)
-    | Some((zipper, history)) => Ok({...model, zipper, history})
+    | Some((zipper, history)) =>
+      Ok({
+        ...model,
+        zipper,
+        history,
+      })
     }
   | Redo =>
     switch (History.redo(model.zipper, model.history)) {
     | None => Error(CantRedo)
-    | Some((zipper, history)) => Ok({...model, zipper, history})
+    | Some((zipper, history)) =>
+      Ok({
+        ...model,
+        zipper,
+        history,
+      })
     }
   | Load(n) =>
     Ok({

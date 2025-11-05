@@ -12,7 +12,10 @@ let sort = (c: t) =>
   | Some(m) => LMeld.sort(m)
   };
 
-let map = (f, c: t) => {...c, meld: Option.map(f, c.meld)};
+let map = (f, c: t) => {
+  ...c,
+  meld: Option.map(f, c.meld),
+};
 
 let rec height = (t: t) =>
   t.meld |> Option.map(LMeld.height(~height)) |> Option.value(~default=0);

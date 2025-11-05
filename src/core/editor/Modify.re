@@ -17,8 +17,14 @@ module Change = {
     tok: Token.Unmolded.t,
     src: Src.t,
   };
-  let mk = (~src=Src.ins(), tok) => {tok, src};
-  let map = (f, {tok, src}: t) => {tok: f(tok), src};
+  let mk = (~src=Src.ins(), tok) => {
+    tok,
+    src,
+  };
+  let map = (f, {tok, src}: t) => {
+    tok: f(tok),
+    src,
+  };
 };
 
 module Changes = {
@@ -68,7 +74,13 @@ let relabel = (s: string, z: Zipper.t): Choice.t((Changes.t, Ctx.t)) => {
     let labeled = Labeler.label(l ++ s ++ r);
     let cs =
       switch (labeled) {
-      | [lsr_] => Change.[{tok: lsr_, src: Src.ins(~l=tok.mtrl, ())}]
+      | [lsr_] =>
+        Change.[
+          {
+            tok: lsr_,
+            src: Src.ins(~l=tok.mtrl, ()),
+          },
+        ]
       | [l, s, r] => List.map(Change.mk, [l, s, r])
       | [tok_l, tok_r] =>
         tok_l.text == l ++ s
@@ -184,7 +196,16 @@ let rec remold = (~fill=Cell.dirty, ctx: Ctx.t): (Grouted.t, Ctx.t) => {
     let grouted = Melder.complete_bounded(~bounds, ~onto=L, dn, ~fill);
     // Melder.debug := false;
     // P.show("completed", Cell.show(cell));
-    let hd = ({...l, slope: []}, {...r, slope: []});
+    let hd = (
+      {
+        ...l,
+        slope: [],
+      },
+      {
+        ...r,
+        slope: [],
+      },
+    );
     let ctx = Ctx.link_stacks(hd, tl);
     (grouted, ctx);
   };
@@ -204,7 +225,13 @@ let finalize = (remolded: Grouted.t, ctx: Ctx.t): Zipper.t => {
        )
     |> Chain.map_linked((l, (sw, c), r) => {
          let repadded = Linter.repad(~l, c, ~r);
-         (sw, {...repadded, marks: Cell.Marks.flush(repadded.marks)});
+         (
+           sw,
+           {
+             ...repadded,
+             marks: Cell.Marks.flush(repadded.marks),
+           },
+         );
        })
     |> Chain.unconsnoc_exn
     |> (((_, c, _)) => c)
@@ -247,19 +274,31 @@ let delete_toks = (d: Dir.t, toks: list(Token.t)): Changes.t => {
          // (assuming edge carets have been temporarily non-normally placed on toks)
          let (l, r) = Token.(affix(~side=L, tok), affix(~side=R, tok));
          let text = Token.is_const(tok) ? l : l ++ r;
-         {...tok, text}
+         {
+           ...tok,
+           text,
+         }
          |> Token.put_cursor(Point(Step.Caret.focus(Utf8.length(l))));
        } else if (i == 0) {
          let l = Token.affix(~side=L, tok);
          let car = Step.Caret.focus(Utf8.length(l));
-         {...tok, text: l}
+         {
+           ...tok,
+           text: l,
+         }
          |> Token.(d == L ? put_cursor(Point(car)) : clear_marks);
        } else if (i == n - 1) {
          let r = Token.affix(~side=R, tok);
-         {...tok, text: r}
+         {
+           ...tok,
+           text: r,
+         }
          |> (d == R ? put_edge(r == "" ? R : L) : Token.clear_marks);
        } else {
-         Token.clear_marks({...tok, text: ""});
+         Token.clear_marks({
+           ...tok,
+           text: "",
+         });
        }
      )
   // next, normalize the cursors by popping off any carets at the token edges
@@ -522,8 +561,14 @@ let process_changed =
     // next_fill and into molded token at the end of its text
     | (Node(molded), Some(Point({hand, path: []})))
         when Token.length(molded) > Token.Unmolded.length(change.tok) =>
-      let marks = {...next_fill.marks, cursor: None};
-      let next_fill = {...next_fill, marks};
+      let marks = {
+        ...next_fill.marks,
+        cursor: None,
+      };
+      let next_fill = {
+        ...next_fill,
+        marks,
+      };
       let molded =
         Token.put_cursor(
           Point(Caret.mk(hand, Token.Unmolded.length(change.tok))),
@@ -686,9 +731,19 @@ let try_truncate = (z: Zipper.t) => {
       | Some((l, _, "")) when !Strings.is_empty(l) =>
         // P.log("--- Modify.try_truncate/success");
         let n = Utf8.length(l);
-        let tok = {...tok, text: l, marks: Some(Point(Caret.focus(n)))};
+        let tok = {
+          ...tok,
+          text: l,
+          marks: Some(Point(Caret.focus(n))),
+        };
         // renormalize cursor
-        let tok = n < Token.length(tok) ? tok : {...tok, marks: None};
+        let tok =
+          n < Token.length(tok)
+            ? tok
+            : {
+              ...tok,
+              marks: None,
+            };
         ctx
         |> Ctx.push(~onto=L, tok)
         |> (Token.is_complete(tok) ? Fun.id : Ctx.push(~onto=R, tok))

@@ -64,7 +64,11 @@ module Profile = {
 
     let ns = List.concat([p_l_ns, l_ns, w_ns, r_ns, p_r_ns]);
 
-    let p = {...w, inner, cells: [l] @ w.cells @ [r]};
+    let p = {
+      ...w,
+      inner,
+      cells: [l] @ w.cells @ [r],
+    };
     ((final, ns), p);
   };
 };

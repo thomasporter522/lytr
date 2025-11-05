@@ -5,7 +5,11 @@ type t = {
   sort: Sort.t,
 };
 
-let mk = (~rctx=RCtx.empty, ~prec, sort) => {rctx, prec, sort};
+let mk = (~rctx=RCtx.empty, ~prec, sort) => {
+  rctx,
+  prec,
+  sort,
+};
 
 let is_null = (~side: Dir.t, m: t) =>
   RCtx.is_null(~atom=Fun.const(false), ~side, m.rctx);

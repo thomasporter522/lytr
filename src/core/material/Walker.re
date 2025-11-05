@@ -58,7 +58,13 @@ let swing_over = (w: Walk.t, ~from: Dir.t) =>
     |> RZipper.step(Dir.toggle(from))
     |> List.map(
          Bound.map(((sym, rctx)) =>
-           Mtrl.Tile((Sym.expect_t(sym), {...mold, rctx}))
+           Mtrl.Tile((
+             Sym.expect_t(sym),
+             {
+               ...mold,
+               rctx,
+             },
+           ))
          ),
        )
     |> List.fold_left((idx, dst) => Index.add(dst, w, idx), Index.empty)
@@ -177,9 +183,29 @@ let step_all = ((src: End.t, from: Dir.t)) =>
          // reached end of regex
          | Bound.Root => Index.single(Root, Walk.space)
          | Node((Sym.T(lbl), rctx)) =>
-           Index.single(Node(Tile((lbl, {...mold, rctx}))), Walk.space)
+           Index.single(
+             Node(
+               Tile((
+                 lbl,
+                 {
+                   ...mold,
+                   rctx,
+                 },
+               )),
+             ),
+             Walk.space,
+           )
          | Node((NT(sort), rctx)) =>
-           swing_all(Tile((sort, Node({...mold, rctx}))), ~from),
+           swing_all(
+             Tile((
+               sort,
+               Node({
+                 ...mold,
+                 rctx,
+               }),
+             )),
+             ~from,
+           ),
        )
     |> List.cons(swing_into(Walk.space, ~from))
     |> Index.union_all

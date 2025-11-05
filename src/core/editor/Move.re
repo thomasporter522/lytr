@@ -131,15 +131,24 @@ let vstep = (~round_tok=?, ~save_anchor=false, d: Dir.t, z: Zipper.t) =>
   | Point(_) =>
     z
     |> map_focus(~round_tok?, ~save_anchor, loc =>
-         {...loc, row: loc.row + Dir.pick(d, ((-1), 1))}
+         {
+           ...loc,
+           row: loc.row + Dir.pick(d, ((-1), 1)),
+         }
        )
   };
 
 let skip = (~round_tok=?, ~save_anchor=false, d2: Dir2.t) =>
   map_focus(~round_tok?, ~save_anchor, loc =>
     switch (d2) {
-    | H(L) => {...loc, col: 0}
-    | H(R) => {...loc, col: Int.max_int}
+    | H(L) => {
+        ...loc,
+        col: 0,
+      }
+    | H(R) => {
+        ...loc,
+        col: Int.max_int,
+      }
     | V(L) => Loc.zero
     | V(R) => Loc.maximum
     }

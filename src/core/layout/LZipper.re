@@ -5,4 +5,8 @@ type t = {
   eqs: (LEqs.t, LEqs.t),
 };
 
-let mk = (~eqs=([], []), cur, ctx) => {cur, ctx, eqs};
+let mk = (~eqs=([], []), cur, ctx) => {
+  cur,
+  ctx,
+  eqs,
+};

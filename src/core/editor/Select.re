@@ -35,7 +35,16 @@ let hstep_tok = (~is_selected: bool, d: Dir.t, tok: Token.t): (Token.t, bool) =>
   // starting selection, leave behind anchor at current focus position
   | Some(Point({hand: Focus, _} as foc)) =>
     if (Dir.pick(d, (foc.path <= l, foc.path >= r))) {
-      (Token.put_cursor(Point({...foc, hand: Anchor}), tok), true);
+      (
+        Token.put_cursor(
+          Point({
+            ...foc,
+            hand: Anchor,
+          }),
+          tok,
+        ),
+        true,
+      );
     } else {
       let anc = Step.Caret.anchor(foc.path);
       let foc = Step.Caret.shift(Dir.pick(d, ((-1), 1)), foc);
@@ -88,7 +97,11 @@ let hstep = (~char=false, d: Dir.t, z: Zipper.t): option(Zipper.t) => {
       | Point(_) => Zigg.of_tok(stepped)
       | Select(sel) => Zigg.grow(~side=sel.focus, stepped, sel.range)
       };
-    let sel = Selection.{focus: d, range: zigg};
+    let sel =
+      Selection.{
+        focus: d,
+        range: zigg,
+      };
     let ctx =
       ctx_sans_delim
       |> (exited ? Fun.id : Ctx.push(~onto=d, stepped))
@@ -109,7 +122,11 @@ let hstep = (~char=false, d: Dir.t, z: Zipper.t): option(Zipper.t) => {
       // sel spanned more than one token
       | Some(rest) =>
         let zigg = exited ? rest : Zigg.grow(~side=sel.focus, stepped, rest);
-        let cur = Cursor.Select({...sel, range: zigg});
+        let cur =
+          Cursor.Select({
+            ...sel,
+            range: zigg,
+          });
         let ctx =
           ctx_sans_site
           |> Ctx.push(~onto=sel.focus, stepped)
@@ -126,7 +143,11 @@ let hstep = (~char=false, d: Dir.t, z: Zipper.t): option(Zipper.t) => {
           Zipper.mk(~cur, ctx);
         | (Some(Point(car)), Between) =>
           assert(car.hand == Focus);
-          let cur = Cursor.Select({...sel, range: Zigg.of_tok(stepped)});
+          let cur =
+            Cursor.Select({
+              ...sel,
+              range: Zigg.of_tok(stepped),
+            });
           let ctx = Ctx.push(~onto=sel.focus, stepped, ctx_sans_site);
           Zipper.mk(~cur, ctx);
         | (Some(Point(car)), Within(_)) =>
@@ -139,7 +160,11 @@ let hstep = (~char=false, d: Dir.t, z: Zipper.t): option(Zipper.t) => {
             |> Ctx.push(~onto=Dir.toggle(sel.focus), stepped);
           Zipper.mk(~cur, ctx);
         | (Some(Select(_)), _) =>
-          let cur = Cursor.Select({...sel, range: Zigg.of_tok(stepped)});
+          let cur =
+            Cursor.Select({
+              ...sel,
+              range: Zigg.of_tok(stepped),
+            });
           let ctx =
             ctx_sans_site
             |> Ctx.push(~onto=sel.focus, stepped)
@@ -164,7 +189,10 @@ let perform = (a: t, z: Zipper.t): option(Zipper.t) =>
       // avoid calling Move.vstep here bc it will clear selection
       z
       |> Move.map_focus(~round_tok=d, ~save_anchor=true, loc =>
-           {...loc, row: loc.row + Dir.pick(d, ((-1), 1))}
+           {
+             ...loc,
+             row: loc.row + Dir.pick(d, ((-1), 1)),
+           }
          )
     | Skip((H(d) | V(d)) as d2) =>
       Move.skip(~round_tok=d, ~save_anchor=true, d2, z)

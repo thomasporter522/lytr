@@ -85,13 +85,22 @@ let map_face = (~side: Dir.t, f, zigg: t) => {
 //   slopes: ([1, +], [+, 3])
 //   bridge: ( "(" , ")" )
 
-let map_top = (f, zigg: t) => {...zigg, top: f(zigg.top)};
+let map_top = (f, zigg: t) => {
+  ...zigg,
+  top: f(zigg.top),
+};
 // let put_top = (top, zigg) => {...zigg, top: Some(top)};
 
-let map_up = (f, zigg: t) => {...zigg, up: f(zigg.up)};
+let map_up = (f, zigg: t) => {
+  ...zigg,
+  up: f(zigg.up),
+};
 let put_up = up => map_up(_ => up);
 
-let map_dn = (f, zigg: t) => {...zigg, dn: f(zigg.dn)};
+let map_dn = (f, zigg: t) => {
+  ...zigg,
+  dn: f(zigg.dn),
+};
 let put_dn = dn => map_dn(_ => dn);
 
 // let unroll = (c: Cell.t) => {
@@ -137,7 +146,11 @@ let push =
     : Result.t(t, Slope.t) => {
   let b = Dir.toggle(d);
   let (s_d, top, s_b) = orient(d, zigg);
-  let stack = Stack.{slope: s_d, bound: Node(Terr.of_wald(top))};
+  let stack =
+    Stack.{
+      slope: s_d,
+      bound: Node(Terr.of_wald(top)),
+    };
   switch (Stack.merge_hd(~onto=b, t, stack)) {
   | Some(stack) =>
     (stack.slope, Bound.get_exn(stack.bound).wald, s_b)

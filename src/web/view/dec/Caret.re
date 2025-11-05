@@ -60,12 +60,40 @@ let path = (shape: Shape.t) => {
     };
   let rise = 0.5 -. T.v_trunc;
   List.concat([
-    [M({x: run, y: 0.5})],
+    [
+      M({
+        x: run,
+        y: 0.5,
+      }),
+    ],
     // adjust scale of caret to account for rounded linecap/join
-    [L_({dx: -. run, dy: -. rise}), L_({dx: run, dy: rise})] |> scale(0.9),
-    [L_({dx: -. run, dy: rise}), L_({dx: run, dy: -. rise})] |> scale(0.9),
+    [
+      L_({
+        dx: -. run,
+        dy: -. rise,
+      }),
+      L_({
+        dx: run,
+        dy: rise,
+      }),
+    ]
+    |> scale(0.9),
+    [
+      L_({
+        dx: -. run,
+        dy: rise,
+      }),
+      L_({
+        dx: run,
+        dy: -. rise,
+      }),
+    ]
+    |> scale(0.9),
   ])
-  |> transpose({dx: adj(shape), dy: 0.});
+  |> transpose({
+       dx: adj(shape),
+       dy: 0.,
+     });
 };
 
 let hand_cls =

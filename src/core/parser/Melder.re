@@ -93,8 +93,16 @@ let combine_cells =
     let (c_l, pre) = Slope.Dn.unroll(hd);
     let (c_r, suf) = Slope.Up.unroll_s(tl);
     let c = Cell.Space.merge(c_l, c_r);
-    let l = Stack.{bound: l, slope: pre};
-    let r = Stack.{bound: r, slope: suf};
+    let l =
+      Stack.{
+        bound: l,
+        slope: pre,
+      };
+    let r =
+      Stack.{
+        bound: r,
+        slope: suf,
+      };
     switch (remold(~fill=c, (l, r))) {
     | Error(_) => None
     | Ok((dn, fill)) => Some(complete_slope(~onto=L, dn, ~fill))
@@ -261,15 +269,37 @@ let rec push =
   | [] =>
     connect_ineq(~no_eq, ~repair?, ~onto, stack.bound, ~fill, t)
     |> Option.map(((grouted, bound)) =>
-         (grouted, Stack.{slope: [], bound})
+         (
+           grouted,
+           Stack.{
+             slope: [],
+             bound,
+           },
+         )
        )
   | [hd, ...tl] =>
     let connect = () =>
       switch (connect(~repair?, ~onto, hd, ~fill, t)) {
       | Error(fill) =>
-        push(~no_eq, ~repair?, t, ~fill, {...stack, slope: tl}, ~onto)
+        push(
+          ~no_eq,
+          ~repair?,
+          t,
+          ~fill,
+          {
+            ...stack,
+            slope: tl,
+          },
+          ~onto,
+        )
       | Ok((grouted, hd)) =>
-        Some((grouted, {...stack, slope: [hd, ...tl]}))
+        Some((
+          grouted,
+          {
+            ...stack,
+            slope: [hd, ...tl],
+          },
+        ))
       };
     switch (repair) {
     | None => connect()
@@ -304,7 +334,13 @@ and discharge =
       let (c, pre) = Chain.uncons(pre);
       let+ bound = Terr.mk'(pre);
       let (c, dn') = Slope.Dn.unroll(c);
-      (Stack.{slope: dn', bound: Node(bound)}, c);
+      (
+        Stack.{
+          slope: dn',
+          bound: Node(bound),
+        },
+        c,
+      );
     };
     let (c_r, r) = {
       let (c_suf, up_suf) = Slope.Up.unroll_s(Chain.loops(suf));
@@ -313,16 +349,36 @@ and discharge =
         Slope.concat([
           up_suf,
           up,
-          [{wald: Wald.rev(hd.wald), cell: c_fill}, ...up_fill],
+          [
+            {
+              wald: Wald.rev(hd.wald),
+              cell: c_fill,
+            },
+            ...up_fill,
+          ],
         ]);
-      (c_suf, Stack.{slope: up, bound: Node(Terr.of_tok(t))});
+      (
+        c_suf,
+        Stack.{
+          slope: up,
+          bound: Node(Terr.of_tok(t)),
+        },
+      );
     };
     let c = Cell.Space.merge(c_l, ~fill=Cell.dirty, c_r);
     let* (slope, fill) = Result.to_option(remold(~fill=c, (l, r)));
     let stack =
-      {...stack, slope: tl}
+      {
+        ...stack,
+        slope: tl,
+      }
       |> Stack.cat(dn)
-      |> Stack.cat(Stack.to_slope({...l, slope}));
+      |> Stack.cat(
+           Stack.to_slope({
+             ...l,
+             slope,
+           }),
+         );
     push(~no_eq, ~repair=remold, t, ~fill, stack, ~onto=L);
   };
 };

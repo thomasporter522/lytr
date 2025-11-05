@@ -104,11 +104,30 @@ let extend = (~side: Dir.t, tl: Chain.Affix.t(Cell.t, Token.t)) =>
 let unlink_stacks = (ctx: t) =>
   switch (Chain.unlink(ctx)) {
   | Error((dn, up)) =>
-    let stacks = Stack.({bound: Root, slope: dn}, {slope: up, bound: Root});
+    let stacks =
+      Stack.(
+        {
+          bound: Root,
+          slope: dn,
+        },
+        {
+          slope: up,
+          bound: Root,
+        },
+      );
     (stacks, empty);
   | Ok(((dn, up), (l, r), rest)) =>
     let stacks =
-      Stack.({bound: Node(l), slope: dn}, {slope: up, bound: Node(r)});
+      Stack.(
+        {
+          bound: Node(l),
+          slope: dn,
+        },
+        {
+          slope: up,
+          bound: Node(r),
+        },
+      );
     (stacks, rest);
   };
 let link_stacks = ((stack_l: Stack.t, stack_r: Stack.t), ctx: t) =>
@@ -179,7 +198,12 @@ let trim_space = (~side: Dir.t, ctx: t) =>
   | (Node(tok), ctx) when Mtrl.is_space(tok.mtrl) =>
     let tok =
       Strings.chop_prefix(~prefix=" ", tok.text)
-      |> Option.map(text => {...tok, text})
+      |> Option.map(text =>
+           {
+             ...tok,
+             text,
+           }
+         )
       |> Option.value(~default=tok);
     Token.is_empty(tok) ? ctx : push(~onto=side, tok, ctx);
   | _ => ctx

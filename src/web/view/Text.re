@@ -26,8 +26,20 @@ let grout = (~font, sort, shape) =>
     Node.text(Util.Unicode.nbsp),
     Dec.Box.mk(
       ~font,
-      ~loc={row: 0, col: 0},
-      [Dec.Token.hexagon({sort, shape, sil: false}, 1)],
+      ~loc={
+        row: 0,
+        col: 0,
+      },
+      [
+        Dec.Token.hexagon(
+          {
+            sort,
+            shape,
+            sil: false,
+          },
+          1,
+        ),
+      ],
     ),
   ]);
 

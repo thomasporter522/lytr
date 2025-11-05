@@ -112,7 +112,14 @@ let of_tok = (tok: Token.t) =>
   | Tile(_) => line([tok])
   | Space(_) =>
     Strings.split(~on='\n', tok.text)
-    |> List.map(text => line([{...tok, text}]))
+    |> List.map(text =>
+         line([
+           {
+             ...tok,
+             text,
+           },
+         ])
+       )
     |> vcats
   };
 
