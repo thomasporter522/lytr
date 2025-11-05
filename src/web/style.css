@@ -67,9 +67,15 @@
   --caret-z: 14;
 }
 
-/* .token.space {
+.token.space {
   white-space: pre;
-} */
+}
+
+.cursor-indicator {
+  color: var(--caret-focus-color);
+  font-weight: bold;
+  /* animation: 1s blink step-end infinite; */
+}
 .block, .section, .line, .indent {
   display: inline-block;
 }
@@ -229,6 +235,7 @@
   margin: 4em 6em 6em 6em;
   cursor: text;
   user-select: none;
+  white-space: pre;
   /* height: calc(100vw - 18.2em);
   overflow: scroll; */
 }

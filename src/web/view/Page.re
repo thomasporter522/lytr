@@ -147,12 +147,34 @@ open Node;
 //     ],
 //   );
 
-let editor_view = (model: Model.t) =>
+let editor_view = (model: Model.t) => {
+  let text = model.buffer.text;
+  let cursor = model.buffer.cursor;
+  let len = String.length(text);
+  let cursor_pos = max(0, min(cursor, len));
+
+  // Split text at cursor position
+  let (before_cursor, after_cursor) =
+    if (cursor_pos == 0) {
+      ("", text);
+    } else if (cursor_pos >= len) {
+      (text, "");
+    } else {
+      (
+        String.sub(text, 0, cursor_pos),
+        String.sub(text, cursor_pos, len - cursor_pos),
+      );
+    };
+
+  let cursor_element =
+    span(~attrs=[Attr.class_("cursor-indicator")], [Node.text("|")]);
+
   div(
     ~attrs=[Attr.id("code-container")],
-    [Node.text(model.buffer.text)],
+    [Node.text(before_cursor), cursor_element, Node.text(after_cursor)],
     // [Code.view(~font=model.font, ~buffer=model.buffer)],
   );
+};
 
 // let editor_caption_view = (model: Model.t) =>
 //   div(
