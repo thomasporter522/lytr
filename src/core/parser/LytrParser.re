@@ -1,31 +1,22 @@
-type atom =
-  | Zero
-  | Unlexed(string);
+open LytrToken;
 
-let string_of_atom = (a: atom) =>
-  switch (a) {
-  | Zero => "0"
-  | Unlexed(s) => s
+type listr('a) =
+  | Nil
+  | Cons(listr('a), 'a);
+
+let sing = a => Cons(Nil, a);
+
+/* Helper functions for right-cons lists */
+let rec append = (l1: listr('a), l2: listr('a)): listr('a) =>
+  switch (l2) {
+  | Nil => l1
+  | Cons(l2_rest, a) => Cons(append(l1, l2_rest), a)
   };
 
-type token =
-  | BOF
-  | EOF
-  | TOP
-  | TCP
-  | TTimes
-  | TMinus
-  | TAtom(atom);
-
-let string_of_token = (t: token) =>
-  switch (t) {
-  | BOF => "#"
-  | EOF => "#"
-  | TOP => "("
-  | TCP => ")"
-  | TTimes => "*"
-  | TMinus => "-"
-  | TAtom(a) => string_of_atom(a)
+let rec map_r = (f: 'a => 'b, l: listr('a)): listr('b) =>
+  switch (l) {
+  | Nil => Nil
+  | Cons(rest, a) => Cons(map_r(f, rest), f(a))
   };
 
 type token_entry = token;
@@ -120,11 +111,11 @@ type sharded('a) =
 
 type partial_form =
   | Head(token_entry)
-  | Match(partial_form, list(sharded(partial_form)), token_entry);
+  | Match(partial_form, listr(sharded(partial_form)), token_entry);
 
 type closed_form =
   | Head(token_entry)
-  | Match(closed_form, list(sharded(open_form)), token_entry)
+  | Match(closed_form, listr(sharded(open_form)), token_entry)
 
 and open_form =
   | OForm(option(open_form), closed_form, option(open_form))
@@ -164,95 +155,92 @@ let face_of_half_open_form = (hof: half_open_form): token =>
 /* matching phase */
 
 let rec shatter_partial_form =
-        (pf: partial_form): list(sharded(partial_form)) =>
+        (pf: partial_form): listr(sharded(partial_form)) =>
   switch (pf) {
-  | Head(te) => [Shard(token_of(te))]
+  | Head(te) => sing(Shard(token_of(te)))
   | Match(f, is, te) =>
-    List.append(
-      shatter_partial_form(f),
-      List.append(is, [Shard(token_of(te))]),
-    )
+    append(shatter_partial_form(f), Cons(is, Shard(token_of(te))))
   };
 
-let flatten_partial_form = (f: partial_form): list(sharded(partial_form)) =>
+let flatten_partial_form = (f: partial_form): listr(sharded(partial_form)) =>
   switch (close_token(face_of_partial_form(f))) {
-  | Closed => [Form(f)]
+  | Closed => sing(Form(f))
   | Unclosed => shatter_partial_form(f)
   };
 
 let rec flatten =
-        (spfs: list(sharded(partial_form))): list(sharded(partial_form)) =>
+        (spfs: list(sharded(partial_form))): listr(sharded(partial_form)) =>
   switch (spfs) {
-  | [] => []
-  | [Shard(t), ...s] => List.append([Shard(t)], flatten(s))
-  | [Form(f), ...s] => List.append(flatten_partial_form(f), flatten(s))
+  | [] => Nil
+  | [Shard(t), ...s] => append(sing(Shard(t)), flatten(s))
+  | [Form(f), ...s] => append(flatten_partial_form(f), flatten(s))
   };
 
 type match_stack_result =
   | NoMatch
-  | Match(list(sharded(partial_form)));
+  | Match(listr(sharded(partial_form)));
 
 let rec match_stack =
         (
-          s: list(sharded(partial_form)),
+          s: listr(sharded(partial_form)),
           t: token,
           s_prime: list(sharded(partial_form)),
         )
         : match_stack_result =>
   switch (s) {
-  | [] => NoMatch
-  | [Shard(t_prime), ...rest] =>
+  | Nil => NoMatch
+  | Cons(rest, Shard(t_prime)) =>
     match_stack(rest, t, [Shard(t_prime), ...s_prime])
-  | [Form(f), ...rest] =>
+  | Cons(rest, Form(f)) =>
     switch (match_token(face_of_partial_form(f), t)) {
     | NoMatch => match_stack(rest, t, [Form(f), ...s_prime])
-    | Match => Match([Form(Match(f, flatten(s_prime), t)), ...rest])
+    | Match => Match(Cons(rest, Form(Match(f, flatten(s_prime), t))))
     }
   };
 
 let match_stack_init =
-    (s: list(sharded(partial_form)), t: token): match_stack_result =>
+    (s: listr(sharded(partial_form)), t: token): match_stack_result =>
   match_stack(s, t, []);
 
 let match_push =
-    (s: list(sharded(partial_form)), t: token)
-    : list(sharded(partial_form)) =>
+    (s: listr(sharded(partial_form)), t: token)
+    : listr(sharded(partial_form)) =>
   switch (match_stack_init(s, t)) {
   | Match(s_prime) => s_prime
   | NoMatch =>
     switch (init_token(t)) {
-    | NoInit => [Shard(t), ...s]
-    | Init => [Form(Head(t)), ...s]
+    | NoInit => Cons(s, Shard(t))
+    | Init => Cons(s, Form(Head(t)))
     }
   };
 
 let rec match_pushes =
-        (s: list(sharded(partial_form)), ts: list(token))
-        : list(sharded(partial_form)) =>
+        (s: listr(sharded(partial_form)), ts: list(token))
+        : listr(sharded(partial_form)) =>
   switch (ts) {
   | [] => s
   | [t, ...rest] => match_pushes(match_push(s, t), rest)
   };
 
-let match_parse = (ts: list(token)): list(sharded(partial_form)) => {
+let match_parse = (ts: list(token)): listr(sharded(partial_form)) => {
   let tokens = [BOF, ...List.append(ts, [EOF])];
-  let result = match_pushes([], tokens);
+  let result = match_pushes(Nil, tokens);
   switch (result) {
-  | [Form(Match(Head(BOF), is, EOF))] => is
-  | _ => [] /* impossible */
+  | Cons(Nil, Form(Match(Head(BOF), is, EOF))) => is
+  | _ => Nil /* impossible */
   };
 };
 
 /* operatorize phase */
 
 type op_state =
-  | OS(list(open_form), list(half_open_form));
+  | OS(listr(open_form), list(half_open_form));
 
 let rec op_state_roll =
-        (os: op_state, acc: option(open_form)): list(open_form) =>
+        (os: op_state, acc: option(open_form)): listr(open_form) =>
   switch (os, acc) {
   | (OS(fs, []), None) => fs
-  | (OS(fs, []), Some(acc)) => [acc, ...fs]
+  | (OS(fs, []), Some(acc)) => Cons(fs, acc)
   | (OS(fs, [HOForm(l, f), ...s]), acc) =>
     op_state_roll(OS(fs, s), Some(OForm(l, f, acc)))
   };
@@ -265,7 +253,7 @@ let rec op_parse =
     switch (wants_left_child(head_of(f)), acc) {
     | (Yes, _) => OS(fs, [HOForm(acc, f)])
     | (No, None) => OS(fs, [HOForm(None, f)])
-    | (No, Some(acc)) => OS([acc, ...fs], [HOForm(None, f)])
+    | (No, Some(acc)) => OS(Cons(fs, acc), [HOForm(None, f)])
     }
   | OS(fs, [f1, ...s]) =>
     switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
@@ -281,13 +269,13 @@ let rec op_parse =
   };
 
 type sharded_op_state =
-  | SOS(list(sharded(open_form)), op_state);
+  | SOS(listr(sharded(open_form)), op_state);
 
 let sharded_op_state_roll =
-    (sos: sharded_op_state): list(sharded(open_form)) =>
+    (sos: sharded_op_state): listr(sharded(open_form)) =>
   switch (sos) {
   | SOS(fs, s) =>
-    List.append(fs, List.map(form => Form(form), op_state_roll(s, None)))
+    append(fs, map_r(form => Form(form), op_state_roll(s, None)))
   };
 
 let rec close_partial_form = (pf: partial_form): closed_form =>
@@ -306,7 +294,7 @@ and close_sharded_partial_form =
 and op_parse_step =
     (s: sharded_op_state, scf: sharded(closed_form)): sharded_op_state =>
   switch (scf) {
-  | Shard(t) => SOS([Shard(t), ...sharded_op_state_roll(s)], OS([], []))
+  | Shard(t) => SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, []))
   | Form(f) =>
     switch (s) {
     | SOS(fs, os) => SOS(fs, op_parse(os, None, f))
@@ -314,21 +302,21 @@ and op_parse_step =
   }
 
 and op_parse_steps =
-    (s: sharded_op_state, spfs: list(sharded(partial_form)))
+    (s: sharded_op_state, spfs: listr(sharded(partial_form)))
     : sharded_op_state =>
   switch (spfs) {
-  | [] => s
-  | [hd, ...tl] =>
-    op_parse_step(op_parse_steps(s, tl), close_sharded_partial_form(hd))
+  | Nil => s
+  | Cons(l, f) =>
+    op_parse_step(op_parse_steps(s, l), close_sharded_partial_form(f))
   }
 
 and operatorize =
-    (fs: list(sharded(partial_form))): list(sharded(open_form)) =>
-  sharded_op_state_roll(op_parse_steps(SOS([], OS([], [])), fs));
+    (fs: listr(sharded(partial_form))): listr(sharded(open_form)) =>
+  sharded_op_state_roll(op_parse_steps(SOS(Nil, OS(Nil, [])), fs));
 
 /* abstraction phase */
 
-type terms = list(sharded(term))
+type terms = listr(sharded(term))
 
 and child =
   | Hole
@@ -342,8 +330,8 @@ and term =
   | Atom(atom)
   | DEBUG;
 
-let rec abstract_terms = (fs: list(sharded(open_form))): terms =>
-  List.map(abstract_sharded, fs)
+let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
+  map_r(abstract_sharded, fs)
 
 and abstract_child = (form: option(open_form)): child =>
   switch (form) {
@@ -373,3 +361,32 @@ and abstract_sharded = (sof: sharded(open_form)): sharded(term) =>
 
 let parse = (tokens: list(token)): terms =>
   abstract_terms(operatorize(match_parse(tokens)));
+
+let rec string_of_sharded = (st: sharded(term)): string =>
+  switch (st) {
+  | Shard(t) => "💥" ++ string_of_token(t) ++ "💥"
+  | Form(t) => string_of_term(t)
+  }
+
+and string_of_terms = (ts: terms): string =>
+  switch (ts) {
+  | Nil => ""
+  | Cons(Nil, t) => string_of_sharded(t)
+  | Cons(rest, t) => string_of_terms(rest) ++ "·" ++ string_of_sharded(t)
+  }
+
+and string_of_child = (c: child): string =>
+  switch (c) {
+  | Hole => "?"
+  | Term(t) => string_of_term(t)
+  }
+
+and string_of_term = (t: term): string =>
+  switch (t) {
+  | Parens(ts) => "(" ++ string_of_terms(ts) ++ ")"
+  | Times(l, r) => string_of_child(l) ++ "*" ++ string_of_child(r)
+  | Negative(c) => "-" ++ string_of_child(c)
+  | Minus(l, r) => string_of_child(l) ++ "-" ++ string_of_child(r)
+  | Atom(a) => string_of_atom(a)
+  | DEBUG => "DEBUG"
+  };

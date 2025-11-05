@@ -179,11 +179,13 @@ let apply =
     switch (Edit.perform(a, model.buffer)) {
     | None => Error(FailedToPerform)
     | Some(b) =>
+      let parsed = LytrParser.parse(LytrLexer.lex(b.text));
+      print_endline(LytrParser.string_of_terms(parsed));
       Ok({
         ...model,
         buffer: b,
         // history: History.do_(a, model.zipper, model.history),
-      })
+      });
     }
   // | FailedInput(reason) => Error(UnrecognizedInput(reason))
   | Undo => Ok(model)
