@@ -150,7 +150,8 @@ open Node;
 let editor_view = (model: Model.t) =>
   div(
     ~attrs=[Attr.id("code-container")],
-    [Code.view(~font=model.font, ~zipper=model.zipper)],
+    [Node.text(model.buffer.text)],
+    // [Code.view(~font=model.font, ~buffer=model.buffer)],
   );
 
 // let editor_caption_view = (model: Model.t) =>
@@ -283,12 +284,12 @@ let view = (~inject, ~stored, model: Model.t) => {
           Effect.Ignore;
         }),
         Attr.on_copy(_ => {
-          copy(model.zipper.cur);
-          Effect.Ignore;
+          Effect.Ignore
+                 // copy(model.zipper.cur);
         }),
         Attr.on_cut(_ => {
-          copy(model.zipper.cur);
-          inject(Update.PerformAction(Delete(L)));
+          // copy(model.zipper.cur);
+          inject(Update.PerformAction(Delete(L)))
         }),
         Attr.on_paste(evt => {
           Js_of_ocaml.Dom.preventDefault(evt);

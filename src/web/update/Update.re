@@ -57,14 +57,14 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
     | (Up, "End") => now(Move(Skip(H(R))))
     | (Up, "Backspace") => now_save(Delete(L))
     | (Up, "Delete") => now_save(Delete(R))
-    | (Up, "Escape") => now(Select(Un(L)))
-    | (Up, "Tab") => now(Tab(R))
+    // | (Up, "Escape") => now(Select(Un(L)))
+    // | (Up, "Tab") => now(Tab(R))
     // | (Up, "Tab") => now_save(Put_down) //TODO: if empty, move to next hole
-    | (Down, "Tab") => now(Tab(L))
-    | (Down, "ArrowLeft") => now(Select(Move(Step(H(L)))))
-    | (Down, "ArrowRight") => now(Select(Move(Step(H(R)))))
-    | (Down, "ArrowUp") => now(Select(Move(Step(V(L)))))
-    | (Down, "ArrowDown") => now(Select(Move(Step(V(R)))))
+    // | (Down, "Tab") => now(Tab(L))
+    // | (Down, "ArrowLeft") => now(Select(Move(Step(H(L)))))
+    // | (Down, "ArrowRight") => now(Select(Move(Step(H(R)))))
+    // | (Down, "ArrowUp") => now(Select(Move(Step(V(L)))))
+    // | (Down, "ArrowDown") => now(Select(Move(Step(V(R)))))
     // | (_, "Shift") => update_double_tap(model)
     | (_, "Enter") =>
       //TODO(andrew): using funky char to avoid weird regexp issues with using \n
@@ -80,29 +80,29 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
     switch (key) {
     | "Z"
     | "z" => now_save_u(Redo)
-    | "ArrowLeft" => now(Select(Move(Skip(H(L)))))
-    | "ArrowRight" => now(Select(Move(Skip(H(R)))))
-    | "ArrowUp" => now(Select(Move(Skip(V(L)))))
-    | "ArrowDown" => now(Select(Move(Skip(V(R)))))
+    // | "ArrowLeft" => now(Select(Move(Skip(H(L)))))
+    // | "ArrowRight" => now(Select(Move(Skip(H(R)))))
+    // | "ArrowUp" => now(Select(Move(Skip(V(L)))))
+    // | "ArrowDown" => now(Select(Move(Skip(V(R)))))
     | _ => []
     }
   | {key: D(key), sys: PC, shift: Down, meta: Up, ctrl: Down, alt: Up} =>
     switch (key) {
     | "Z"
     | "z" => now_save_u(Redo)
-    | "ArrowLeft" => now(Select(Move(Skip(H(L)))))
-    | "ArrowRight" => now(Select(Move(Skip(H(R)))))
+    // | "ArrowLeft" => now(Select(Move(Skip(H(L)))))
+    // | "ArrowRight" => now(Select(Move(Skip(H(R)))))
     | "ArrowUp"
-    | "Home" => now(Select(Move(Skip(V(L)))))
+    // | "Home" => now(Select(Move(Skip(V(L)))))
     | "ArrowDown"
-    | "End" => now(Select(Move(Skip(V(R)))))
+    // | "End" => now(Select(Move(Skip(V(R)))))
     | _ => []
     }
   | {key: D(key), sys: Mac, shift: Up, meta: Down, ctrl: Up, alt: Up} =>
     switch (key) {
     | "z" => now_save_u(Undo)
     // | "x" => now(Pick_up)
-    | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
+    // | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
     // | _ when is_digit(key) => [SwitchEditor(int_of_string(key))]
     | "ArrowLeft" => now(Move(Skip(H(L))))
     | "ArrowRight" => now(Move(Skip(H(R))))
@@ -114,7 +114,7 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
     switch (key) {
     | "z" => now_save_u(Undo)
     // | "x" => now(Pick_up)
-    | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
+    // | "a" => now(Move(Skip(V(L)))) @ now(Select(Move(Skip(V(R)))))
     // | _ when is_digit(key) => [SwitchEditor(int_of_string(key))]
     | "ArrowLeft" => now(Move(Skip(H(L))))
     | "ArrowRight" => now(Move(Skip(H(R))))
@@ -127,7 +127,7 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
     | "a" => now(Move(Skip(H(L))))
     | "e" => now(Move(Skip(H(R))))
     | "s" =>
-      print_endline(Store.serialize(model.zipper));
+      print_endline(model.buffer.text);
       [];
     | _ => []
     }
@@ -176,43 +176,43 @@ let apply =
       font,
     })
   | PerformAction(a) =>
-    switch (Edit.perform(a, model.zipper)) {
+    switch (Edit.perform(a, model.buffer)) {
     | None => Error(FailedToPerform)
-    | Some(z) =>
+    | Some(b) =>
       Ok({
         ...model,
-        zipper: z,
-        history: History.do_(a, model.zipper, model.history),
+        buffer: b,
+        // history: History.do_(a, model.zipper, model.history),
       })
     }
   // | FailedInput(reason) => Error(UnrecognizedInput(reason))
-  | Undo =>
-    switch (History.undo(model.zipper, model.history)) {
-    | None => Error(CantUndo)
-    | Some((zipper, history)) =>
-      Ok({
-        ...model,
-        zipper,
-        history,
-      })
-    }
-  | Redo =>
-    switch (History.redo(model.zipper, model.history)) {
-    | None => Error(CantRedo)
-    | Some((zipper, history)) =>
-      Ok({
-        ...model,
-        zipper,
-        history,
-      })
-    }
-  | Load(n) =>
-    Ok({
-      ...model,
-      editor: n,
-      zipper: Store.load_default_syntax(n),
-      history: History.empty,
-      hist: [],
-    })
+  | Undo => Ok(model)
+  // switch (History.undo(model.buffer, model.history)) {
+  // | None => Error(CantUndo)
+  // | Some((zipper, history)) =>
+  //   Ok({
+  //     ...model,
+  //     buffer,
+  //     history,
+  //   })
+  // }
+  | Redo => Ok(model)
+  // switch (History.redo(model.zipper, model.history)) {
+  // | None => Error(CantRedo)
+  // | Some((zipper, history)) =>
+  //   Ok({
+  //     ...model,
+  //     zipper,
+  //     history,
+  //   })
+  // }
+  | Load(_n) => Ok(model)
+  // Ok({
+  //   ...model,
+  //   editor: n,
+  //   zipper: Store.load_default_syntax(n),
+  //   history: History.empty,
+  //   hist: [],
+  // })
   };
 };

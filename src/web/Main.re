@@ -68,11 +68,11 @@ let apply = (old_model, action, state, ~schedule_action): Model.t => {
         ],
       };
     | _ =>
-      Store.save_syntax(0, model.zipper);
+      // Store.save_syntax(0, model.zipper);
       {
         ...model,
         hist: [(act_str(action), "✔"), ...model.hist],
-      };
+      }
     }
   | Error(FailedToPerform as err) =>
     prerr_endline(Update.Failure.show(FailedToPerform));

@@ -47,10 +47,10 @@ let can_undo = ((_, after): t) => Chain.Affix.is_empty(after);
 // };
 let do_ = (a: Edit.t, z: Zipper.t, (pre, _) as h: t) =>
   switch (a) {
-  | Tab(_) when ! Tab.modified^ => h
-  | Move(_)
-  | Select(_) => h
-  | Tab(_)
+  // | Tab(_) when ! Tab.modified^ => h
+  | Move(_) => h
+  // | Select(_) => h
+  // | Tab(_)
   | Insert(_)
   | Delete(_) => Chain.Affix.(link(a, z, pre), empty)
   };

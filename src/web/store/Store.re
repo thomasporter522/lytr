@@ -1,16 +1,16 @@
 open Tylr_core;
 
-let insert: (Zipper.t, string) => Zipper.t =
-  (z, str) => {
-    switch (Edit.perform(Insert(str), z)) {
-    | None =>
-      print_endline("WARNING: Store.insert failed");
-      z;
-    | Some(r) => r
-    };
-  };
+// let insert: (Zipper.t, string) => Zipper.t =
+//   (z, str) => {
+//     switch (Edit.perform(Insert(str), z)) {
+//     | None =>
+//       print_endline("WARNING: Store.insert failed");
+//       z;
+//     | Some(r) => r
+//     };
+//   };
 
-let parse = insert(Zipper.empty);
+// let parse = insert(Zipper.empty);
 
 let serialize = z => z |> Zipper.sexp_of_t |> Sexplib.Sexp.to_string;
 
@@ -43,28 +43,28 @@ let tasks =
   ];
 let size = List.length(tasks);
 
-let editor_defaults =
-  [serialize(Zipper.empty)]
-  @ List.map(
-      fun
-      | Data.Sexp(sexp) => sexp
-      | Text(task) =>
-        serialize(parse(Util.Dom.trim_leading_whitespace(task))),
-      tasks,
-    );
+// let editor_defaults =
+//   [serialize(Zipper.empty)]
+//   @ List.map(
+//       fun
+//       | Data.Sexp(sexp) => sexp
+//       | Text(task) =>
+//         serialize(parse(Util.Dom.trim_leading_whitespace(task))),
+//       tasks,
+//     );
 
-let load_default_syntax: int => Zipper.t =
-  save_idx =>
-    switch (List.nth_opt(editor_defaults, save_idx)) {
-    | None => Zipper.empty
-    | Some(str) => deserialize(str)
-    };
+// let load_default_syntax: int => Zipper.t =
+//   save_idx =>
+//     switch (List.nth_opt(editor_defaults, save_idx)) {
+//     | None => Zipper.empty
+//     | Some(str) => deserialize(str)
+//     };
 
-let load_syntax: int => Zipper.t =
-  save_idx =>
-    switch (LocalStorage.get(save_syntax_key(save_idx))) {
-    | None => load_default_syntax(save_idx)
-    | Some(str) => deserialize(str)
-    };
+// let load_syntax: int => Zipper.t =
+//   save_idx =>
+//     switch (LocalStorage.get(save_syntax_key(save_idx))) {
+//     | None => load_default_syntax(save_idx)
+//     | Some(str) => deserialize(str)
+//     };
 
 //let unparse: Zipper.t => string = z => z |> Zipper.zip |> Cell.tokens;

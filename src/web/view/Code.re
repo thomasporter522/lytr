@@ -79,10 +79,10 @@ let cursor = (~font, z: Zipper.t) => {
   };
 };
 
-let view = (~font: Model.Font.t, ~zipper: Zipper.t): Node.t => {
+let view = (~_font: Model.Font.t, ~_buffer: Buffer.t): Node.t => {
   // P.log("--- Code.view ---");
   // P.show("z", Zipper.show(zipper));
-  let c = Zipper.zip(~save_cursor=true, zipper);
+  // let c = Zipper.zip(~save_cursor=true, zipper);
   // P.show("c", Cell.show(c));
   // let t = Layout.mk_cell(c);
   // print_endline("t = " ++ LCell.show(t));
@@ -90,6 +90,7 @@ let view = (~font: Model.Font.t, ~zipper: Zipper.t): Node.t => {
   // print_endline("b = " ++ Block.show(b));
   div(
     ~attrs=[Attr.class_("code"), Attr.id("under-the-rail")],
-    [view_text(~font, c), ...cursor(~font, zipper)] @ carets(~font, c),
+    [],
+    // [view_text(~font, c), ...cursor(~font, zipper)] @ carets(~font, c),
   );
 };

@@ -1,5 +1,3 @@
-open Stds;
-
 // todo: add options for skipping walds/melds and use in selection
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
@@ -10,110 +8,35 @@ type t =
   // jump to absolute loc
   | Jump(Loc.t);
 
-let unselect = (~toward=?, z: Zipper.t) =>
-  switch (z.cur) {
-  | Point(_) => z
-  | Select({focus: d, range: zigg}) =>
-    let onto = Dir.toggle(Option.value(toward, ~default=d));
-    Zipper.mk(Ctx.push_zigg(~onto, zigg, z.ctx));
-  };
+let unselect = (~toward as _=?, b: Buffer.t) =>
+  // With simple buffer model, unselect just returns the buffer as-is
+  // since there's no selection state to clear
+  b;
 
-// bounds goal pos to within start/end pos of program.
-// returns none if the resulting goal pos is same as start pos.
-let map_focus =
-    (~round_tok=?, ~save_anchor=false, f: Loc.t => Loc.t, z: Zipper.t)
-    : option(Zipper.t) => {
-  open Options.Syntax;
-  let c = Zipper.zip(~save_cursor=true, z);
-  let* init = Option.bind(c.marks.cursor, Path.Cursor.get_focus);
-  let c = Cell.map_marks(Cell.Marks.mark_dirty(init), c);
-  let goal =
-    init
-    |> Layout.map(~round_tok?, ~tree=Layout.mk_cell(c), f)
-    |> Zipper.normalize(~cell=c);
-  goal == init
-    ? None
-    : c
-      |> Cell.map_marks(Cell.Marks.put_focus(~save_anchor, goal))
-      |> Linter.repad
-      |> Cell.map_marks(Cell.Marks.flush)
-      |> Zipper.unzip;
+// Helper to clamp cursor position within buffer bounds
+let clamp_cursor = (cursor: int, text: string): int => {
+  let len = String.length(text);
+  max(0, min(cursor, len));
 };
 
-// returns token with updated cursor after moving in direction d.
-// carets at the token edges are pruned. returns a flag indicating
-// whether the moved caret reached the token edge.
-let hstep_tok = (d: Dir.t, tok: Token.t): (Token.t, bool) => {
-  let (m, n) = (Token.length(tok), Utf8.length(tok.text));
-  // 1-step-shy-of-tok-end caret positions
-  let (l, r) = (1, Token.is_complete(tok) ? m - 1 : n);
-  switch (tok.marks) {
-  // exit token
-  | _ when m <= 1 || n <= 0 => (Token.clear_marks(tok), true)
-  | Some(Point(car)) when Dir.pick(d, (car.path <= l, car.path >= r)) => (
-      Token.clear_marks(tok),
-      true,
-    )
-  // enter token
-  | None =>
-    let car = Caret.focus(Dir.pick(d, (r, l)));
-    (Token.put_cursor(Point(car), tok), false);
-  // move within token
-  | Some(Point(car)) =>
-    let car = Step.Caret.shift(Dir.pick(d, ((-1), 1)), car);
-    (Token.put_cursor(Point(car), tok), false);
-  // move to end of selection
-  | Some(Select(sel)) =>
-    let (l, r) = Step.Selection.carets(sel);
-    let car = Caret.focus(Dir.pick(d, (l, r)).path);
-    (Token.put_cursor(Point(car), tok), false);
-  };
-};
-
-let push_site = (~onto: Dir.t, site: Zipper.Site.t, ctx: Ctx.t) =>
-  switch (site) {
-  | Between => ctx
-  | Within(tok) => Ctx.push(~onto, tok, ctx)
-  };
-let push_sites = (site: Zipper.Site.cursor, ctx: Ctx.t) =>
-  switch (site) {
-  | Point(Between) => ctx
-  | Point(Within(tok)) =>
-    ctx |> Ctx.push(~onto=L, tok) |> Ctx.push(~onto=R, tok)
-  | Select((l, r)) => ctx |> push_site(~onto=L, l) |> push_site(~onto=R, r)
-  };
-
-let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
-  open Options.Syntax;
-  let b = Dir.toggle(d);
-  // P.log("--- Move.hstep");
-  let (cur_site, ctx_sans_sites) = Zipper.cursor_site(z);
-  let+ z =
-    switch (cur_site) {
-    | Select(_) => return(unselect(~toward=d, z))
-    | Point(site) =>
-      // P.log("--- Move.hstep/Point");
-      let (face, ctx) =
-        switch (site) {
-        | Between => Ctx.pull(~from=d, ctx_sans_sites)
-        | Within(tok) => (Delim.tok(tok), ctx_sans_sites)
-        };
-      // P.show("face", Delim.show(face));
-      // P.show("ctx", Ctx.show(ctx));
-      let+ tok = Bound.to_opt(face);
-      let (stepped, exited) = hstep_tok(d, tok);
-      // P.show("stepped", Token.show(stepped));
-      // P.show("exited", string_of_bool(exited));
-      ctx
-      |> Ctx.push(~onto=b, ~fill=Cell.dirty, stepped)
-      |> (exited ? Fun.id : Ctx.push(~onto=d, stepped))
-      |> Zipper.mk;
+// Move cursor one character in the given direction
+let hstep_char = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
+  let new_cursor =
+    switch (d) {
+    | L => b.cursor - 1
+    | R => b.cursor + 1
     };
-  Zipper.rebutton(z)
-  |> Zipper.zip(~save_cursor=true)
-  |> Linter.repad
-  |> Cell.map_marks(Cell.Marks.flush)
-  |> Zipper.unzip_exn;
+  let clamped_cursor = clamp_cursor(new_cursor, b.text);
+  clamped_cursor == b.cursor
+    ? None  // No movement occurred
+    : Some({
+        ...b,
+        cursor: clamped_cursor,
+      });
+};
+
+let hstep = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
+  hstep_char(d, b);
 };
 // let rec hstep_n = (n: int, z: Zipper.t): Zipper.t => {
 //   let step = (d, z) =>
@@ -125,37 +48,148 @@ let hstep = (d: Dir.t, z: Zipper.t): option(Zipper.t) => {
 //   };
 // };
 
-let vstep = (~round_tok=?, ~save_anchor=false, d: Dir.t, z: Zipper.t) =>
-  switch (z.cur) {
-  | Select(_) => Some(unselect(~toward=d, z))
-  | Point(_) =>
-    z
-    |> map_focus(~round_tok?, ~save_anchor, loc =>
-         {
-           ...loc,
-           row: loc.row + Dir.pick(d, ((-1), 1)),
-         }
-       )
+// Find the next/previous line in the buffer
+let find_line_start =
+    (text: string, from_pos: int, direction: Dir.t): option(int) => {
+  let len = String.length(text);
+  let pos = clamp_cursor(from_pos, text);
+
+  switch (direction) {
+  | L =>
+    // Move to previous line
+    let rec find_prev_newline = i =>
+      if (i < 0) {
+        Some
+          (0); // Beginning of text
+      } else if (text.[i] == '\n') {
+        Some
+          (i + 1); // Start of line after newline
+      } else {
+        find_prev_newline(i - 1);
+      };
+
+    // First, find the start of current line
+    let current_line_start = {
+      let rec find_current = i =>
+        if (i <= 0) {
+          0;
+        } else if (text.[i - 1] == '\n') {
+          i;
+        } else {
+          find_current(i - 1);
+        };
+      find_current(pos);
+    };
+
+    // Then find the previous line
+    current_line_start > 0 ? find_prev_newline(current_line_start - 2) : None;
+
+  | R =>
+    // Move to next line
+    let rec find_next_newline = i =>
+      if (i >= len) {
+        None; // End of text
+      } else if (text.[i] == '\n') {
+        Some
+          (i + 1); // Start of next line
+      } else {
+        find_next_newline(i + 1);
+      };
+    find_next_newline(pos);
   };
+};
 
-let skip = (~round_tok=?, ~save_anchor=false, d2: Dir2.t) =>
-  map_focus(~round_tok?, ~save_anchor, loc =>
-    switch (d2) {
-    | H(L) => {
-        ...loc,
-        col: 0,
-      }
-    | H(R) => {
-        ...loc,
-        col: Int.max_int,
-      }
-    | V(L) => Loc.zero
-    | V(R) => Loc.maximum
-    }
-  );
+let vstep = (~round_tok=?, ~save_anchor=false, d: Dir.t, b: Buffer.t) => {
+  let _ = (round_tok, save_anchor); // Suppress unused warnings
+  switch (find_line_start(b.text, b.cursor, d)) {
+  | None => None // No movement possible
+  | Some(new_pos) =>
+    Some({
+      ...b,
+      cursor: new_pos,
+    })
+  };
+};
 
-let jump = (~round_tok=?, ~save_anchor=false, loc) =>
-  map_focus(~round_tok?, ~save_anchor, Fun.const(loc));
+// Find start/end of current line or start/end of document
+let find_line_boundary = (text: string, cursor: int, d2: Dir2.t): int => {
+  let len = String.length(text);
+  let pos = clamp_cursor(cursor, text);
+
+  switch (d2) {
+  | H(L) =>
+    // Start of current line
+    let rec find_line_start = i =>
+      if (i <= 0) {
+        0;
+      } else if (text.[i - 1] == '\n') {
+        i;
+      } else {
+        find_line_start(i - 1);
+      };
+    find_line_start(pos);
+  | H(R) =>
+    // End of current line
+    let rec find_line_end = i =>
+      if (i >= len) {
+        len;
+      } else if (text.[i] == '\n') {
+        i;
+      } else {
+        find_line_end(i + 1);
+      };
+    find_line_end(pos);
+  | V(L) => 0 // Start of document
+  | V(R) => len // End of document
+  };
+};
+
+let skip =
+    (~round_tok=?, ~save_anchor=false, d2: Dir2.t, b: Buffer.t)
+    : option(Buffer.t) => {
+  let _ = (round_tok, save_anchor); // Suppress unused warnings
+  let new_cursor = find_line_boundary(b.text, b.cursor, d2);
+  new_cursor == b.cursor
+    ? None  // No movement
+    : Some({
+        ...b,
+        cursor: new_cursor,
+      });
+};
+
+// Convert Loc.t to simple buffer position (for now, just use a simple mapping)
+let loc_to_pos = (loc: Loc.t, text: string): int => {
+  // Simple implementation: treat loc as {row, col} and find position
+  let len = String.length(text);
+  let target_row = max(0, loc.row);
+  let target_col = max(0, loc.col);
+
+  let rec find_pos = (pos, current_row, current_col) =>
+    if (pos >= len || current_row > target_row) {
+      pos;
+    } else if (current_row == target_row && current_col >= target_col) {
+      pos;
+    } else if (text.[pos] == '\n') {
+      find_pos(pos + 1, current_row + 1, 0);
+    } else {
+      find_pos(pos + 1, current_row, current_col + 1);
+    };
+
+  clamp_cursor(find_pos(0, 0, 0), text);
+};
+
+let jump =
+    (~round_tok=?, ~save_anchor=false, loc: Loc.t, b: Buffer.t)
+    : option(Buffer.t) => {
+  let _ = (round_tok, save_anchor); // Suppress unused warnings
+  let new_cursor = loc_to_pos(loc, b.text);
+  new_cursor == b.cursor
+    ? None  // No movement
+    : Some({
+        ...b,
+        cursor: new_cursor,
+      });
+};
 
 // todo: need to return none in some more cases when no visible movement occurs
 let perform =

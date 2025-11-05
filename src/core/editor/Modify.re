@@ -756,28 +756,53 @@ let try_truncate = (z: Zipper.t) => {
   };
 };
 
-let delete = (d: Dir.t, z: Zipper.t) => {
-  open Options.Syntax;
-  // P.log("--- Modify.delete");
-  // P.show("z", Zipper.show(z));
-  Mode.set(Deleting(d));
-  let+ z =
-    Cursor.is_point(z.cur) ? Select.hstep(~char=true, d, z) : return(z);
-  let- () = try_truncate(z);
-  // P.log("didn't truncate");
-  // P.show("selected", Zipper.show(z));
-  delete_sel(d, z);
+// Helper to clamp cursor position within buffer bounds
+let clamp_cursor = (cursor: int, text: string): int => {
+  let len = String.length(text);
+  max(0, min(cursor, len));
 };
 
-let insert = (s: string, z: Zipper.t) => {
-  // open Options.Syntax;
-  let z = delete_sel(L, z);
-  // let- () = try_move(s, z);
+let delete = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
+  Mode.set(Deleting(d));
+  let pos = clamp_cursor(b.cursor, b.text);
+  let len = String.length(b.text);
+
+  switch (d) {
+  | L when pos > 0 =>
+    // Delete character before cursor (backspace)
+    let new_text =
+      String.sub(b.text, 0, pos - 1) ++ String.sub(b.text, pos, len - pos);
+    Some({
+      text: new_text,
+      cursor: pos - 1,
+    });
+  | R when pos < len =>
+    // Delete character after cursor (delete)
+    let new_text =
+      String.sub(b.text, 0, pos)
+      ++ String.sub(b.text, pos + 1, len - pos - 1);
+    Some({
+      ...b,
+      text: new_text,
+    });
+  | _ => None // No deletion possible
+  };
+};
+
+let insert = (s: string, b: Buffer.t): Buffer.t => {
   Mode.set(Inserting(s));
-  let (remolded, ctx) =
-    relabel(s, z)
-    |> Choice.bind(Funs.uncurry(apply_remold))
-    |> Oblig.Delta.min_choice
-    |> Options.get_fail("bug: failed to apply insert changes");
-  finalize(remolded, ctx);
+  let pos = clamp_cursor(b.cursor, b.text);
+  let len = String.length(b.text);
+
+  // Insert string at cursor position
+  let new_text =
+    String.sub(b.text, 0, pos) ++ s ++ String.sub(b.text, pos, len - pos);
+
+  // Move cursor to end of inserted text
+  let new_cursor = pos + String.length(s);
+
+  {
+    text: new_text,
+    cursor: new_cursor,
+  };
 };
