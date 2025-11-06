@@ -530,9 +530,9 @@ svg {
 #caret {
   z-index: var(--caret-z);
 }
-#caret.blink {
+/* #caret.blink {
   animation: 1s blink step-end infinite;
-}
+} */
 .caret {
   fill: none;
   stroke-width: 2;
@@ -681,4 +681,31 @@ svg {
 
 .lytr-hole-svg path {
   transform: none !important; /* Override grout path transform */
+}
+
+/* LytrTerms cursor styling */
+.lytr-cursor {
+  position: absolute;
+  color: var(--caret-focus-color);
+  font-weight: bold;
+  pointer-events: none;
+  z-index: var(--caret-z);
+  font-size: 1.2em;
+  line-height: 1;
+  /* animation: blink 1s infinite; */
+}
+
+.with-cursor {
+  position: relative;
+}
+
+.cursor-indicator {
+  height: 1.2em;
+  display: inline-block;
+  width: 2px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
 }
