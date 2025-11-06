@@ -1,5 +1,6 @@
 open Virtual_dom.Vdom;
 open Node;
+open Tylr_core;
 
 // let logo = (~font) => {
 //   let piece = (step, color: Sort.t, shape: PieceDec.piece_shape, s): Measured.t =>
@@ -149,6 +150,7 @@ open Node;
 
 let editor_view = (model: Model.t) => {
   let text = model.buffer.text;
+  let parsed = LytrParser.parse(LytrLexer.lex(text));
   let cursor = model.buffer.cursor;
   let len = String.length(text);
   let cursor_pos = max(0, min(cursor, len));
@@ -171,7 +173,13 @@ let editor_view = (model: Model.t) => {
 
   div(
     ~attrs=[Attr.id("code-container")],
-    [Node.text(before_cursor), cursor_element, Node.text(after_cursor)],
+    [
+      Node.text(before_cursor),
+      cursor_element,
+      Node.text(after_cursor),
+      Node.br(),
+      LytrTerms.view_lytr_text(~font=model.font, parsed),
+    ],
     // [Code.view(~font=model.font, ~buffer=model.buffer)],
   );
 };

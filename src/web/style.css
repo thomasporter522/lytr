@@ -45,6 +45,8 @@
   --exp-shadow-color: #c3b292;
   --exp-text-color: #756e58;
 
+  --unlexed-color: var(--unmolded-color);
+
   --pat-bg-color: #d0e7ec;
   --pat-shadow-color: #91bcd9;
   --pat-text-color: #2f85a1;
@@ -385,7 +387,7 @@
 
 .tile-path.Exp.indicated {
   fill: var(--exp-bg-color);
-  /*fill:#b9e3be;*/
+  /* fill:#b9e3be; */
 }
 .tile-path.Exp.indicated-caret {
   fill: #feddb3;
@@ -620,4 +622,63 @@ svg {
 
 #history-toggle:checked ~ #history {
   height: auto;
+}
+
+/* Lytr Terms Styling */
+.lytr-block {
+  font-family: 'Source Code Pro', monospace;
+}
+
+.lytr-token {
+  display: inline;
+  white-space: pre;
+}
+
+.lytr-token.operator {
+  color: var(--exp-text-color);
+  font-weight: bold;
+}
+
+.lytr-token.paren {
+  color: var(--exp-text-color);
+  font-weight: bold;
+}
+
+.lytr-token.atom {
+  color: var(--exp-text-color);
+}
+
+.lytr-token.unlexed {
+  color: var(--unlexed-color);
+}
+
+.lytr-token.hole {
+  /* color: var(--unmolded-color); */
+  /* background-color: var(--exp-bg-color); */
+  /* border-radius: 2px; */
+  /* padding: 0 2px; */
+}
+
+.lytr-token.error {
+  color: var(--unmolded-color);
+  background-color: #ffe6e6;
+  /* border-radius: 2px; */
+  /* padding: 0 2px; */
+  /* font-style: italic; */
+}
+
+.lytr-parens, .lytr-times, .lytr-minus, .lytr-negative {
+  display: inline-block;
+}
+
+/* Override grout SVG sizing for lytr holes */
+.lytr-grout .lytr-hole-svg {
+  width: 1em !important;
+  height: 1em !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+.lytr-hole-svg path {
+  transform: none !important; /* Override grout path transform */
 }
