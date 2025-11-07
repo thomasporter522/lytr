@@ -91,18 +91,18 @@ let rec intersperse_grout = (~font, nodes: list(Node.t)): list(Node.t) =>
   };
 
 /* Convert LytrParser terms to styled nodes WITHOUT grout interspersion */
-let rec view_lytr_terms_rich_no_grout =
+let rec view_lytr_terms_no_grout =
         (~font, terms: LytrParser.terms): list(Node.t) =>
   switch (terms) {
   | LytrParser.Nil => []
   | LytrParser.Cons(rest, sharded) =>
-    view_lytr_terms_rich_no_grout(~font, rest)
-    @ [view_lytr_sharded_rich(~font, sharded)]
+    view_lytr_terms_no_grout(~font, rest)
+    @ [view_lytr_sharded(~font, sharded)]
   }
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
-and view_lytr_terms_rich = (~font, terms: LytrParser.terms): list(Node.t) => {
-  let nodes = view_lytr_terms_rich_no_grout(~font, terms);
+and view_lytr_terms = (~font, terms: LytrParser.terms): list(Node.t) => {
+  let nodes = view_lytr_terms_no_grout(~font, terms);
   if (List.length(nodes) == 0) {
     [mk_hole(~font, ())];
   } else {
@@ -110,48 +110,45 @@ and view_lytr_terms_rich = (~font, terms: LytrParser.terms): list(Node.t) => {
   };
 }
 
-and view_lytr_sharded_rich =
+and view_lytr_sharded =
     (~font, sharded: LytrParser.sharded(LytrParser.term)): Node.t =>
   switch (sharded) {
   | LytrParser.Shard(token) =>
     let text = LytrToken.string_of_token(token);
     mk_error_token(~text, ());
-  | LytrParser.Form(term) => view_lytr_term_rich(~font, term)
+  | LytrParser.Form(term) => view_lytr_term(~font, term)
   }
 
-and view_lytr_term_rich = (~font, term: LytrParser.term): Node.t =>
+and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
   switch (term) {
   | LytrParser.Parens(inner_terms) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-parens")],
       [mk_paren_token(~text="(", ())]
-      @ view_lytr_terms_rich(~font, inner_terms)
+      @ view_lytr_terms(~font, inner_terms)
       @ [mk_paren_token(~text=")", ())],
     )
   | LytrParser.Times(left, right) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-times")],
       [
-        view_lytr_child_rich(~font, left),
+        view_lytr_child(~font, left),
         mk_operator_token(~text="*", ()),
-        view_lytr_child_rich(~font, right),
+        view_lytr_child(~font, right),
       ],
     )
   | LytrParser.Negative(child) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-negative")],
-      [
-        mk_operator_token(~text="-", ()),
-        view_lytr_child_rich(~font, child),
-      ],
+      [mk_operator_token(~text="-", ()), view_lytr_child(~font, child)],
     )
   | LytrParser.Minus(left, right) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-minus")],
       [
-        view_lytr_child_rich(~font, left),
+        view_lytr_child(~font, left),
         mk_operator_token(~text="-", ()),
-        view_lytr_child_rich(~font, right),
+        view_lytr_child(~font, right),
       ],
     )
   | LytrParser.Atom(atom) =>
@@ -165,15 +162,15 @@ and view_lytr_term_rich = (~font, term: LytrParser.term): Node.t =>
   | LytrParser.DEBUG => mk_error_token(~text="DEBUG", ())
   }
 
-and view_lytr_child_rich = (~font, child: LytrParser.child): Node.t =>
+and view_lytr_child = (~font, child: LytrParser.child): Node.t =>
   switch (child) {
   | LytrParser.Hole => mk_hole(~font, ())
-  | LytrParser.Term(term) => view_lytr_term_rich(~font, term)
+  | LytrParser.Term(term) => view_lytr_term(~font, term)
   };
 
 /* Rich view function using styled tokens */
-let view_lytr_text_rich = (~font, terms: LytrParser.terms): Node.t => {
-  let styled_line = view_lytr_terms_rich(~font, terms);
+let view_lytr_text = (~font, terms: LytrParser.terms): Node.t => {
+  let styled_line = view_lytr_terms(~font, terms);
   Node.div(
     ~attrs=[Attr.classes(["block", "lytr-block"])],
     [Node.span(~attrs=[Attr.class_("line")], styled_line)],
@@ -246,18 +243,3 @@ and view_lytr_child = (~font, child: LytrParser.child): Node.t =>
     Node.span(~attrs=[Attr.class_("lytr-hole")], [Node.text("?")])
   | LytrParser.Term(term) => view_lytr_term(~font, term)
   };
-
-/* Main view function - use rich version by default */
-let view_lytr_text = (~font, terms: LytrParser.terms): Node.t =>
-  view_lytr_text_rich(~font, terms);
-
-let view_lytr_terms_cursor =
-    (
-      ~font,
-      ~cursor_index: int,
-      ~original_text: string,
-      terms: LytrParser.terms,
-    )
-    : Node.t => {
-  failwith("todo");
-};
