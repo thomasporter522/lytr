@@ -180,13 +180,6 @@ let editor_view = (model: Model.t) => {
       Node.br(),
       LytrTerms.view_lytr_text(~font=model.font, parsed),
       Node.br(),
-      /* Use the new cursor-aware view function */
-      // LytrTerms.view_lytr_terms_cursor(
-      //   ~font=model.font,
-      //   ~cursor_index=model.buffer.cursor,
-      //   ~original_text=text,
-      //   parsed,
-      // ),
     ],
     // [Code.view(~font=model.font, ~buffer=model.buffer)],
   );

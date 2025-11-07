@@ -79,7 +79,7 @@ let mk_error_token = (~text, ()) =>
   mk_styled_token(~text, ~classes=["error", "grout"], ());
 
 /* Helper function to intersperse grout between terms */
-let rec intersperse_grout = (~font, ~cursor: int, ~text: string, nodes: list(Node.t)): list(Node.t) =>
+let rec intersperse_grout = (~font, nodes: list(Node.t)): list(Node.t) =>
   switch (nodes) {
   | [] => []
   | [single] => [single]
@@ -92,7 +92,7 @@ let rec intersperse_grout = (~font, ~cursor: int, ~text: string, nodes: list(Nod
 
 /* Convert LytrParser terms to styled nodes WITHOUT grout interspersion */
 let rec view_lytr_terms_no_grout =
-        (~font, ~cursor: int, ~text: string, terms: LytrParser.terms): list(Node.t) =>
+        (~font, terms: LytrParser.terms): list(Node.t) =>
   switch (terms) {
   | LytrParser.Nil => []
   | LytrParser.Cons(rest, sharded) =>
@@ -101,7 +101,7 @@ let rec view_lytr_terms_no_grout =
   }
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
-and view_lytr_terms = (~font, ~cursor: int, ~text: string, terms: LytrParser.terms): list(Node.t) => {
+and view_lytr_terms = (~font, terms: LytrParser.terms): list(Node.t) => {
   let nodes = view_lytr_terms_no_grout(~font, terms);
   if (List.length(nodes) == 0) {
     [mk_hole(~font, ())];
@@ -111,7 +111,7 @@ and view_lytr_terms = (~font, ~cursor: int, ~text: string, terms: LytrParser.ter
 }
 
 and view_lytr_sharded =
-    (~font, ~cursor: int, ~text: string, sharded: LytrParser.sharded(LytrParser.term)): Node.t =>
+    (~font, sharded: LytrParser.sharded(LytrParser.term)): Node.t =>
   switch (sharded) {
   | LytrParser.Shard(token) =>
     let text = LytrToken.string_of_token(token);
@@ -119,7 +119,7 @@ and view_lytr_sharded =
   | LytrParser.Form(term) => view_lytr_term(~font, term)
   }
 
-and view_lytr_term = (~font, ~cursor: int, ~text: string, term: LytrParser.term): Node.t =>
+and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
   switch (term) {
   | LytrParser.Parens(inner_terms) =>
     Node.span(
@@ -162,14 +162,14 @@ and view_lytr_term = (~font, ~cursor: int, ~text: string, term: LytrParser.term)
   | LytrParser.DEBUG => mk_error_token(~text="DEBUG", ())
   }
 
-and view_lytr_child = (~font, ~cursor: int, ~text: string, child: LytrParser.child): Node.t =>
+and view_lytr_child = (~font, child: LytrParser.child): Node.t =>
   switch (child) {
   | LytrParser.Hole => mk_hole(~font, ())
   | LytrParser.Term(term) => view_lytr_term(~font, term)
   };
 
 /* Rich view function using styled tokens */
-let view_lytr_text = (~font, ~cursor: int, ~text: string, terms: LytrParser.terms): Node.t => {
+let view_lytr_text = (~font, terms: LytrParser.terms): Node.t => {
   let styled_line = view_lytr_terms(~font, terms);
   Node.div(
     ~attrs=[Attr.classes(["block", "lytr-block"])],
