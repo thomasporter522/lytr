@@ -19,13 +19,7 @@ let is_letter = (c: char): bool =>
 
 /* Helper function to check if a character is alphanumeric */
 let is_alphanum = (c: char): bool =>
-  c >= 'a'
-  && c <= 'z'
-  || c >= 'A'
-  && c <= 'Z'
-  || c >= '0'
-  && c <= '9'
-  || c == '_';
+  is_letter(c) || is_digit(c) || c == '_';
 
 /* Tokenize a single character or sequence */
 let rec lex_chars = (chars: list(char)): list(token) =>
@@ -34,22 +28,37 @@ let rec lex_chars = (chars: list(char)): list(token) =>
   | [' ' | '\t' | '\n' | '\r', ...rest] => lex_chars(rest) /* skip whitespace */
   | ['(', ...rest] => [TOP, ...lex_chars(rest)]
   | [')', ...rest] => [TCP, ...lex_chars(rest)]
-  | ['*', ...rest] => [TTimes, ...lex_chars(rest)]
+  | ['+', ...rest] => [TPlus, ...lex_chars(rest)]
+  | ['-', '>', ...rest] => [TArrow, ...lex_chars(rest)]
   | ['-', ...rest] => [TMinus, ...lex_chars(rest)]
-  | ['0', ...rest] => [TAtom(Zero), ...lex_chars(rest)]
+  | ['*', ...rest] => [TTimes, ...lex_chars(rest)]
+  | ['/', '/', ...rest] => [TDoubleDivide, ...lex_chars(rest)]
+  | ['/', ...rest] => [TDivide, ...lex_chars(rest)]
+  | ['%', ...rest] => [TModulo, ...lex_chars(rest)]
+  | ['=', '>', ...rest] => [TDoubleArrow, ...lex_chars(rest)]
+  | ['=', ...rest] => [TEquals, ...lex_chars(rest)]
+  | ['|', ...rest] => [TPipe, ...lex_chars(rest)]
   | [c, ...rest] when is_digit(c) =>
     /* Collect numeric sequence */
     let (num, remaining) = collect_number([c], rest);
-    let num_str = String.of_seq(List.to_seq(List.rev(num)));
-    switch (num_str) {
-    | "0" => [TAtom(Zero), ...lex_chars(remaining)]
-    | _ => [TAtom(Unlexed(num_str)), ...lex_chars(remaining)]
-    };
+    let num = int_of_string(String.of_seq(List.to_seq(List.rev(num))));
+    [TAtom(Numlit(num)), ...lex_chars(remaining)];
   | [c, ...rest] when is_letter(c) =>
     /* Collect identifier sequence */
     let (id, remaining) = collect_word([c], rest);
     let id_str = String.of_seq(List.to_seq(List.rev(id)));
-    [TAtom(Unlexed(id_str)), ...lex_chars(remaining)];
+    /* Check if it's a keyword */
+    let token =
+      switch (id_str) {
+      | "fun" => TFun
+      | "let" => TLet
+      | "in" => TIn
+      | "type" => TType
+      | "case" => TCase
+      | "end" => TEnd
+      | _ => TAtom(Identifier(id_str))
+      };
+    [token, ...lex_chars(remaining)];
   | [c, ...rest] =>
     /* Unknown character - treat as unlexed atom */
     [TAtom(Unlexed(String.make(1, c))), ...lex_chars(rest)]

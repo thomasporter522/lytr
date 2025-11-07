@@ -1,4 +1,5 @@
 open LytrToken;
+open LytrGrammar;
 
 type listr('a) =
   | Nil
@@ -17,90 +18,6 @@ let rec map_r = (f: 'a => 'b, l: listr('a)): listr('b) =>
   switch (l) {
   | Nil => Nil
   | Cons(rest, a) => Cons(map_r(f, rest), f(a))
-  };
-
-type token_entry = token;
-
-type init_token_result =
-  | NoInit
-  | Init;
-
-let init_token = (t: token): init_token_result =>
-  switch (t) {
-  | BOF => Init
-  | EOF => NoInit
-  | TOP => Init
-  | TCP => NoInit
-  | TTimes => Init
-  | TMinus => Init
-  | TAtom(_) => Init
-  };
-
-type match_token_result =
-  | Match
-  | NoMatch;
-
-let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
-  switch (te1, te2) {
-  | (BOF, EOF) => Match
-  | (TOP, TCP) => Match
-  | (_, _) => NoMatch /* fallthrough */
-  };
-
-type close_token_result =
-  | Closed
-  | Unclosed;
-
-let close_token = (te: token_entry): close_token_result =>
-  switch (te) {
-  | BOF => Unclosed
-  | EOF => Closed
-  | TOP => Unclosed
-  | TCP => Closed
-  | TTimes => Closed
-  | TMinus => Closed
-  | TAtom(_) => Closed
-  };
-
-type compare_tokens_result =
-  | Shift
-  | Reduce
-  | Roll;
-
-/* need only consider when t1 ends a form and t2 starts a form */
-let compare_tokens = (t1: token, t2: token): compare_tokens_result =>
-  switch (t1, t2) {
-  | (TCP, TOP) => Roll
-  | (TCP, TTimes) => Reduce
-  | (TCP, TMinus) => Reduce
-  | (TCP, TAtom(_)) => Roll
-  | (TTimes, TOP) => Shift
-  | (TTimes, TTimes) => Shift /* right assoc */
-  | (TTimes, TMinus) => Reduce /* * binds tighter */
-  | (TTimes, TAtom(_)) => Shift
-  | (TMinus, TOP) => Shift
-  | (TMinus, TTimes) => Shift
-  | (TMinus, TMinus) => Reduce /* left assoc */
-  | (TMinus, TAtom(_)) => Shift
-  | (TAtom(_), TOP) => Roll
-  | (TAtom(_), TTimes) => Reduce
-  | (TAtom(_), TMinus) => Reduce
-  | (TAtom(_), TAtom(_)) => Roll
-  | (_, _) => Roll /* impossible fallthrough */
-  };
-
-type wants_left_child_result =
-  | Yes
-  | No;
-
-/* need only consider when t starts a form */
-let wants_left_child = (t: token): wants_left_child_result =>
-  switch (t) {
-  | TOP => No
-  | TTimes => Yes
-  | TMinus => Yes
-  | TAtom(_) => No
-  | _ => No /* impossible fallthrough */
   };
 
 let token_of = (te: token_entry): token => te;

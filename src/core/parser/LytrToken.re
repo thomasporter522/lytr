@@ -1,21 +1,37 @@
 type atom =
-  | Zero
+  | Numlit(int)
+  | Identifier(string)
   | Unlexed(string);
 
 let string_of_atom = (a: atom) =>
   switch (a) {
-  | Zero => "0"
+  | Numlit(n) => string_of_int(n)
+  | Identifier(s) => s
   | Unlexed(s) => s
   };
 
 type token =
-  | BOF
-  | EOF
-  | TOP
-  | TCP
-  | TTimes
+  | BOF // beginning of file
+  | EOF // end of file
+  | TOP // open parens
+  | TCP // close parens
+  | TAtom(atom)
+  | TPlus
   | TMinus
-  | TAtom(atom);
+  | TTimes
+  | TDivide
+  | TDoubleDivide
+  | TModulo
+  | TEquals
+  | TFun
+  | TArrow
+  | TLet
+  | TIn
+  | TType
+  | TCase
+  | TPipe
+  | TDoubleArrow
+  | TEnd;
 
 let string_of_token = (t: token) =>
   switch (t) {
@@ -23,7 +39,21 @@ let string_of_token = (t: token) =>
   | EOF => "#"
   | TOP => "("
   | TCP => ")"
-  | TTimes => "*"
-  | TMinus => "-"
   | TAtom(a) => string_of_atom(a)
+  | TPlus => "+"
+  | TMinus => "-"
+  | TTimes => "*"
+  | TDivide => "/"
+  | TDoubleDivide => "//"
+  | TModulo => "%"
+  | TFun => "fun"
+  | TArrow => "->"
+  | TLet => "let"
+  | TEquals => "="
+  | TIn => "in"
+  | TType => "type"
+  | TCase => "case"
+  | TPipe => "|"
+  | TDoubleArrow => "=>"
+  | TEnd => "end"
   };
