@@ -151,12 +151,37 @@ open Tylr_core;
 let editor_view = (model: Model.t) => {
   let text = model.buffer.text;
   let parsed = LytrParser.parse(LytrLexer.lex(text));
+  let cursor = model.buffer.cursor;
+  let len = String.length(text);
+  let cursor_pos = max(0, min(cursor, len));
+
+  // Split text at cursor position
+  let (before_cursor, after_cursor) =
+    if (cursor_pos == 0) {
+      ("", text);
+    } else if (cursor_pos >= len) {
+      (text, "");
+    } else {
+      (
+        String.sub(text, 0, cursor_pos),
+        String.sub(text, cursor_pos, len - cursor_pos),
+      );
+    };
+
+  let cursor_element =
+    span(~attrs=[Attr.class_("cursor-indicator")], [Node.text("|")]);
 
   div(
     ~attrs=[Attr.id("code-container")],
     [
+      Node.text(before_cursor),
+      cursor_element,
+      Node.text(after_cursor),
+      Node.br(),
+      LytrTerms.view_lytr_text(~font=model.font, parsed),
+      Node.br(),
       /* Use the new cursor-aware view function */
-      LytrTerms.view_lytr_text_with_cursor_support(
+      LytrTerms.view_lytr_terms_cursor(
         ~font=model.font,
         ~cursor_index=model.buffer.cursor,
         ~original_text=text,
