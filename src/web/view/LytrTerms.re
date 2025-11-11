@@ -128,29 +128,33 @@ and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
       @ view_lytr_terms(~font, inner_terms)
       @ [mk_paren_token(~text=")", ())],
     )
-  | LytrParser.Times(left, right) =>
+  | LytrParser.Binop(binop, left, right) =>
+    let op_text =
+      switch (binop) {
+      | Plus => "+"
+      | Minus => "-"
+      | Times => "*"
+      | Divide => "/"
+      | DoubleDivide => "//"
+      | Modulo => "%"
+      };
     Node.span(
-      ~attrs=[Attr.class_("lytr-times")],
+      ~attrs=[Attr.class_("lytr-binop")],
       [
         view_lytr_child(~font, left),
-        mk_operator_token(~text="*", ()),
+        mk_operator_token(~text=op_text, ()),
         view_lytr_child(~font, right),
       ],
-    )
-  | LytrParser.Negative(child) =>
+    );
+  | LytrParser.Unop(unop, child) =>
+    let op_text =
+      switch (unop) {
+      | Minus => "-"
+      };
     Node.span(
-      ~attrs=[Attr.class_("lytr-negative")],
-      [mk_operator_token(~text="-", ()), view_lytr_child(~font, child)],
-    )
-  | LytrParser.Minus(left, right) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-minus")],
-      [
-        view_lytr_child(~font, left),
-        mk_operator_token(~text="-", ()),
-        view_lytr_child(~font, right),
-      ],
-    )
+      ~attrs=[Attr.class_("lytr-unop")],
+      [mk_operator_token(~text=op_text, ()), view_lytr_child(~font, child)],
+    );
   | LytrParser.Atom(atom) =>
     switch (atom) {
     | Unlexed(s) => mk_unlexed_token(~text=s, ())
@@ -158,7 +162,63 @@ and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
       let text = LytrToken.string_of_atom(atom);
       mk_atom_token(~text, ());
     }
-
+  | LytrParser.Fun(params, body) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-fun")],
+      [mk_atom_token(~text="fun", ())]
+      @ view_lytr_terms(~font, params)
+      @ [mk_operator_token(~text="=>", ())]
+      @ [view_lytr_child(~font, body)],
+    )
+  | LytrParser.Ap(func, args) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-ap")],
+      [view_lytr_child(~font, func)]
+      @ [mk_paren_token(~text="(", ())]
+      @ view_lytr_terms(~font, args)
+      @ [mk_paren_token(~text=")", ())],
+    )
+  | LytrParser.Let(bindings, body_terms, body) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-let")],
+      [mk_atom_token(~text="let ", ())]
+      @ view_lytr_terms(~font, bindings)
+      @ [mk_atom_token(~text=" = ", ())]
+      @ view_lytr_terms(~font, body_terms)
+      @ [mk_atom_token(~text=" in", ())]
+      @ [view_lytr_child(~font, body)],
+    )
+  | LytrParser.Type(type_params, type_body, body) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-type")],
+      [mk_atom_token(~text="type", ())]
+      @ view_lytr_terms(~font, type_params)
+      @ [mk_operator_token(~text="=", ())]
+      @ view_lytr_terms(~font, type_body)
+      @ [mk_atom_token(~text="in", ())]
+      @ [view_lytr_child(~font, body)],
+    )
+  | LytrParser.Case(scrutinee, branches) =>
+    let branch_nodes =
+      List.map(
+        ((pattern, body)) =>
+          Node.span(
+            ~attrs=[Attr.class_("lytr-case-branch")],
+            [mk_operator_token(~text="|", ())]
+            @ view_lytr_terms(~font, pattern)
+            @ [mk_operator_token(~text="=>", ())]
+            @ view_lytr_terms(~font, body),
+          ),
+        branches,
+      );
+    Node.span(
+      ~attrs=[Attr.class_("lytr-case")],
+      [mk_atom_token(~text="case", ())]
+      @ [view_lytr_child(~font, scrutinee)]
+      @ [mk_atom_token(~text="of", ())]
+      @ branch_nodes
+      @ [mk_atom_token(~text="end", ())],
+    );
   | LytrParser.DEBUG => mk_error_token(~text="DEBUG", ())
   }
 
@@ -194,47 +254,6 @@ and view_lytr_sharded =
       [Node.text("💥" ++ LytrToken.string_of_token(token) ++ "💥")],
     )
   | LytrParser.Form(term) => view_lytr_term(~font, term)
-  }
-
-and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
-  switch (term) {
-  | LytrParser.Parens(inner_terms) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-parens")],
-      [Node.text("(")]
-      @ view_lytr_terms(~font, inner_terms)
-      @ [Node.text(")")],
-    )
-  | LytrParser.Times(left, right) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-times")],
-      [
-        view_lytr_child(~font, left),
-        Node.text("*"),
-        view_lytr_child(~font, right),
-      ],
-    )
-  | LytrParser.Negative(child) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-negative")],
-      [Node.text("-"), view_lytr_child(~font, child)],
-    )
-  | LytrParser.Minus(left, right) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-minus")],
-      [
-        view_lytr_child(~font, left),
-        Node.text("-"),
-        view_lytr_child(~font, right),
-      ],
-    )
-  | LytrParser.Atom(atom) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-atom")],
-      [Node.text(LytrToken.string_of_atom(atom))],
-    )
-  | LytrParser.DEBUG =>
-    Node.span(~attrs=[Attr.class_("lytr-debug")], [Node.text("DEBUG")])
   }
 
 and view_lytr_child = (~font, child: LytrParser.child): Node.t =>

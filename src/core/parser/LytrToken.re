@@ -22,10 +22,10 @@ type token =
   | TDivide
   | TDoubleDivide
   | TModulo
-  | TEquals
   | TFun
   | TArrow
   | TLet
+  | TEquals
   | TIn
   | TType
   | TCase

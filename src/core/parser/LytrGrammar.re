@@ -34,17 +34,26 @@ type close_token_result =
   | Closed
   | Unclosed;
 
-let unclosed_tokens = [BOF, TOP, TLet, TEquals, TType, TCase, TPipe, TDoubleArrow];
+let unclosed_tokens = [
+  BOF,
+  TOP,
+  TLet,
+  TEquals,
+  TType,
+  TCase,
+  TPipe,
+  TDoubleArrow,
+];
 
 let close_token = (te: token_entry): close_token_result =>
-    List.mem(te, unclosed_tokens) ? Unclosed : Closed;
+  List.mem(te, unclosed_tokens) ? Unclosed : Closed;
 
-type prec = 
-    | Interior // never relevent, always matches over
-    | Uninterested // can't have a child
-    | Precedence(float); 
+type prec =
+  | Interior // never relevent, always matches over
+  | Uninterested // can't have a child
+  | Precedence(float);
 
-let prec (t : token) : (prec, prec) =
+let prec = (t: token): (prec, prec) =>
   switch (t) {
   | BOF => (Uninterested, Interior)
   | EOF => (Interior, Uninterested)
@@ -73,29 +82,29 @@ type compare_tokens_result =
   | Shift // first thing wants the second as a child
   | Reduce // second thing wants the first as a child
   | Roll; // neither can be the other's child
-  // Fuse // for associative operators
+// Fuse // for associative operators
 
 /* Precondition: t1 ends a form and t2 starts a form */
 let compare_tokens = (t1: token, t2: token): compare_tokens_result => {
-    let (_, prec1_r) = prec(t1);
-    let (prec2_l, _) = prec(t2);
-    switch (prec1_r, prec2_l) {
-    | (Precedence(p1), Precedence(p2)) =>
-        if (p1 < p2) {
-            Shift
-        } else if (p1 > p2) {
-            Reduce
-        } else {
-            // Roll?
-            failwith("impossible: precedence collision")
-        }
-    | (Uninterested, Precedence(_)) => Reduce
-    | (Precedence(_), Uninterested) => Shift
-    | (Uninterested, Uninterested) => Roll
-    | (Interior, _)
-    | (_, Interior) => failwith("impossible: precondition violated")
+  let (_, prec1_r) = prec(t1);
+  let (prec2_l, _) = prec(t2);
+  switch (prec1_r, prec2_l) {
+  | (Precedence(p1), Precedence(p2)) =>
+    if (p1 < p2) {
+      Shift;
+    } else if (p1 > p2) {
+      Reduce;
+    } else {
+      // Roll?
+      failwith("impossible: precedence collision");
     }
-}
+  | (Uninterested, Precedence(_)) => Reduce
+  | (Precedence(_), Uninterested) => Shift
+  | (Uninterested, Uninterested) => Roll
+  | (Interior, _)
+  | (_, Interior) => failwith("impossible: precondition violated")
+  };
+};
 
 type wants_left_child_result =
   | Yes
@@ -103,10 +112,8 @@ type wants_left_child_result =
 
 /* need only consider when t starts a form */
 let wants_left_child = (t: token): wants_left_child_result =>
-  switch (t) {
-  | TOP => No
-  | TTimes => Yes
-  | TMinus => Yes
-  | TAtom(_) => No
-  | _ => No /* impossible fallthrough */
+  switch (prec(t)) {
+  | (Interior, _)
+  | (Uninterested, _) => No
+  | (Precedence(_), _) => Yes
   };
