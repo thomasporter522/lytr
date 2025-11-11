@@ -150,7 +150,7 @@ open Tylr_core;
 
 let editor_view = (model: Model.t) => {
   let text = model.buffer.text;
-  let parsed = LytrParser.parse(LytrLexer.lex(text));
+  let parsed = LytrAbstractor.go(LytrLexer.lex(text));
   let cursor = model.buffer.cursor;
   let len = String.length(text);
   let cursor_pos = max(0, min(cursor, len));

@@ -6,7 +6,16 @@ type init_token_result =
   | NoInit
   | Init;
 
-let non_initial_tokens = [EOF, TCP, TEquals, TIn, TPipe, TDoubleArrow, TEnd];
+let non_initial_tokens = [
+  EOF,
+  TCP,
+  TArrow,
+  TEquals,
+  TIn,
+  TPipe,
+  TDoubleArrow,
+  TEnd,
+];
 
 let init_token = (t: token): init_token_result =>
   List.mem(t, non_initial_tokens) ? NoInit : Init;
@@ -22,6 +31,7 @@ let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
   | (TFun, TArrow) => Match
   | (TLet, TEquals) => Match
   | (TEquals, TIn) => Match
+  | (TType, TEquals) => Match
   | (TCase, TEnd) => Match
   | (TCase, TPipe) => Match
   | (TPipe, TDoubleArrow) => Match
@@ -37,6 +47,7 @@ type close_token_result =
 let unclosed_tokens = [
   BOF,
   TOP,
+  TFun,
   TLet,
   TEquals,
   TType,
@@ -67,7 +78,7 @@ let prec = (t: token): (prec, prec) =>
   | TDoubleDivide => (Precedence(2.1), Precedence(1.9))
   | TModulo => (Precedence(2.1), Precedence(1.9))
   | TFun => (Uninterested, Interior)
-  | TArrow => (Interior, Interior)
+  | TArrow => (Interior, Precedence(0.))
   | TLet => (Uninterested, Interior)
   | TEquals => (Interior, Interior)
   | TIn => (Interior, Precedence(0.))

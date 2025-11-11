@@ -1,5 +1,6 @@
 open Virtual_dom.Vdom;
 open Tylr_core;
+open LytrAbstractor;
 
 /* Create styled view nodes that mimic the rich token system */
 let mk_styled_token = (~text, ~classes, ()) => {
@@ -91,17 +92,16 @@ let rec intersperse_grout = (~font, nodes: list(Node.t)): list(Node.t) =>
   };
 
 /* Convert LytrParser terms to styled nodes WITHOUT grout interspersion */
-let rec view_lytr_terms_no_grout =
-        (~font, terms: LytrParser.terms): list(Node.t) =>
+let rec view_lytr_terms_no_grout = (~font, terms: terms): list(Node.t) =>
   switch (terms) {
-  | LytrParser.Nil => []
-  | LytrParser.Cons(rest, sharded) =>
+  | Nil => []
+  | Cons(rest, sharded) =>
     view_lytr_terms_no_grout(~font, rest)
     @ [view_lytr_sharded(~font, sharded)]
   }
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
-and view_lytr_terms = (~font, terms: LytrParser.terms): list(Node.t) => {
+and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
   let nodes = view_lytr_terms_no_grout(~font, terms);
   if (List.length(nodes) == 0) {
     [mk_hole(~font, ())];
@@ -110,25 +110,24 @@ and view_lytr_terms = (~font, terms: LytrParser.terms): list(Node.t) => {
   };
 }
 
-and view_lytr_sharded =
-    (~font, sharded: LytrParser.sharded(LytrParser.term)): Node.t =>
+and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
-  | LytrParser.Shard(token) =>
+  | Shard(token) =>
     let text = LytrToken.string_of_token(token);
     mk_error_token(~text, ());
-  | LytrParser.Form(term) => view_lytr_term(~font, term)
+  | Form(term) => view_lytr_term(~font, term)
   }
 
-and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
+and view_lytr_term = (~font, term: term): Node.t =>
   switch (term) {
-  | LytrParser.Parens(inner_terms) =>
+  | Parens(inner_terms) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-parens")],
       [mk_paren_token(~text="(", ())]
       @ view_lytr_terms(~font, inner_terms)
       @ [mk_paren_token(~text=")", ())],
     )
-  | LytrParser.Binop(binop, left, right) =>
+  | Binop(binop, left, right) =>
     let op_text =
       switch (binop) {
       | Plus => "+"
@@ -146,7 +145,7 @@ and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
         view_lytr_child(~font, right),
       ],
     );
-  | LytrParser.Unop(unop, child) =>
+  | Unop(unop, child) =>
     let op_text =
       switch (unop) {
       | Minus => "-"
@@ -155,22 +154,22 @@ and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
       ~attrs=[Attr.class_("lytr-unop")],
       [mk_operator_token(~text=op_text, ()), view_lytr_child(~font, child)],
     );
-  | LytrParser.Atom(atom) =>
+  | Atom(atom) =>
     switch (atom) {
     | Unlexed(s) => mk_unlexed_token(~text=s, ())
     | _ =>
       let text = LytrToken.string_of_atom(atom);
       mk_atom_token(~text, ());
     }
-  | LytrParser.Fun(params, body) =>
+  | Fun(params, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-fun")],
-      [mk_atom_token(~text="fun", ())]
+      [mk_atom_token(~text="fun ", ())]
       @ view_lytr_terms(~font, params)
-      @ [mk_operator_token(~text="=>", ())]
+      @ [mk_operator_token(~text=" -> ", ())]
       @ [view_lytr_child(~font, body)],
     )
-  | LytrParser.Ap(func, args) =>
+  | Ap(func, args) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-ap")],
       [view_lytr_child(~font, func)]
@@ -178,27 +177,29 @@ and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
       @ view_lytr_terms(~font, args)
       @ [mk_paren_token(~text=")", ())],
     )
-  | LytrParser.Let(bindings, body_terms, body) =>
+  | Let(bindings, body_terms, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-let")],
       [mk_atom_token(~text="let ", ())]
       @ view_lytr_terms(~font, bindings)
       @ [mk_atom_token(~text=" = ", ())]
       @ view_lytr_terms(~font, body_terms)
-      @ [mk_atom_token(~text=" in", ())]
+      @ [mk_atom_token(~text=" in ", ())]
+      @ [Node.br()]
       @ [view_lytr_child(~font, body)],
     )
-  | LytrParser.Type(type_params, type_body, body) =>
+  | Type(type_params, type_body, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-type")],
-      [mk_atom_token(~text="type", ())]
+      [mk_atom_token(~text="type ", ())]
       @ view_lytr_terms(~font, type_params)
-      @ [mk_operator_token(~text="=", ())]
+      @ [mk_operator_token(~text=" = ", ())]
       @ view_lytr_terms(~font, type_body)
-      @ [mk_atom_token(~text="in", ())]
+      @ [mk_atom_token(~text=" in ", ())]
+      @ [Node.br()]
       @ [view_lytr_child(~font, body)],
     )
-  | LytrParser.Case(scrutinee, branches) =>
+  | Case(scrutinee, branches) =>
     let branch_nodes =
       List.map(
         ((pattern, body)) =>
@@ -219,17 +220,17 @@ and view_lytr_term = (~font, term: LytrParser.term): Node.t =>
       @ branch_nodes
       @ [mk_atom_token(~text="end", ())],
     );
-  | LytrParser.DEBUG => mk_error_token(~text="DEBUG", ())
+  | DEBUG => mk_error_token(~text="DEBUG", ())
   }
 
-and view_lytr_child = (~font, child: LytrParser.child): Node.t =>
+and view_lytr_child = (~font, child: child): Node.t =>
   switch (child) {
-  | LytrParser.Hole => mk_hole(~font, ())
-  | LytrParser.Term(term) => view_lytr_term(~font, term)
+  | Hole => mk_hole(~font, ())
+  | Term(term) => view_lytr_term(~font, term)
   };
 
 /* Rich view function using styled tokens */
-let view_lytr_text = (~font, terms: LytrParser.terms): Node.t => {
+let view_lytr_text = (~font, terms: terms): Node.t => {
   let styled_line = view_lytr_terms(~font, terms);
   Node.div(
     ~attrs=[Attr.classes(["block", "lytr-block"])],
@@ -238,27 +239,25 @@ let view_lytr_text = (~font, terms: LytrParser.terms): Node.t => {
 };
 
 /* Fallback simple view function */
-let rec view_lytr_terms = (~font, terms: LytrParser.terms): list(Node.t) =>
+let rec view_lytr_terms = (~font, terms: terms): list(Node.t) =>
   switch (terms) {
-  | LytrParser.Nil => []
-  | LytrParser.Cons(rest, sharded) =>
+  | Nil => []
+  | Cons(rest, sharded) =>
     view_lytr_terms(~font, rest) @ [view_lytr_sharded(~font, sharded)]
   }
 
-and view_lytr_sharded =
-    (~font, sharded: LytrParser.sharded(LytrParser.term)): Node.t =>
+and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
-  | LytrParser.Shard(token) =>
+  | Shard(token) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-shard")],
       [Node.text("💥" ++ LytrToken.string_of_token(token) ++ "💥")],
     )
-  | LytrParser.Form(term) => view_lytr_term(~font, term)
+  | Form(term) => view_lytr_term(~font, term)
   }
 
-and view_lytr_child = (~font, child: LytrParser.child): Node.t =>
+and view_lytr_child = (~font, child: child): Node.t =>
   switch (child) {
-  | LytrParser.Hole =>
-    Node.span(~attrs=[Attr.class_("lytr-hole")], [Node.text("?")])
-  | LytrParser.Term(term) => view_lytr_term(~font, term)
+  | Hole => Node.span(~attrs=[Attr.class_("lytr-hole")], [Node.text("?")])
+  | Term(term) => view_lytr_term(~font, term)
   };
