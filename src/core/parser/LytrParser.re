@@ -1,7 +1,7 @@
 open LytrGrammar;
 
 // lists that grow on the right
-// used so that the left-right order in this code matches 
+// used so that the left-right order in this code matches
 // the left-right order of the parsed object code
 type listr('a) =
   | Nil
@@ -33,7 +33,6 @@ type partial_form =
   | Head(primary_token)
   | Match(partial_form, listr(sharded(partial_form)), primary_token);
 
-
 // a complete matched syntactic form
 type closed_form =
   | Head(primary_token)
@@ -41,7 +40,7 @@ type closed_form =
 
 // a complete matched syntactic form with (possible) children on the left and right
 and open_form =
-  | OForm(option(open_form), closed_form, option(open_form))
+  | OForm(option(open_form), closed_form, option(open_form));
 
 // a complete matched syntactic form with a (possible) child on the left
 type half_open_form =
@@ -77,7 +76,7 @@ let face_of_half_open_form = (hof: half_open_form): primary_token =>
   };
 
 /* matching phase */
-// In this phase, matching relationships are established between tokens. 
+// In this phase, matching relationships are established between tokens.
 // Precedence is not brought into play yet. The main function is [match_parse]
 
 let rec shatter_partial_form =
@@ -88,49 +87,36 @@ let rec shatter_partial_form =
     appendr(shatter_partial_form(f), Cons(is, Shard(te)))
   };
 
-let appendr_secondary =
-    (secondary: listr(secondary_token), l: listr(sharded('a))) => {
-  appendr(mapr(se => Secondary(se), secondary), l);
-};
-
 // this flattens a partial form that appeared on the stack
 // it is called when a match has been found that spans over the form,
-// and as such such the partial form has no further chance to be extended. 
-// So if it's complete, it stays itself. Otherwise, it is shattered into 
-// its constitutents. 
+// and as such such the partial form has no further chance to be extended.
+// So if it's complete, it stays itself. Otherwise, it is shattered into
+// its constitutents.
 
-let flatten_partial_form =
-    (secondary: listr(secondary_token), f: partial_form)
-    : listr(sharded(partial_form)) =>
+let flatten_partial_form = (f: partial_form): listr(sharded(partial_form)) =>
   is_valid_end(face_of_partial_form(f))
-    ? sing(Form(f)) : appendr_secondary(secondary, shatter_partial_form(f));
+    ? sing(Form(f)) : shatter_partial_form(f);
 
 // flattening a stack involved flattening all partial forms on the stack
 
 let rec flatten =
-        (
-          secondary: listr(secondary_token),
-          spfs: list(sharded(partial_form)),
-        )
-        : listr(sharded(partial_form)) =>
+        (spfs: list(sharded(partial_form))): listr(sharded(partial_form)) =>
   switch (spfs) {
   | [] => Nil
-  | [Secondary(se), ...s] => flatten(Cons(secondary, se), s)
-  | [Shard(t), ...s] =>
-    appendr_secondary(secondary, appendr(sing(Shard(t)), flatten(Nil, s)))
-  | [Form(f), ...s] =>
-    appendr(flatten_partial_form(secondary, f), flatten(Nil, s))
+  | [Secondary(se), ...s] => appendr(sing(Secondary(se)), flatten(s))
+  | [Shard(t), ...s] => appendr(sing(Shard(t)), flatten(s))
+  | [Form(f), ...s] => appendr(flatten_partial_form(f), flatten(s))
   };
 
 type match_stack_result =
   | NoMatch
   | Match(listr(sharded(partial_form)));
 
-// This is where a token searches for a match on the stack. 
+// This is where a token searches for a match on the stack.
 // It also keeps an accumulator of the part of the stack that has
-// been skipped over during this search. 
-// If a match is found, the skipped part is "flattened" and 
-// placed between the new betrothed couple in the new extended partial form. 
+// been skipped over during this search.
+// If a match is found, the skipped part is "flattened" and
+// placed between the new betrothed couple in the new extended partial form.
 
 let rec match_stack =
         (
@@ -148,15 +134,15 @@ let rec match_stack =
   | Cons(rest, Form(f)) =>
     switch (match_token(face_of_partial_form(f), t)) {
     | NoMatch => match_stack(rest, t, [Form(f), ...s_skipped])
-    | Match => Match(Cons(rest, Form(Match(f, flatten(Nil, s_skipped), t))))
+    | Match => Match(Cons(rest, Form(Match(f, flatten(s_skipped), t))))
     }
   };
 
 // The stack is a list of partial forms (or shards or secondary)
 // Tokens are pushed on one after another onto the right
 // Tokens look for a match on the stack.
-// If one is not found, it becomes a shard. 
-// If one is found, it fuses to that form, rolling up the intermediate stack segment. 
+// If one is not found, it becomes a shard.
+// If one is found, it fuses to that form, rolling up the intermediate stack segment.
 
 let match_push =
     (s: listr(sharded(partial_form)), t: token)
@@ -193,14 +179,14 @@ let match_parse = (ts: list(token)): listr(sharded(partial_form)) => {
 
 /* operatorize phase */
 
-// In this phase, operator precedence is used to give matched forms 
-// their left and right children: their open children, as opposed to 
-// their closed children which lie between matched tokens of the form. 
+// In this phase, operator precedence is used to give matched forms
+// their left and right children: their open children, as opposed to
+// their closed children which lie between matched tokens of the form.
 
-// It is a "shift-reduce-roll" parser, with that last option indicating 
-// that neither of the compared faces can take the other as a child, 
-// and that the two pieces must simply stay at arms length in a 
-// "multiterm" - a list of terms that occupy the same closed child position. 
+// It is a "shift-reduce-roll" parser, with that last option indicating
+// that neither of the compared faces can take the other as a child,
+// and that the two pieces must simply stay at arms length in a
+// "multiterm" - a list of terms that occupy the same closed child position.
 
 type compare_tokens_result =
   | Shift // first thing wants the second as a child
@@ -243,38 +229,41 @@ let wants_left_child = (t: primary_token): wants_left_child_result =>
   | (Precedence(_), _) => Yes
   };
 
+// type stack_entry =
+//   | SEForm(half_open_form)
+//   | SESecondary(secondary_token)
+
 type op_state =
-  | OS(listr(open_form), list(half_open_form));
+  | OS(listr(open_form), listr(half_open_form));
 
 let rec op_state_roll =
         (os: op_state, acc: option(open_form)): listr(open_form) =>
   switch (os, acc) {
-  | (OS(fs, []), None) => fs
-  | (OS(fs, []), Some(acc)) => Cons(fs, acc)
-  | (OS(fs, [HOForm(l, f), ...s]), acc) =>
+  | (OS(fs, Nil), None) => fs
+  | (OS(fs, Nil), Some(acc)) => Cons(fs, acc)
+  | (OS(fs, Cons(s, HOForm(l, f))), acc) =>
     op_state_roll(OS(fs, s), Some(OForm(l, f, acc)))
   };
 
-/* the top "with" clause might be unnecessary if acc is not nothing */
 let rec op_parse =
         (os: op_state, acc: option(open_form), f: closed_form): op_state =>
   switch (os) {
-  | OS(fs, []) =>
+  | OS(fs, Nil) =>
     switch (wants_left_child(head_of(f)), acc) {
-    | (Yes, _) => OS(fs, [HOForm(acc, f)])
-    | (No, None) => OS(fs, [HOForm(None, f)])
-    | (No, Some(acc)) => OS(Cons(fs, acc), [HOForm(None, f)])
+    | (Yes, _) => OS(fs, sing(HOForm(acc, f)))
+    | (No, None) => OS(fs, sing(HOForm(None, f)))
+    | (No, Some(acc)) => OS(Cons(fs, acc), sing(HOForm(None, f)))
     }
-  | OS(fs, [f1, ...s]) =>
+  | OS(fs, Cons(s, f1)) =>
     switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
-    | Shift => OS(fs, [HOForm(acc, f), f1, ...s])
+    | Shift => OS(fs, Cons(Cons(s, f1), HOForm(acc, f)))
     | Reduce =>
       switch (f1) {
       | HOForm(l, f1_inner) =>
         op_parse(OS(fs, s), Some(OForm(l, f1_inner, acc)), f)
       }
     | Roll =>
-      OS(op_state_roll(OS(fs, [f1, ...s]), acc), [HOForm(None, f)])
+      OS(op_state_roll(OS(fs, Cons(s, f1)), acc), sing(HOForm(None, f)))
     }
   };
 
@@ -306,8 +295,12 @@ and op_parse_step =
     (s: sharded_op_state, scf: sharded(closed_form)): sharded_op_state =>
   switch (scf) {
   | Secondary(se) =>
-    SOS(Cons(sharded_op_state_roll(s), Secondary(se)), OS(Nil, []))
-  | Shard(t) => SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, []))
+    switch (s) {
+    | SOS(fs1, OS(fs2, hfs)) =>
+      SOS(fs1, OS(fs2, Cons(hfs, HOForm(None, Head(TMinus)))))
+    }
+  | Shard(t) =>
+    SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, Nil))
   | Form(f) =>
     switch (s) {
     | SOS(fs, os) => SOS(fs, op_parse(os, None, f))
@@ -325,4 +318,4 @@ and op_parse_steps =
 
 and operatorize =
     (fs: listr(sharded(partial_form))): listr(sharded(open_form)) =>
-  sharded_op_state_roll(op_parse_steps(SOS(Nil, OS(Nil, [])), fs));
+  sharded_op_state_roll(op_parse_steps(SOS(Nil, OS(Nil, Nil)), fs));

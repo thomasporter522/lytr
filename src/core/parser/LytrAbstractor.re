@@ -36,7 +36,7 @@ and term =
   | DEBUG;
 
 let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
-  map_r(abstract_sharded, fs)
+  mapr(abstract_sharded, fs)
 
 and abstract_child = (form: option(open_form)): child =>
   switch (form) {
