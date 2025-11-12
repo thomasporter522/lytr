@@ -32,6 +32,8 @@ and term =
   | Type(terms, terms, child)
   | Case(terms, list((terms, terms)))
   | If(terms, terms, child)
+  | Asc(child, child)
+  | Arrow(child, child)
   | DEBUG;
 
 let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
@@ -83,6 +85,10 @@ and abstract_form = (form: open_form): term =>
     Binop(DoubleDivide, abstract_child(l), abstract_child(r))
   | OForm(l, Head(TModulo), r) =>
     Binop(Modulo, abstract_child(l), abstract_child(r))
+  // other infix forms
+  | OForm(l, Head(TColon), r) => Asc(abstract_child(l), abstract_child(r))
+  | OForm(l, Head(TArrow), r) =>
+    Arrow(abstract_child(l), abstract_child(r))
 
   // keyword forms
   | OForm(None, Match(Head(TFun), is, TArrow), r) =>
@@ -91,12 +97,9 @@ and abstract_form = (form: open_form): term =>
     Let(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
   | OForm(None, Match(Match(Head(TType), is1, TEquals), is2, TIn), r) =>
     Type(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
-
-  // todo: cases
   | OForm(None, Match(form, is, TEnd), None) =>
     let (scrutinee, cases) = extract_case_branches(form, is);
     Case(scrutinee, cases);
-
   | OForm(None, Match(Match(Head(TIf), is1, TThen), is2, TElse), r) =>
     If(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
 

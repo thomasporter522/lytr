@@ -34,7 +34,8 @@ type token =
   | TEnd
   | TIf
   | TThen
-  | TElse;
+  | TElse
+  | TColon;
 
 type token_entry = token;
 
@@ -60,7 +61,7 @@ let is_valid_start_end = (t: token): (is_valid_start, is_valid_end) => {
   | TDoubleDivide => (ValidStart, ValidEnd)
   | TModulo => (ValidStart, ValidEnd)
   | TFun => (ValidStart, NotValidEnd)
-  | TArrow => (NotValidStart, ValidEnd)
+  | TArrow => (ValidStart, ValidEnd)
   | TLet => (ValidStart, NotValidEnd)
   | TEquals => (NotValidStart, NotValidEnd)
   | TIn => (NotValidStart, ValidEnd)
@@ -72,6 +73,7 @@ let is_valid_start_end = (t: token): (is_valid_start, is_valid_end) => {
   | TIf => (ValidStart, NotValidEnd)
   | TThen => (NotValidStart, NotValidEnd)
   | TElse => (NotValidStart, ValidEnd)
+  | TColon => (ValidStart, ValidEnd)
   };
 };
 
@@ -122,7 +124,7 @@ let prec = (t: token): (prec, prec) =>
   | TDoubleDivide => (Precedence(2.1), Precedence(1.9))
   | TModulo => (Precedence(2.1), Precedence(1.9))
   | TFun => (Uninterested, Interior)
-  | TArrow => (Interior, Precedence(0.))
+  | TArrow => (Precedence(0.1), Precedence(0.))
   | TLet => (Uninterested, Interior)
   | TEquals => (Interior, Interior)
   | TIn => (Interior, Precedence(0.))
@@ -134,4 +136,5 @@ let prec = (t: token): (prec, prec) =>
   | TIf => (Uninterested, Interior)
   | TThen => (Interior, Interior)
   | TElse => (Interior, Precedence(0.))
+  | TColon => (Precedence(0.5), Precedence(0.5))
   };

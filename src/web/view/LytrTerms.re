@@ -29,6 +29,7 @@ let string_of_token = (t: token) =>
   | TIf => "if"
   | TThen => "then"
   | TElse => "else"
+  | TColon => ":"
   };
 
 /* Create styled view nodes that mimic the rich token system */
@@ -286,6 +287,20 @@ and view_lytr_term = (~font, term: term): Node.t =>
       @ view_lytr_terms(~font, terms2)
       @ [mk_atom_token(~text=" else ", ())]
       @ [view_lytr_child(~font, child)],
+    )
+  | Asc(c1, c2) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-asc")],
+      [view_lytr_child(~font, c1)]
+      @ [mk_atom_token(~text=" : ", ())]
+      @ [view_lytr_child(~font, c2)],
+    )
+  | Arrow(c1, c2) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-asc")],
+      [view_lytr_child(~font, c1)]
+      @ [mk_atom_token(~text=" -> ", ())]
+      @ [view_lytr_child(~font, c2)],
     )
   | DEBUG => mk_error_token(~text="DEBUG", ())
   }

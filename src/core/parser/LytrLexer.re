@@ -38,6 +38,7 @@ let rec lex_chars = (chars: list(char)): list(token) =>
   | ['=', '>', ...rest] => [TDoubleArrow, ...lex_chars(rest)]
   | ['=', ...rest] => [TEquals, ...lex_chars(rest)]
   | ['|', ...rest] => [TPipe, ...lex_chars(rest)]
+  | [':', ...rest] => [TColon, ...lex_chars(rest)]
   | [c, ...rest] when is_digit(c) =>
     /* Collect numeric sequence */
     let (num, remaining) = collect_number([c], rest);
