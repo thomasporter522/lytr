@@ -177,7 +177,7 @@ and open_form =
 
 // a complete matched syntactic form with a (possible) child on the left
 type half_open_form =
-  | HOForm(option(open_form), secondaries, closed_form);
+  | HOForm(option(open_form), secondaries, closed_form, secondaries);
 
 let rec head_of = (cf: closed_form): primary_token =>
   switch (cf) {
@@ -193,7 +193,7 @@ let face_of_form = (cf: closed_form): primary_token =>
 
 let face_of_half_open_form = (hof: half_open_form): primary_token =>
   switch (hof) {
-  | HOForm(_, _, f) => face_of_form(f)
+  | HOForm(_, _, f, _) => face_of_form(f)
   };
 
 type compare_tokens_result =
@@ -249,9 +249,9 @@ let rec op_state_roll =
   switch (os, acc) {
   | (OS(fs, Nil), None) => fs
   | (OS(fs, Nil), Some(acc)) => Cons(fs, acc)
-  | (OS(fs, Cons(s, HOForm(l, se, f))), acc) =>
+  | (OS(fs, Cons(s, HOForm(l, se1, f, se2))), acc) =>
     // print_endline("rollin!");
-    op_state_roll(OS(fs, s), Some(OForm(l, se, f, Nil, acc)))
+    op_state_roll(OS(fs, s), Some(OForm(l, se1, f, se2, acc)))
   };
 
 let rec op_parse =
@@ -266,37 +266,52 @@ let rec op_parse =
   switch (os) {
   | OS(fs, Nil) =>
     switch (wants_left_child(head_of(f)), acc) {
-    | (Yes, _) => OS(fs, sing(HOForm(acc, se_acc2, f)))
-    | (No, None) => OS(fs, sing(HOForm(None, Nil, f)))
-    | (No, Some(acc)) => OS(Cons(fs, acc), sing(HOForm(None, Nil, f)))
+    | (Yes, _) => OS(fs, sing(HOForm(acc, se_acc2, f, Nil)))
+    | (No, None) => OS(fs, sing(HOForm(None, Nil, f, Nil)))
+    | (No, Some(acc)) =>
+      OS(Cons(fs, acc), sing(HOForm(None, Nil, f, Nil)))
     }
   | OS(fs, Cons(s, f1)) =>
     switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
-    | Shift => OS(fs, Cons(Cons(s, f1), HOForm(acc, se_acc2, f)))
+    | Shift =>
+      switch (f1) {
+      | HOForm(l, se1, f1_inner, se2) =>
+        OS(
+          fs,
+          Cons(
+            Cons(s, HOForm(l, se1, f1_inner, appendr(se2, se_acc1))),
+            HOForm(acc, se_acc2, f, Nil),
+          ),
+        )
+      }
     | Reduce =>
       switch (f1, acc) {
-      | (HOForm(l, se, f1_inner), None) =>
+      | (HOForm(l, se1, f1_inner, se2), None) =>
         op_parse(
           OS(fs, s),
           Nil,
-          Some(OForm(l, se, f1_inner, Nil, None)),
-          appendr(se_acc1, se_acc2),
+          Some(OForm(l, se1, f1_inner, Nil, None)),
+          appendr(se2, appendr(se_acc1, se_acc2)),
           f,
         )
-      | (HOForm(l, se, f1_inner), Some(acc)) =>
+      | (HOForm(l, se1, f1_inner, se2), Some(acc)) =>
         op_parse(
           OS(fs, s),
           Nil,
-          Some(OForm(l, se, f1_inner, se_acc1, Some(acc))),
+          Some(OForm(l, se1, f1_inner, appendr(se2, se_acc1), Some(acc))),
           se_acc2,
           f,
         )
       }
     | Roll =>
-      OS(
-        op_state_roll(OS(fs, Cons(s, f1)), acc),
-        sing(HOForm(None, Nil, f)),
-      )
+      // need to use acc1 and acc2 somewhere
+      switch (f1) {
+      | HOForm(_) =>
+        OS(
+          op_state_roll(OS(fs, Cons(s, f1)), acc),
+          sing(HOForm(None, Nil, f, Nil)),
+        )
+      }
     }
   };
 
@@ -308,7 +323,7 @@ let sharded_op_state_roll =
   switch (sos) {
   | SOS(fs, s, se) =>
     appendr(
-      appendr(fs, mapr(form => Form(form), op_state_roll(s, None))),
+      appendr(fs, mapr(f => Form(f), op_state_roll(s, None))),
       mapr(se => Secondary(se), se),
     )
   };
