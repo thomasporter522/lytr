@@ -1,13 +1,8 @@
-type secondary =
-  | Whitespace(string)
-  | Unlexed(string);
-
 type atom =
   | Numlit(int)
-  | Identifier(string)
-  | Secondary(secondary);
+  | Identifier(string);
 
-type token =
+type primary_token =
   | BOF // beginning of file
   | EOF // end of file
   | TOP // open parens
@@ -35,14 +30,20 @@ type token =
   | TColon
   | TComma;
 
-type token_entry = token;
+type secondary_token =
+  | Whitespace(string)
+  | Unlexed(string);
+
+type token =
+  | Primary(primary_token)
+  | Secondary(secondary_token);
 
 type prec =
   | Interior // never relevent, always matches over
   | Uninterested // can't have a child
   | Precedence(float);
 
-let prec = (t: token): (prec, prec) =>
+let prec = (t: primary_token): (prec, prec) =>
   switch (t) {
   | BOF => (Uninterested, Interior)
   | EOF => (Interior, Uninterested)
@@ -76,7 +77,7 @@ type match_token_result =
   | Match
   | NoMatch;
 
-let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
+let match_token = (te1: primary_token, te2: primary_token): match_token_result =>
   switch (te1, te2) {
   | (BOF, EOF) => Match
   | (TOP, TCP) => Match
@@ -97,6 +98,6 @@ let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
   | (_, _) => NoMatch /* fallthrough */
   };
 
-let is_valid_start = (t: token): bool => fst(prec(t)) != Interior;
+let is_valid_start = (t: primary_token): bool => fst(prec(t)) != Interior;
 
-let is_valid_end = (te: token_entry): bool => snd(prec(te)) != Interior;
+let is_valid_end = (te: primary_token): bool => snd(prec(te)) != Interior;

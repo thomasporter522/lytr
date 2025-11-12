@@ -3,7 +3,7 @@ open Tylr_core;
 open LytrGrammar;
 open LytrAbstractor;
 
-let string_of_secondary = (s: secondary) =>
+let string_of_secondary_token = (s: secondary_token) =>
   switch (s) {
   | Whitespace(s) => s
   | Unlexed(s) => s
@@ -13,10 +13,9 @@ let string_of_atom = (a: atom) =>
   switch (a) {
   | Numlit(n) => string_of_int(n)
   | Identifier(s) => s
-  | Secondary(s) => string_of_secondary(s)
   };
 
-let string_of_token = (t: token) =>
+let string_of_primary_token = (t: primary_token) =>
   switch (t) {
   | BOF => "#"
   | EOF => "#"
@@ -44,6 +43,12 @@ let string_of_token = (t: token) =>
   | TElse => "else"
   | TColon => ":"
   | TComma => ","
+  };
+
+let string_of_token = (t: token) =>
+  switch (t) {
+  | Primary(t) => string_of_primary_token(t)
+  | Secondary(s) => string_of_secondary_token(s)
   };
 
 /* Create styled view nodes that mimic the rich token system */
@@ -124,8 +129,11 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
 
 and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
+  | Secondary(token) =>
+    let text = string_of_secondary_token(token);
+    mk_atom_token(~text, ());
   | Shard(token) =>
-    let text = string_of_token(token);
+    let text = string_of_primary_token(token);
     mk_error_token(~text, ());
   | Form(term) => view_lytr_term(~font, term)
   }
@@ -184,17 +192,8 @@ and view_lytr_term = (~font, term: term): Node.t =>
       [mk_operator_token(~text=op_text, ()), view_lytr_child(~font, child)],
     );
   | Atom(atom) =>
-    switch (atom) {
-    | Secondary(s) =>
-      let text = string_of_secondary(s);
-      switch (s) {
-      | Whitespace(_) => mk_styled_token(~text, ~classes=["whitespace"], ())
-      | Unlexed(_) => mk_unlexed_token(~text, ())
-      };
-    | _ =>
-      let text = string_of_atom(atom);
-      mk_atom_token(~text, ());
-    }
+    let text = string_of_atom(atom);
+    mk_atom_token(~text, ());
   | Fun(params, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-fun")],

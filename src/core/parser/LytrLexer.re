@@ -25,29 +25,29 @@ let is_alphanum = (c: char): bool =>
 let rec lex_chars = (chars: list(char)): list(token) =>
   switch (chars) {
   | [] => []
-  | ['(', ...rest] => [TOP, ...lex_chars(rest)]
-  | [')', ...rest] => [TCP, ...lex_chars(rest)]
-  | [',', ...rest] => [TComma, ...lex_chars(rest)]
-  | ['+', ...rest] => [TPlus, ...lex_chars(rest)]
-  | ['-', '>', ...rest] => [TArrow, ...lex_chars(rest)]
-  | ['-', ...rest] => [TMinus, ...lex_chars(rest)]
-  | ['*', ...rest] => [TTimes, ...lex_chars(rest)]
-  | ['/', '/', ...rest] => [TDoubleDivide, ...lex_chars(rest)]
-  | ['/', ...rest] => [TDivide, ...lex_chars(rest)]
-  | ['%', ...rest] => [TModulo, ...lex_chars(rest)]
-  | ['=', '>', ...rest] => [TDoubleArrow, ...lex_chars(rest)]
-  | ['=', ...rest] => [TEquals, ...lex_chars(rest)]
-  | ['|', ...rest] => [TPipe, ...lex_chars(rest)]
-  | [':', ...rest] => [TColon, ...lex_chars(rest)]
+  | ['(', ...rest] => [Primary(TOP), ...lex_chars(rest)]
+  | [')', ...rest] => [Primary(TCP), ...lex_chars(rest)]
+  | [',', ...rest] => [Primary(TComma), ...lex_chars(rest)]
+  | ['+', ...rest] => [Primary(TPlus), ...lex_chars(rest)]
+  | ['-', '>', ...rest] => [Primary(TArrow), ...lex_chars(rest)]
+  | ['-', ...rest] => [Primary(TMinus), ...lex_chars(rest)]
+  | ['*', ...rest] => [Primary(TTimes), ...lex_chars(rest)]
+  | ['/', '/', ...rest] => [Primary(TDoubleDivide), ...lex_chars(rest)]
+  | ['/', ...rest] => [Primary(TDivide), ...lex_chars(rest)]
+  | ['%', ...rest] => [Primary(TModulo), ...lex_chars(rest)]
+  | ['=', '>', ...rest] => [Primary(TDoubleArrow), ...lex_chars(rest)]
+  | ['=', ...rest] => [Primary(TEquals), ...lex_chars(rest)]
+  | ['|', ...rest] => [Primary(TPipe), ...lex_chars(rest)]
+  | [':', ...rest] => [Primary(TColon), ...lex_chars(rest)]
   | [c, ...rest] when is_whitespace(c) => [
-      TAtom(Secondary(Whitespace(String.of_seq(List.to_seq([c]))))),
+      Secondary(Whitespace(String.of_seq(List.to_seq([c])))),
       ...lex_chars(rest),
     ]
   | [c, ...rest] when is_digit(c) =>
     /* Collect numeric sequence */
     let (num, remaining) = collect_number([c], rest);
     let num = int_of_string(String.of_seq(List.to_seq(List.rev(num))));
-    [TAtom(Numlit(num)), ...lex_chars(remaining)];
+    [Primary(TAtom(Numlit(num))), ...lex_chars(remaining)];
   | [c, ...rest] when is_letter(c) =>
     /* Collect identifier sequence */
     let (id, remaining) = collect_word([c], rest);
@@ -66,10 +66,10 @@ let rec lex_chars = (chars: list(char)): list(token) =>
       | "else" => TElse
       | _ => TAtom(Identifier(id_str))
       };
-    [token, ...lex_chars(remaining)];
+    [Primary(token), ...lex_chars(remaining)];
   | [c, ...rest] =>
     /* Unknown character - treat as unlexed atom */
-    [TAtom(Secondary(Unlexed(String.make(1, c)))), ...lex_chars(rest)]
+    [Secondary(Unlexed(String.make(1, c))), ...lex_chars(rest)]
   }
 
 /* Helper function to collect a numeric sequence */

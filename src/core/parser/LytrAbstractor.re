@@ -118,6 +118,7 @@ and abstract_form = (form: open_form): term =>
 
 and abstract_sharded = (sof: sharded(open_form)): sharded(term) =>
   switch (sof) {
+  | Secondary(s) => Secondary(s)
   | Shard(t) => Shard(t)
   | Form(f) => Form(abstract_form(f))
   };

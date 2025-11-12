@@ -19,19 +19,18 @@ let rec map_r = (f: 'a => 'b, l: listr('a)): listr('b) =>
   | Cons(rest, a) => Cons(map_r(f, rest), f(a))
   };
 
-let token_of = (te: token_entry): token => te;
-
 type sharded('a) =
-  | Shard(token)
+  | Secondary(secondary_token)
+  | Shard(primary_token)
   | Form('a);
 
 type partial_form =
-  | Head(token_entry)
-  | Match(partial_form, listr(sharded(partial_form)), token_entry);
+  | Head(primary_token)
+  | Match(partial_form, listr(sharded(partial_form)), primary_token);
 
 type closed_form =
-  | Head(token_entry)
-  | Match(closed_form, listr(sharded(open_form)), token_entry)
+  | Head(primary_token)
+  | Match(closed_form, listr(sharded(open_form)), primary_token)
 
 and open_form =
   | OForm(option(open_form), closed_form, option(open_form))
@@ -39,31 +38,31 @@ and open_form =
 and half_open_form =
   | HOForm(option(open_form), closed_form);
 
-let rec head_of = (cf: closed_form): token_entry =>
+let rec head_of = (cf: closed_form): primary_token =>
   switch (cf) {
   | Head(t) => t
   | Match(f, _is, _t) => head_of(f)
   };
 
-let rec head_of_partial_form = (pf: partial_form): token_entry =>
+let rec head_of_partial_form = (pf: partial_form): primary_token =>
   switch (pf) {
   | Head(t) => t
   | Match(f, _is, _t) => head_of_partial_form(f)
   };
 
-let face_of_partial_form = (pf: partial_form): token_entry =>
+let face_of_partial_form = (pf: partial_form): primary_token =>
   switch (pf) {
   | Head(t) => t
   | Match(_f, _is, t) => t
   };
 
-let face_of_form = (cf: closed_form): token_entry =>
+let face_of_form = (cf: closed_form): primary_token =>
   switch (cf) {
   | Head(t) => t
   | Match(_f, _is, t) => t
   };
 
-let face_of_half_open_form = (hof: half_open_form): token =>
+let face_of_half_open_form = (hof: half_open_form): primary_token =>
   switch (hof) {
   | HOForm(_, f) => face_of_form(f)
   };
@@ -73,9 +72,9 @@ let face_of_half_open_form = (hof: half_open_form): token =>
 let rec shatter_partial_form =
         (pf: partial_form): listr(sharded(partial_form)) =>
   switch (pf) {
-  | Head(te) => sing(Shard(token_of(te)))
+  | Head(te) => sing(Shard(te))
   | Match(f, is, te) =>
-    append(shatter_partial_form(f), Cons(is, Shard(token_of(te))))
+    append(shatter_partial_form(f), Cons(is, Shard(te)))
   };
 
 let flatten_partial_form = (f: partial_form): listr(sharded(partial_form)) =>
@@ -86,6 +85,7 @@ let rec flatten =
         (spfs: list(sharded(partial_form))): listr(sharded(partial_form)) =>
   switch (spfs) {
   | [] => Nil
+  | [Secondary(se), ...s] => append(sing(Secondary(se)), flatten(s))
   | [Shard(t), ...s] => append(sing(Shard(t)), flatten(s))
   | [Form(f), ...s] => append(flatten_partial_form(f), flatten(s))
   };
@@ -97,12 +97,14 @@ type match_stack_result =
 let rec match_stack =
         (
           s: listr(sharded(partial_form)),
-          t: token,
+          t: primary_token,
           s_prime: list(sharded(partial_form)),
         )
         : match_stack_result =>
   switch (s) {
   | Nil => NoMatch
+  | Cons(rest, Secondary(s)) =>
+    match_stack(rest, t, [Secondary(s), ...s_prime])
   | Cons(rest, Shard(t_prime)) =>
     match_stack(rest, t, [Shard(t_prime), ...s_prime])
   | Cons(rest, Form(f)) =>
@@ -113,18 +115,22 @@ let rec match_stack =
   };
 
 let match_stack_init =
-    (s: listr(sharded(partial_form)), t: token): match_stack_result =>
+    (s: listr(sharded(partial_form)), t: primary_token): match_stack_result =>
   match_stack(s, t, []);
 
 let match_push =
     (s: listr(sharded(partial_form)), t: token)
     : listr(sharded(partial_form)) =>
-  switch (match_stack_init(s, t)) {
-  | Match(s_prime) => s_prime
-  | NoMatch =>
-    switch (is_valid_start(t)) {
-    | false => Cons(s, Shard(t))
-    | true => Cons(s, Form(Head(t)))
+  switch (t) {
+  | Secondary(se) => Cons(s, Secondary(se))
+  | Primary(t) =>
+    switch (match_stack_init(s, t)) {
+    | Match(s_prime) => s_prime
+    | NoMatch =>
+      switch (is_valid_start(t)) {
+      | false => Cons(s, Shard(t))
+      | true => Cons(s, Form(Head(t)))
+      }
     }
   };
 
@@ -137,11 +143,11 @@ let rec match_pushes =
   };
 
 let match_parse = (ts: list(token)): listr(sharded(partial_form)) => {
-  let tokens = [BOF, ...List.append(ts, [EOF])];
+  let tokens = [Primary(BOF), ...List.append(ts, [Primary(EOF)])];
   let result = match_pushes(Nil, tokens);
   switch (result) {
   | Cons(Nil, Form(Match(Head(BOF), is, EOF))) => is
-  | _ => Nil /* impossible */
+  | _ => failwith("impossible matching")
   };
 };
 
@@ -154,7 +160,8 @@ type compare_tokens_result =
 // Fuse // for associative operators
 
 /* Precondition: t1 ends a form and t2 starts a form */
-let compare_tokens = (t1: token, t2: token): compare_tokens_result => {
+let compare_tokens =
+    (t1: primary_token, t2: primary_token): compare_tokens_result => {
   let (_, prec1_r) = prec(t1);
   let (prec2_l, _) = prec(t2);
   switch (prec1_r, prec2_l) {
@@ -180,7 +187,7 @@ type wants_left_child_result =
   | No;
 
 /* need only consider when t starts a form */
-let wants_left_child = (t: token): wants_left_child_result =>
+let wants_left_child = (t: primary_token): wants_left_child_result =>
   switch (prec(t)) {
   | (Interior, _)
   | (Uninterested, _) => No
@@ -241,6 +248,7 @@ let rec close_partial_form = (pf: partial_form): closed_form =>
 and close_sharded_partial_form =
     (spf: sharded(partial_form)): sharded(closed_form) =>
   switch (spf) {
+  | Secondary(s) => Secondary(s)
   | Shard(t) => Shard(t)
   | Form(f) => Form(close_partial_form(f))
   }
@@ -248,6 +256,8 @@ and close_sharded_partial_form =
 and op_parse_step =
     (s: sharded_op_state, scf: sharded(closed_form)): sharded_op_state =>
   switch (scf) {
+  | Secondary(se) =>
+    SOS(Cons(sharded_op_state_roll(s), Secondary(se)), OS(Nil, []))
   | Shard(t) => SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, []))
   | Form(f) =>
     switch (s) {
