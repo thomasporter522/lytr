@@ -672,17 +672,10 @@ svg {
 /* Term outline styling - provides visual boundary around each term */
 .lytr-term-outlined {
   display: inline-block;
-  border: 2px solid red !important; /* Very obvious red border for debugging */
+  border: 1px solid var(--grout-color) !important; /* Very obvious red border for debugging */
   border-radius: 3px;
-  margin: 2px;
-  padding: 2px 4px;
-  background-color: rgba(255, 255, 0, 0.2) !important; /* Yellow background */
-}
-
-.lytr-term-outlined:hover {
-  border-color: blue !important;
-  background-color: rgba(0, 255, 0, 0.3) !important; /* Green hover background */
-  box-shadow: 0 0 5px rgba(255, 0, 0, 0.8);
+  margin: 1px;
+  padding: 1px 1px;
 }
 
 .lytr-parens, .lytr-times, .lytr-minus, .lytr-negative {

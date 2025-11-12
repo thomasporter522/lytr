@@ -257,31 +257,38 @@ let rec op_state_roll =
 let rec op_parse =
         (
           os: op_state,
-          se_acc: secondaries,
+          se_acc1: secondaries,
           acc: option(open_form),
+          se_acc2: secondaries,
           f: closed_form,
         )
         : op_state =>
   switch (os) {
   | OS(fs, Nil) =>
     switch (wants_left_child(head_of(f)), acc) {
-    | (Yes, _) => OS(fs, sing(HOForm(acc, Nil, f)))
+    | (Yes, _) => OS(fs, sing(HOForm(acc, se_acc2, f)))
     | (No, None) => OS(fs, sing(HOForm(None, Nil, f)))
     | (No, Some(acc)) => OS(Cons(fs, acc), sing(HOForm(None, Nil, f)))
     }
   | OS(fs, Cons(s, f1)) =>
     switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
-    | Shift => OS(fs, Cons(Cons(s, f1), HOForm(acc, Nil, f)))
+    | Shift => OS(fs, Cons(Cons(s, f1), HOForm(acc, se_acc2, f)))
     | Reduce =>
-      switch (f1) {
-      | HOForm(l, se, f1_inner) =>
+      switch (f1, acc) {
+      | (HOForm(l, se, f1_inner), None) =>
         op_parse(
           OS(fs, s),
           Nil,
-          {
-            print_endline("reducing!");
-            Some(OForm(l, se, f1_inner, se_acc, acc));
-          },
+          Some(OForm(l, se, f1_inner, Nil, None)),
+          appendr(se_acc1, se_acc2),
+          f,
+        )
+      | (HOForm(l, se, f1_inner), Some(acc)) =>
+        op_parse(
+          OS(fs, s),
+          Nil,
+          Some(OForm(l, se, f1_inner, se_acc1, Some(acc))),
+          se_acc2,
           f,
         )
       }
@@ -327,7 +334,7 @@ and op_parse_step =
   | (_, Shard(t)) =>
     SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, Nil), Nil)
   | (SOS(fs, os, se_acc), Form(f)) =>
-    SOS(fs, op_parse(os, se_acc, None, f), Nil)
+    SOS(fs, op_parse(os, se_acc, None, Nil, f), Nil)
   }
 
 and op_parse_steps =
