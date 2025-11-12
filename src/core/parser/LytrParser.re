@@ -79,10 +79,8 @@ let rec shatter_partial_form =
   };
 
 let flatten_partial_form = (f: partial_form): listr(sharded(partial_form)) =>
-  switch (is_valid_end(face_of_partial_form(f))) {
-  | ValidEnd => sing(Form(f))
-  | NotValidEnd => shatter_partial_form(f)
-  };
+  is_valid_end(face_of_partial_form(f))
+    ? sing(Form(f)) : shatter_partial_form(f);
 
 let rec flatten =
         (spfs: list(sharded(partial_form))): listr(sharded(partial_form)) =>
@@ -125,8 +123,8 @@ let match_push =
   | Match(s_prime) => s_prime
   | NoMatch =>
     switch (is_valid_start(t)) {
-    | NotValidStart => Cons(s, Shard(t))
-    | ValidStart => Cons(s, Form(Head(t)))
+    | false => Cons(s, Shard(t))
+    | true => Cons(s, Form(Head(t)))
     }
   };
 

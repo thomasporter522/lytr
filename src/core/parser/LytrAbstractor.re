@@ -21,13 +21,12 @@ and child =
   | Term(term)
 
 and term =
-  | Parens(terms)
-  | Unit
+  | Tuple(list(terms))
   | Atom(atom)
   | Binop(binop, child, child)
   | Unop(unop, child)
   | Fun(terms, child)
-  | Ap(child, terms)
+  | Ap(child, list(terms))
   | Let(terms, terms, child)
   | Type(terms, terms, child)
   | Case(terms, list((terms, terms)))
@@ -45,26 +44,36 @@ and abstract_child = (form: option(open_form)): child =>
   | Some(f) => Term(abstract_form(f))
   }
 
-and extract_case_branches =
+and abstract_case_branches =
     (form: closed_form, is: listr(sharded(open_form))) => {
   switch (form) {
   | Head(TCase) => (abstract_terms(is), [])
   | Match(Match(form, is1, TPipe), is2, TDoubleArrow) =>
-    let (scrutinee, cases) = extract_case_branches(form, is1);
+    let (scrutinee, cases) = abstract_case_branches(form, is1);
     (scrutinee, cases @ [(abstract_terms(is2), abstract_terms(is))]);
-  | _ => failwith("impossible; uneven case form")
+  | _ => failwith("impossible; ill structured case form")
+  };
+}
+
+and abstract_tuple = (form: closed_form) => {
+  switch (form) {
+  | Head(TOP) => []
+  | Match(form, is, TComma) => abstract_tuple(form) @ [abstract_terms(is)]
+  | _ => failwith("impossible; ill structured tuple form")
   };
 }
 
 /* precondition: the input begins, ends, and matches validly */
 and abstract_form = (form: open_form): term =>
   switch (form) {
-  // parens (including unit and ap)
-  | OForm(None, Match(Head(TOP), Nil, TCP), None) => Unit
-  | OForm(None, Match(Head(TOP), is, TCP), None) =>
-    Parens(abstract_terms(is))
-  | OForm(Some(l), Match(Head(TOP), is, TCP), None) =>
-    Ap(abstract_child(Some(l)), abstract_terms(is))
+  // tuples (including ap)
+  | OForm(None, Match(form, is, TCP), None) =>
+    Tuple(abstract_tuple(form) @ [abstract_terms(is)])
+  | OForm(Some(l), Match(form, is, TCP), None) =>
+    Ap(
+      abstract_child(Some(l)),
+      abstract_tuple(form) @ [abstract_terms(is)],
+    )
 
   // atoms
   | OForm(None, Head(TAtom(a)), None) => Atom(a)
@@ -98,7 +107,7 @@ and abstract_form = (form: open_form): term =>
   | OForm(None, Match(Match(Head(TType), is1, TEquals), is2, TIn), r) =>
     Type(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
   | OForm(None, Match(form, is, TEnd), None) =>
-    let (scrutinee, cases) = extract_case_branches(form, is);
+    let (scrutinee, cases) = abstract_case_branches(form, is);
     Case(scrutinee, cases);
   | OForm(None, Match(Match(Head(TIf), is1, TThen), is2, TElse), r) =>
     If(abstract_terms(is1), abstract_terms(is2), abstract_child(r))

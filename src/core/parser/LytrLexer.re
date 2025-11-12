@@ -28,6 +28,7 @@ let rec lex_chars = (chars: list(char)): list(token) =>
   | [' ' | '\t' | '\n' | '\r', ...rest] => lex_chars(rest) /* skip whitespace */
   | ['(', ...rest] => [TOP, ...lex_chars(rest)]
   | [')', ...rest] => [TCP, ...lex_chars(rest)]
+  | [',', ...rest] => [TComma, ...lex_chars(rest)]
   | ['+', ...rest] => [TPlus, ...lex_chars(rest)]
   | ['-', '>', ...rest] => [TArrow, ...lex_chars(rest)]
   | ['-', ...rest] => [TMinus, ...lex_chars(rest)]

@@ -3,6 +3,13 @@ open Tylr_core;
 open LytrGrammar;
 open LytrAbstractor;
 
+let string_of_atom = (a: atom) =>
+  switch (a) {
+  | Numlit(n) => string_of_int(n)
+  | Identifier(s) => s
+  | Unlexed(s) => s
+  };
+
 let string_of_token = (t: token) =>
   switch (t) {
   | BOF => "#"
@@ -30,6 +37,7 @@ let string_of_token = (t: token) =>
   | TThen => "then"
   | TElse => "else"
   | TColon => ":"
+  | TComma => ","
   };
 
 /* Create styled view nodes that mimic the rich token system */
@@ -172,18 +180,30 @@ and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
 
 and view_lytr_term = (~font, term: term): Node.t =>
   switch (term) {
-  | Unit =>
+  | Tuple(inner_term_list) =>
+    let tuple_elements =
+      List.fold_right(
+        (terms, acc) =>
+          [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+        inner_term_list,
+        [],
+      );
+    let interspersed_elements =
+      List.fold_right(
+        (elem, acc) =>
+          switch (acc) {
+          | [] => [elem]
+          | _ => [elem, mk_operator_token(~text=", ", ()), ...acc]
+          },
+        tuple_elements,
+        [],
+      );
     Node.span(
-      ~attrs=[Attr.class_("lytr-unit")],
-      [mk_paren_token(~text="()", ())],
-    )
-  | Parens(inner_terms) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-parens")],
+      ~attrs=[Attr.class_("lytr-tuple")],
       [mk_paren_token(~text="(", ())]
-      @ view_lytr_terms(~font, inner_terms)
+      @ interspersed_elements
       @ [mk_paren_token(~text=")", ())],
-    )
+    );
   | Binop(binop, left, right) =>
     let op_text =
       switch (binop) {
@@ -215,7 +235,7 @@ and view_lytr_term = (~font, term: term): Node.t =>
     switch (atom) {
     | Unlexed(s) => mk_unlexed_token(~text=s, ())
     | _ =>
-      let text = LytrGrammar.string_of_atom(atom);
+      let text = string_of_atom(atom);
       mk_atom_token(~text, ());
     }
   | Fun(params, body) =>
@@ -227,13 +247,30 @@ and view_lytr_term = (~font, term: term): Node.t =>
       @ [view_lytr_child(~font, body)],
     )
   | Ap(func, args) =>
+    let arg_elements =
+      List.fold_right(
+        (terms, acc) =>
+          [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+        args,
+        [],
+      );
+    let interspersed_args =
+      List.fold_right(
+        (elem, acc) =>
+          switch (acc) {
+          | [] => [elem]
+          | _ => [elem, mk_operator_token(~text=", ", ()), ...acc]
+          },
+        arg_elements,
+        [],
+      );
     Node.span(
       ~attrs=[Attr.class_("lytr-ap")],
       [view_lytr_child(~font, func)]
       @ [mk_paren_token(~text="(", ())]
-      @ view_lytr_terms(~font, args)
+      @ interspersed_args
       @ [mk_paren_token(~text=")", ())],
-    )
+    );
   | Let(bindings, body_terms, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-let")],

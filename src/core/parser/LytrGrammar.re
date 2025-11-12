@@ -3,13 +3,6 @@ type atom =
   | Identifier(string)
   | Unlexed(string);
 
-let string_of_atom = (a: atom) =>
-  switch (a) {
-  | Numlit(n) => string_of_int(n)
-  | Identifier(s) => s
-  | Unlexed(s) => s
-  };
-
 type token =
   | BOF // beginning of file
   | EOF // end of file
@@ -35,75 +28,10 @@ type token =
   | TIf
   | TThen
   | TElse
-  | TColon;
+  | TColon
+  | TComma;
 
 type token_entry = token;
-
-type is_valid_start =
-  | NotValidStart
-  | ValidStart;
-
-type is_valid_end =
-  | ValidEnd
-  | NotValidEnd;
-
-let is_valid_start_end = (t: token): (is_valid_start, is_valid_end) => {
-  switch (t) {
-  | BOF => (ValidStart, NotValidEnd)
-  | EOF => (NotValidStart, ValidEnd)
-  | TOP => (ValidStart, NotValidEnd)
-  | TCP => (NotValidStart, ValidEnd)
-  | TAtom(_) => (ValidStart, ValidEnd)
-  | TPlus => (ValidStart, ValidEnd)
-  | TMinus => (ValidStart, ValidEnd)
-  | TTimes => (ValidStart, ValidEnd)
-  | TDivide => (ValidStart, ValidEnd)
-  | TDoubleDivide => (ValidStart, ValidEnd)
-  | TModulo => (ValidStart, ValidEnd)
-  | TFun => (ValidStart, NotValidEnd)
-  | TArrow => (ValidStart, ValidEnd)
-  | TLet => (ValidStart, NotValidEnd)
-  | TEquals => (NotValidStart, NotValidEnd)
-  | TIn => (NotValidStart, ValidEnd)
-  | TType => (ValidStart, NotValidEnd)
-  | TCase => (ValidStart, NotValidEnd)
-  | TPipe => (NotValidStart, NotValidEnd)
-  | TDoubleArrow => (NotValidStart, NotValidEnd)
-  | TEnd => (NotValidStart, ValidEnd)
-  | TIf => (ValidStart, NotValidEnd)
-  | TThen => (NotValidStart, NotValidEnd)
-  | TElse => (NotValidStart, ValidEnd)
-  | TColon => (ValidStart, ValidEnd)
-  };
-};
-
-let is_valid_start = (t: token): is_valid_start =>
-  fst(is_valid_start_end(t));
-
-let is_valid_end = (te: token_entry): is_valid_end =>
-  snd(is_valid_start_end(te));
-
-type match_token_result =
-  | Match
-  | NoMatch;
-
-let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
-  switch (te1, te2) {
-  | (BOF, EOF) => Match
-  | (TOP, TCP) => Match
-  | (TFun, TArrow) => Match
-  | (TLet, TEquals) => Match
-  | (TEquals, TIn) => Match
-  | (TType, TEquals) => Match
-  | (TCase, TEnd) => Match
-  | (TCase, TPipe) => Match
-  | (TPipe, TDoubleArrow) => Match
-  | (TDoubleArrow, TPipe) => Match
-  | (TDoubleArrow, TEnd) => Match
-  | (TIf, TThen) => Match
-  | (TThen, TElse) => Match
-  | (_, _) => NoMatch /* fallthrough */
-  };
 
 type prec =
   | Interior // never relevent, always matches over
@@ -137,4 +65,34 @@ let prec = (t: token): (prec, prec) =>
   | TThen => (Interior, Interior)
   | TElse => (Interior, Precedence(0.))
   | TColon => (Precedence(0.5), Precedence(0.5))
+  | TComma => (Interior, Interior)
   };
+
+type match_token_result =
+  | Match
+  | NoMatch;
+
+let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
+  switch (te1, te2) {
+  | (BOF, EOF) => Match
+  | (TOP, TCP) => Match
+  | (TFun, TArrow) => Match
+  | (TLet, TEquals) => Match
+  | (TEquals, TIn) => Match
+  | (TType, TEquals) => Match
+  | (TCase, TEnd) => Match
+  | (TCase, TPipe) => Match
+  | (TPipe, TDoubleArrow) => Match
+  | (TDoubleArrow, TPipe) => Match
+  | (TDoubleArrow, TEnd) => Match
+  | (TIf, TThen) => Match
+  | (TThen, TElse) => Match
+  | (TOP, TComma) => Match
+  | (TComma, TComma) => Match
+  | (TComma, TCP) => Match
+  | (_, _) => NoMatch /* fallthrough */
+  };
+
+let is_valid_start = (t: token): bool => fst(prec(t)) != Interior;
+
+let is_valid_end = (te: token_entry): bool => snd(prec(te)) != Interior;
