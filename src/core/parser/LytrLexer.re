@@ -35,6 +35,7 @@ let rec lex_chars = (chars: list(char)): list(token) =>
   | ['/', '/', ...rest] => [Primary(TDoubleDivide), ...lex_chars(rest)]
   | ['/', ...rest] => [Primary(TDivide), ...lex_chars(rest)]
   | ['%', ...rest] => [Primary(TModulo), ...lex_chars(rest)]
+  | ['!', ...rest] => [Primary(TFactorial), ...lex_chars(rest)]
   | ['=', '>', ...rest] => [Primary(TDoubleArrow), ...lex_chars(rest)]
   | ['=', ...rest] => [Primary(TEquals), ...lex_chars(rest)]
   | ['|', ...rest] => [Primary(TPipe), ...lex_chars(rest)]

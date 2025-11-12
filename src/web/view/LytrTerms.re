@@ -29,6 +29,7 @@ let string_of_primary_token = (t: primary_token) =>
   | TDivide => "/"
   | TDoubleDivide => "//"
   | TModulo => "%"
+  | TFactorial => "!"
   | TFun => "fun"
   | TArrow => "->"
   | TLet => "let"
@@ -139,160 +140,181 @@ and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   | Form(term) => view_lytr_term(~font, term)
   }
 
-and view_lytr_term = (~font, term: term): Node.t =>
-  switch (term) {
-  | Tuple(inner_term_list) =>
-    let tuple_elements =
-      List.fold_right(
-        (terms, acc) =>
-          [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
-        inner_term_list,
-        [],
+and view_lytr_term = (~font, term: term): Node.t => {
+  let node = {
+    switch (term) {
+    | Tuple(inner_term_list) =>
+      let tuple_elements =
+        List.fold_right(
+          (terms, acc) =>
+            [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+          inner_term_list,
+          [],
+        );
+      let interspersed_elements =
+        List.fold_right(
+          (elem, acc) =>
+            switch (acc) {
+            | [] => [elem]
+            | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
+            },
+          tuple_elements,
+          [],
+        );
+      Node.span(
+        ~attrs=[Attr.class_("lytr-tuple")],
+        [mk_paren_token(~text="(", ())]
+        @ interspersed_elements
+        @ [mk_paren_token(~text=")", ())],
       );
-    let interspersed_elements =
-      List.fold_right(
-        (elem, acc) =>
-          switch (acc) {
-          | [] => [elem]
-          | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
-          },
-        tuple_elements,
-        [],
+    | InfixBinop(left, binop, right) =>
+      let op_text =
+        switch (binop) {
+        | Plus => "+"
+        | Minus => "-"
+        | Times => "*"
+        | Divide => "/"
+        | DoubleDivide => "//"
+        | Modulo => "%"
+        };
+      Node.span(
+        ~attrs=[Attr.class_("lytr-binop")],
+        view_lytr_left_child(~font, left)
+        @ [mk_operator_token(~text=op_text, ())]
+        @ view_lytr_right_child(~font, right),
       );
-    Node.span(
-      ~attrs=[Attr.class_("lytr-tuple")],
-      [mk_paren_token(~text="(", ())]
-      @ interspersed_elements
-      @ [mk_paren_token(~text=")", ())],
-    );
-  | InfixBinop(left, binop, right) =>
-    let op_text =
-      switch (binop) {
-      | Plus => "+"
-      | Minus => "-"
-      | Times => "*"
-      | Divide => "/"
-      | DoubleDivide => "//"
-      | Modulo => "%"
-      };
-    Node.span(
-      ~attrs=[Attr.class_("lytr-binop")],
-      view_lytr_left_child(~font, left)
-      @ [mk_operator_token(~text=op_text, ())]
-      @ view_lytr_right_child(~font, right),
-    );
-  | PrefixUnop(unop, child) =>
-    let op_text =
-      switch (unop) {
-      | Minus => "-"
-      };
-    Node.span(
-      ~attrs=[Attr.class_("lytr-unop")],
-      [mk_operator_token(~text=op_text, ())]
-      @ view_lytr_right_child(~font, child),
-    );
-  | Atom(atom) =>
-    let text = string_of_atom(atom);
-    mk_atom_token(~text, ());
-  | Fun(params, body) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-fun")],
-      [mk_atom_token(~text="fun", ())]
-      @ view_lytr_terms(~font, params)
-      @ [mk_atom_token(~text="->", ())]
-      @ view_lytr_right_child(~font, body),
-    )
-  | Ap(func, args) =>
-    let arg_elements =
-      List.fold_right(
-        (terms, acc) =>
-          [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
-        args,
-        [],
+    | PrefixUnop(unop, child) =>
+      let op_text =
+        switch (unop) {
+        | Minus => "-"
+        | _ => failwith("impossible")
+        };
+      Node.span(
+        ~attrs=[Attr.class_("lytr-unop")],
+        [mk_operator_token(~text=op_text, ())]
+        @ view_lytr_right_child(~font, child),
       );
-    let interspersed_args =
-      List.fold_right(
-        (elem, acc) =>
-          switch (acc) {
-          | [] => [elem]
-          | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
-          },
-        arg_elements,
-        [],
+    | PostfixUnop(child, unop) =>
+      let op_text =
+        switch (unop) {
+        | Factorial => "!"
+        | _ => failwith("impossible")
+        };
+      Node.span(
+        ~attrs=[Attr.class_("lytr-unop")],
+        view_lytr_left_child(~font, child)
+        @ [mk_operator_token(~text=op_text, ())],
       );
-    Node.span(
-      ~attrs=[Attr.class_("lytr-ap")],
-      view_lytr_left_child(~font, func)
-      @ [mk_paren_token(~text="(", ())]
-      @ interspersed_args
-      @ [mk_paren_token(~text=")", ())],
-    );
-  | Let(bindings, body_terms, body) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-let")],
-      [mk_atom_token(~text="let", ())]
-      @ view_lytr_terms(~font, bindings)
-      @ [mk_atom_token(~text="=", ())]
-      @ view_lytr_terms(~font, body_terms)
-      @ [mk_atom_token(~text="in", ())]
-      @ view_lytr_right_child(~font, body),
-    )
-  | Type(type_params, type_body, body) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-type")],
-      [mk_atom_token(~text="type", ())]
-      @ view_lytr_terms(~font, type_params)
-      @ [mk_operator_token(~text="=", ())]
-      @ view_lytr_terms(~font, type_body)
-      @ [mk_atom_token(~text="in", ())]
-      @ view_lytr_right_child(~font, body),
-    )
-  | Case(scrutinee, branches) =>
-    let branch_nodes =
-      List.map(
-        ((pattern, body)) =>
-          Node.span(
-            ~attrs=[Attr.class_("lytr-case-branch")],
-            [mk_operator_token(~text="|", ())]
-            @ view_lytr_terms(~font, pattern)
-            @ [mk_operator_token(~text="=>", ())]
-            @ view_lytr_terms(~font, body),
-          ),
-        branches,
+    | Atom(atom) =>
+      let text = string_of_atom(atom);
+      mk_atom_token(~text, ());
+    | Fun(params, body) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-fun")],
+        [mk_atom_token(~text="fun", ())]
+        @ view_lytr_terms(~font, params)
+        @ [mk_atom_token(~text="->", ())]
+        @ view_lytr_right_child(~font, body),
+      )
+    | Ap(func, args) =>
+      let arg_elements =
+        List.fold_right(
+          (terms, acc) =>
+            [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+          args,
+          [],
+        );
+      let interspersed_args =
+        List.fold_right(
+          (elem, acc) =>
+            switch (acc) {
+            | [] => [elem]
+            | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
+            },
+          arg_elements,
+          [],
+        );
+      Node.span(
+        ~attrs=[Attr.class_("lytr-ap")],
+        view_lytr_left_child(~font, func)
+        @ [mk_paren_token(~text="(", ())]
+        @ interspersed_args
+        @ [mk_paren_token(~text=")", ())],
       );
-    Node.span(
-      ~attrs=[Attr.class_("lytr-case")],
-      [mk_atom_token(~text="case", ())]
-      @ view_lytr_terms(~font, scrutinee)
-      @ branch_nodes
-      @ [mk_atom_token(~text="end", ())],
-    );
-  | If(terms1, terms2, child) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-if")],
-      [mk_atom_token(~text="if", ())]
-      @ view_lytr_terms(~font, terms1)
-      @ [mk_atom_token(~text="then", ())]
-      @ view_lytr_terms(~font, terms2)
-      @ [mk_atom_token(~text="else", ())]
-      @ view_lytr_right_child(~font, child),
-    )
-  | Asc(c1, c2) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-asc")],
-      view_lytr_left_child(~font, c1)
-      @ [mk_atom_token(~text=":", ())]
-      @ view_lytr_right_child(~font, c2),
-    )
-  | Arrow(c1, c2) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-asc")],
-      view_lytr_left_child(~font, c1)
-      @ [mk_atom_token(~text="->", ())]
-      @ view_lytr_right_child(~font, c2),
-    )
-  | DEBUG => mk_error_token(~text="DEBUG", ())
-  }
+    | Let(bindings, body_terms, body) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-let")],
+        [mk_atom_token(~text="let", ())]
+        @ view_lytr_terms(~font, bindings)
+        @ [mk_atom_token(~text="=", ())]
+        @ view_lytr_terms(~font, body_terms)
+        @ [mk_atom_token(~text="in", ())]
+        @ view_lytr_right_child(~font, body),
+      )
+    | Type(type_params, type_body, body) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-type")],
+        [mk_atom_token(~text="type", ())]
+        @ view_lytr_terms(~font, type_params)
+        @ [mk_operator_token(~text="=", ())]
+        @ view_lytr_terms(~font, type_body)
+        @ [mk_atom_token(~text="in", ())]
+        @ view_lytr_right_child(~font, body),
+      )
+    | Case(scrutinee, branches) =>
+      let branch_nodes =
+        List.map(
+          ((pattern, body)) =>
+            Node.span(
+              ~attrs=[Attr.class_("lytr-case-branch")],
+              [mk_operator_token(~text="|", ())]
+              @ view_lytr_terms(~font, pattern)
+              @ [mk_operator_token(~text="=>", ())]
+              @ view_lytr_terms(~font, body),
+            ),
+          branches,
+        );
+      Node.span(
+        ~attrs=[Attr.class_("lytr-case")],
+        [mk_atom_token(~text="case", ())]
+        @ view_lytr_terms(~font, scrutinee)
+        @ branch_nodes
+        @ [mk_atom_token(~text="end", ())],
+      );
+    | If(terms1, terms2, child) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-if")],
+        [mk_atom_token(~text="if", ())]
+        @ view_lytr_terms(~font, terms1)
+        @ [mk_atom_token(~text="then", ())]
+        @ view_lytr_terms(~font, terms2)
+        @ [mk_atom_token(~text="else", ())]
+        @ view_lytr_right_child(~font, child),
+      )
+    | Asc(c1, c2) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-asc")],
+        view_lytr_left_child(~font, c1)
+        @ [mk_atom_token(~text=":", ())]
+        @ view_lytr_right_child(~font, c2),
+      )
+    | Arrow(c1, c2) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-asc")],
+        view_lytr_left_child(~font, c1)
+        @ [mk_atom_token(~text="->", ())]
+        @ view_lytr_right_child(~font, c2),
+      )
+    | DEBUG => mk_error_token(~text="DEBUG", ())
+    };
+  };
+
+  /* Add outline to every term */
+  Node.span(
+    ~attrs=[Attr.classes(["lytr-term", "lytr-term-outlined"])],
+    [node],
+  );
+}
 
 and view_lytr_left_child = (~font, child: left_child): list(Node.t) =>
   switch (child) {

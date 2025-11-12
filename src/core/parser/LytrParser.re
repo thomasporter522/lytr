@@ -250,6 +250,7 @@ let rec op_state_roll =
   | (OS(fs, Nil), None) => fs
   | (OS(fs, Nil), Some(acc)) => Cons(fs, acc)
   | (OS(fs, Cons(s, HOForm(l, se, f))), acc) =>
+    // print_endline("rollin!");
     op_state_roll(OS(fs, s), Some(OForm(l, se, f, Nil, acc)))
   };
 
@@ -277,7 +278,10 @@ let rec op_parse =
         op_parse(
           OS(fs, s),
           Nil,
-          Some(OForm(l, se, f1_inner, se_acc, acc)),
+          {
+            print_endline("reducing!");
+            Some(OForm(l, se, f1_inner, se_acc, acc));
+          },
           f,
         )
       }

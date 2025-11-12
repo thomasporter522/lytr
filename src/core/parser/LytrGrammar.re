@@ -14,6 +14,7 @@ type primary_token =
   | TDivide
   | TDoubleDivide
   | TModulo
+  | TFactorial
   | TFun
   | TArrow
   | TLet
@@ -56,6 +57,7 @@ let prec = (t: primary_token): (prec, prec) =>
   | TDivide => (Precedence(2.1), Precedence(1.9))
   | TDoubleDivide => (Precedence(2.1), Precedence(1.9))
   | TModulo => (Precedence(2.1), Precedence(1.9))
+  | TFactorial => (Precedence(3.), Uninterested)
   | TFun => (Uninterested, Interior)
   | TArrow => (Precedence(0.1), Precedence(0.))
   | TLet => (Uninterested, Interior)

@@ -12,7 +12,8 @@ type binop =
   | Modulo;
 
 type unop =
-  | Minus;
+  | Minus
+  | Factorial;
 
 type terms = listr(sharded(term))
 
@@ -29,6 +30,7 @@ and term =
   | Atom(atom)
   | InfixBinop(left_child, binop, right_child)
   | PrefixUnop(unop, right_child)
+  | PostfixUnop(left_child, unop)
   | Fun(terms, right_child)
   | Ap(left_child, list(terms))
   | Let(terms, terms, right_child)
@@ -92,9 +94,11 @@ and abstract_form = (form: open_form): term =>
 
   // atoms
   | OForm(None, Nil, Head(TAtom(a)), Nil, None) => Atom(a)
-  // unary minus
+  // unary operations
   | OForm(None, Nil, Head(TMinus), se, r) =>
     PrefixUnop(Minus, abstract_right_child(se, r))
+  | OForm(l, se, Head(TFactorial), Nil, None) =>
+    PostfixUnop(abstract_left_child(l, se), Factorial)
   // binary operations
   | OForm(l, se1, Head(TPlus), se2, r) =>
     InfixBinop(
