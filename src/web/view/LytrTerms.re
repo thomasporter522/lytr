@@ -22,7 +22,14 @@ let mk_atom_token = (~text, ()) =>
 let mk_unlexed_token = (~text, ()) =>
   mk_styled_token(~text, ~classes=["atom", "tile", "unlexed"], ());
 
-let mk_grout = (~font, ()) => {
+let mk_grout_dot = () => {
+  Node.span(
+    ~attrs=[Attr.class_("lytr-grout")],
+    [mk_styled_token(~text="·", ~classes=["hole", "lytr-grout"], ())],
+  );
+};
+
+let mk_grout_hourglass = (~font, ()) => {
   /* Create a simple inline grout symbol without complex positioning */
   Node.span(
     ~attrs=[Attr.classes(["token", "lytr-token", "hole", "lytr-grout"])],
@@ -49,7 +56,11 @@ let mk_grout = (~font, ()) => {
   );
 };
 
-let mk_hole = (~font, ()) => {
+let mk_grout = (~font as _, ()) => {
+  mk_grout_dot();
+};
+
+let mk_hole_hex = (~font, ()) => {
   /* Create a simple inline grout symbol without complex positioning */
   Node.span(
     ~attrs=[Attr.classes(["token", "lytr-token", "hole", "lytr-grout"])],
@@ -74,6 +85,17 @@ let mk_hole = (~font, ()) => {
       ),
     ],
   );
+};
+
+let mk_hole_circ = () => {
+  Node.span(
+    ~attrs=[Attr.class_("lytr-grout")],
+    [mk_styled_token(~text="○", ~classes=["hole", "lytr-grout"], ())],
+  );
+};
+
+let mk_hole = (~font as _, ()) => {
+  mk_hole_circ();
 };
 
 let mk_error_token = (~text, ()) =>
@@ -244,20 +266,4 @@ let rec view_lytr_terms = (~font, terms: terms): list(Node.t) =>
   | Nil => []
   | Cons(rest, sharded) =>
     view_lytr_terms(~font, rest) @ [view_lytr_sharded(~font, sharded)]
-  }
-
-and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
-  switch (sharded) {
-  | Shard(token) =>
-    Node.span(
-      ~attrs=[Attr.class_("lytr-shard")],
-      [Node.text("💥" ++ LytrToken.string_of_token(token) ++ "💥")],
-    )
-  | Form(term) => view_lytr_term(~font, term)
-  }
-
-and view_lytr_child = (~font, child: child): Node.t =>
-  switch (child) {
-  | Hole => Node.span(~attrs=[Attr.class_("lytr-hole")], [Node.text("?")])
-  | Term(term) => view_lytr_term(~font, term)
   };
