@@ -16,32 +16,44 @@ type unop =
 
 type terms = listr(sharded(term))
 
-and child =
+and left_child =
   | Hole
-  | Term(term)
+  | Term(term, secondaries)
+
+and right_child =
+  | Hole
+  | Term(secondaries, term)
 
 and term =
   | Tuple(list(terms))
   | Atom(atom)
-  | Binop(binop, child, child)
-  | Unop(unop, child)
-  | Fun(terms, child)
-  | Ap(child, list(terms))
-  | Let(terms, terms, child)
-  | Type(terms, terms, child)
+  | InfixBinop(left_child, binop, right_child)
+  | PrefixUnop(unop, right_child)
+  | Fun(terms, right_child)
+  | Ap(left_child, list(terms))
+  | Let(terms, terms, right_child)
+  | Type(terms, terms, right_child)
   | Case(terms, list((terms, terms)))
-  | If(terms, terms, child)
-  | Asc(child, child)
-  | Arrow(child, child)
+  | If(terms, terms, right_child)
+  | Asc(left_child, right_child)
+  | Arrow(left_child, right_child)
   | DEBUG;
 
 let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
   mapr(abstract_sharded, fs)
 
-and abstract_child = (form: option(open_form)): child =>
+and abstract_left_child =
+    (form: option(open_form), se: secondaries): left_child =>
   switch (form) {
   | None => Hole
-  | Some(f) => Term(abstract_form(f))
+  | Some(f) => Term(abstract_form(f), se)
+  }
+
+and abstract_right_child =
+    (se: secondaries, form: option(open_form)): right_child =>
+  switch (form) {
+  | None => Hole
+  | Some(f) => Term(se, abstract_form(f))
   }
 
 and abstract_case_branches =
@@ -67,51 +79,101 @@ and abstract_tuple = (form: closed_form) => {
 and abstract_form = (form: open_form): term =>
   switch (form) {
   // tuples (including unit and ap)
-  | OForm(None, Match(Head(TOP), Nil, TCP), None) => Tuple([])
-  | OForm(None, Match(form, is, TCP), None) =>
+  | OForm(None, Nil, Match(Head(TOP), Nil, TCP), Nil, None) => Tuple([])
+  | OForm(None, Nil, Match(form, is, TCP), Nil, None) =>
     Tuple(abstract_tuple(form) @ [abstract_terms(is)])
-  | OForm(Some(l), Match(Head(TOP), Nil, TCP), None) =>
-    Ap(abstract_child(Some(l)), [])
-  | OForm(Some(l), Match(form, is, TCP), None) =>
+  | OForm(Some(l), se, Match(Head(TOP), Nil, TCP), Nil, None) =>
+    Ap(abstract_left_child(Some(l), se), [])
+  | OForm(Some(l), se, Match(form, is, TCP), Nil, None) =>
     Ap(
-      abstract_child(Some(l)),
+      abstract_left_child(Some(l), se),
       abstract_tuple(form) @ [abstract_terms(is)],
     )
 
   // atoms
-  | OForm(None, Head(TAtom(a)), None) => Atom(a)
+  | OForm(None, Nil, Head(TAtom(a)), Nil, None) => Atom(a)
   // unary minus
-  | OForm(None, Head(TMinus), r) => Unop(Minus, abstract_child(r))
+  | OForm(None, Nil, Head(TMinus), se, r) =>
+    PrefixUnop(Minus, abstract_right_child(se, r))
   // binary operations
-  | OForm(l, Head(TPlus), r) =>
-    Binop(Plus, abstract_child(l), abstract_child(r))
-  | OForm(l, Head(TMinus), r) =>
-    Binop(Minus, abstract_child(l), abstract_child(r))
-  | OForm(l, Head(TTimes), r) =>
-    Binop(Times, abstract_child(l), abstract_child(r))
-  | OForm(l, Head(TDivide), r) =>
-    Binop(Divide, abstract_child(l), abstract_child(r))
-  | OForm(l, Head(TDoubleDivide), r) =>
-    Binop(DoubleDivide, abstract_child(l), abstract_child(r))
-  | OForm(l, Head(TModulo), r) =>
-    Binop(Modulo, abstract_child(l), abstract_child(r))
+  | OForm(l, se1, Head(TPlus), se2, r) =>
+    InfixBinop(
+      abstract_left_child(l, se1),
+      Plus,
+      abstract_right_child(se2, r),
+    )
+  | OForm(l, se1, Head(TMinus), se2, r) =>
+    InfixBinop(
+      abstract_left_child(l, se1),
+      Minus,
+      abstract_right_child(se2, r),
+    )
+  | OForm(l, se1, Head(TTimes), se2, r) =>
+    InfixBinop(
+      abstract_left_child(l, se1),
+      Times,
+      abstract_right_child(se2, r),
+    )
+  | OForm(l, se1, Head(TDivide), se2, r) =>
+    InfixBinop(
+      abstract_left_child(l, se1),
+      Divide,
+      abstract_right_child(se2, r),
+    )
+  | OForm(l, se1, Head(TDoubleDivide), se2, r) =>
+    InfixBinop(
+      abstract_left_child(l, se1),
+      DoubleDivide,
+      abstract_right_child(se2, r),
+    )
+  | OForm(l, se1, Head(TModulo), se2, r) =>
+    InfixBinop(
+      abstract_left_child(l, se1),
+      Modulo,
+      abstract_right_child(se2, r),
+    )
   // other infix forms
-  | OForm(l, Head(TColon), r) => Asc(abstract_child(l), abstract_child(r))
-  | OForm(l, Head(TArrow), r) =>
-    Arrow(abstract_child(l), abstract_child(r))
+  | OForm(l, se1, Head(TColon), se2, r) =>
+    Asc(abstract_left_child(l, se1), abstract_right_child(se2, r))
+  | OForm(l, se1, Head(TArrow), se2, r) =>
+    Arrow(abstract_left_child(l, se1), abstract_right_child(se2, r))
 
   // keyword forms
-  | OForm(None, Match(Head(TFun), is, TArrow), r) =>
-    Fun(abstract_terms(is), abstract_child(r))
-  | OForm(None, Match(Match(Head(TLet), is1, TEquals), is2, TIn), r) =>
-    Let(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
-  | OForm(None, Match(Match(Head(TType), is1, TEquals), is2, TIn), r) =>
-    Type(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
-  | OForm(None, Match(form, is, TEnd), None) =>
+  | OForm(None, Nil, Match(Head(TFun), is, TArrow), se2, r) =>
+    Fun(abstract_terms(is), abstract_right_child(se2, r))
+  | OForm(
+      None,
+      Nil,
+      Match(Match(Head(TLet), is1, TEquals), is2, TIn),
+      se,
+      r,
+    ) =>
+    Let(
+      abstract_terms(is1),
+      abstract_terms(is2),
+      abstract_right_child(se, r),
+    )
+  | OForm(
+      None,
+      Nil,
+      Match(Match(Head(TType), is1, TEquals), is2, TIn),
+      se,
+      r,
+    ) =>
+    Type(
+      abstract_terms(is1),
+      abstract_terms(is2),
+      abstract_right_child(se, r),
+    )
+  | OForm(None, Nil, Match(form, is, TEnd), Nil, None) =>
     let (scrutinee, cases) = abstract_case_branches(form, is);
     Case(scrutinee, cases);
-  | OForm(None, Match(Match(Head(TIf), is1, TThen), is2, TElse), r) =>
-    If(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
+  | OForm(None, Nil, Match(Match(Head(TIf), is1, TThen), is2, TElse), se, r) =>
+    If(
+      abstract_terms(is1),
+      abstract_terms(is2),
+      abstract_right_child(se, r),
+    )
 
   | _ => DEBUG /* impossible fallthrough */
   }

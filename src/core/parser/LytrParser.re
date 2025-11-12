@@ -33,25 +33,6 @@ type partial_form =
   | Head(primary_token)
   | Match(partial_form, listr(sharded(partial_form)), primary_token);
 
-// a complete matched syntactic form
-type closed_form =
-  | Head(primary_token)
-  | Match(closed_form, listr(sharded(open_form)), primary_token)
-
-// a complete matched syntactic form with (possible) children on the left and right
-and open_form =
-  | OForm(option(open_form), closed_form, option(open_form));
-
-// a complete matched syntactic form with a (possible) child on the left
-type half_open_form =
-  | HOForm(option(open_form), closed_form);
-
-let rec head_of = (cf: closed_form): primary_token =>
-  switch (cf) {
-  | Head(t) => t
-  | Match(f, _is, _t) => head_of(f)
-  };
-
 let rec head_of_partial_form = (pf: partial_form): primary_token =>
   switch (pf) {
   | Head(t) => t
@@ -62,17 +43,6 @@ let face_of_partial_form = (pf: partial_form): primary_token =>
   switch (pf) {
   | Head(t) => t
   | Match(_f, _is, t) => t
-  };
-
-let face_of_form = (cf: closed_form): primary_token =>
-  switch (cf) {
-  | Head(t) => t
-  | Match(_f, _is, t) => t
-  };
-
-let face_of_half_open_form = (hof: half_open_form): primary_token =>
-  switch (hof) {
-  | HOForm(_, f) => face_of_form(f)
   };
 
 /* matching phase */
@@ -188,6 +158,44 @@ let match_parse = (ts: list(token)): listr(sharded(partial_form)) => {
 // and that the two pieces must simply stay at arms length in a
 // "multiterm" - a list of terms that occupy the same closed child position.
 
+type secondaries = listr(secondary_token);
+
+// a complete matched syntactic form
+type closed_form =
+  | Head(primary_token)
+  | Match(closed_form, listr(sharded(open_form)), primary_token)
+
+// a complete matched syntactic form with (possible) children on the left and right
+and open_form =
+  | OForm(
+      option(open_form),
+      secondaries,
+      closed_form,
+      secondaries,
+      option(open_form),
+    );
+
+// a complete matched syntactic form with a (possible) child on the left
+type half_open_form =
+  | HOForm(option(open_form), secondaries, closed_form);
+
+let rec head_of = (cf: closed_form): primary_token =>
+  switch (cf) {
+  | Head(t) => t
+  | Match(f, _is, _t) => head_of(f)
+  };
+
+let face_of_form = (cf: closed_form): primary_token =>
+  switch (cf) {
+  | Head(t) => t
+  | Match(_f, _is, t) => t
+  };
+
+let face_of_half_open_form = (hof: half_open_form): primary_token =>
+  switch (hof) {
+  | HOForm(_, _, f) => face_of_form(f)
+  };
+
 type compare_tokens_result =
   | Shift // first thing wants the second as a child
   | Reduce // second thing wants the first as a child
@@ -241,40 +249,57 @@ let rec op_state_roll =
   switch (os, acc) {
   | (OS(fs, Nil), None) => fs
   | (OS(fs, Nil), Some(acc)) => Cons(fs, acc)
-  | (OS(fs, Cons(s, HOForm(l, f))), acc) =>
-    op_state_roll(OS(fs, s), Some(OForm(l, f, acc)))
+  | (OS(fs, Cons(s, HOForm(l, se, f))), acc) =>
+    op_state_roll(OS(fs, s), Some(OForm(l, se, f, Nil, acc)))
   };
 
 let rec op_parse =
-        (os: op_state, acc: option(open_form), f: closed_form): op_state =>
+        (
+          os: op_state,
+          se_acc: secondaries,
+          acc: option(open_form),
+          f: closed_form,
+        )
+        : op_state =>
   switch (os) {
   | OS(fs, Nil) =>
     switch (wants_left_child(head_of(f)), acc) {
-    | (Yes, _) => OS(fs, sing(HOForm(acc, f)))
-    | (No, None) => OS(fs, sing(HOForm(None, f)))
-    | (No, Some(acc)) => OS(Cons(fs, acc), sing(HOForm(None, f)))
+    | (Yes, _) => OS(fs, sing(HOForm(acc, Nil, f)))
+    | (No, None) => OS(fs, sing(HOForm(None, Nil, f)))
+    | (No, Some(acc)) => OS(Cons(fs, acc), sing(HOForm(None, Nil, f)))
     }
   | OS(fs, Cons(s, f1)) =>
     switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
-    | Shift => OS(fs, Cons(Cons(s, f1), HOForm(acc, f)))
+    | Shift => OS(fs, Cons(Cons(s, f1), HOForm(acc, Nil, f)))
     | Reduce =>
       switch (f1) {
-      | HOForm(l, f1_inner) =>
-        op_parse(OS(fs, s), Some(OForm(l, f1_inner, acc)), f)
+      | HOForm(l, se, f1_inner) =>
+        op_parse(
+          OS(fs, s),
+          Nil,
+          Some(OForm(l, se, f1_inner, se_acc, acc)),
+          f,
+        )
       }
     | Roll =>
-      OS(op_state_roll(OS(fs, Cons(s, f1)), acc), sing(HOForm(None, f)))
+      OS(
+        op_state_roll(OS(fs, Cons(s, f1)), acc),
+        sing(HOForm(None, Nil, f)),
+      )
     }
   };
 
 type sharded_op_state =
-  | SOS(listr(sharded(open_form)), op_state);
+  | SOS(listr(sharded(open_form)), op_state, secondaries);
 
 let sharded_op_state_roll =
     (sos: sharded_op_state): listr(sharded(open_form)) =>
   switch (sos) {
-  | SOS(fs, s) =>
-    appendr(fs, mapr(form => Form(form), op_state_roll(s, None)))
+  | SOS(fs, s, se) =>
+    appendr(
+      appendr(fs, mapr(form => Form(form), op_state_roll(s, None))),
+      mapr(se => Secondary(se), se),
+    )
   };
 
 let rec close_partial_form = (pf: partial_form): closed_form =>
@@ -293,18 +318,12 @@ and close_sharded_partial_form =
 
 and op_parse_step =
     (s: sharded_op_state, scf: sharded(closed_form)): sharded_op_state =>
-  switch (scf) {
-  | Secondary(se) =>
-    switch (s) {
-    | SOS(fs1, OS(fs2, hfs)) =>
-      SOS(fs1, OS(fs2, Cons(hfs, HOForm(None, Head(TMinus)))))
-    }
-  | Shard(t) =>
-    SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, Nil))
-  | Form(f) =>
-    switch (s) {
-    | SOS(fs, os) => SOS(fs, op_parse(os, None, f))
-    }
+  switch (s, scf) {
+  | (SOS(fs, os, se_acc), Secondary(se)) => SOS(fs, os, Cons(se_acc, se))
+  | (_, Shard(t)) =>
+    SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, Nil), Nil)
+  | (SOS(fs, os, se_acc), Form(f)) =>
+    SOS(fs, op_parse(os, se_acc, None, f), Nil)
   }
 
 and op_parse_steps =
@@ -318,4 +337,4 @@ and op_parse_steps =
 
 and operatorize =
     (fs: listr(sharded(partial_form))): listr(sharded(open_form)) =>
-  sharded_op_state_roll(op_parse_steps(SOS(Nil, OS(Nil, Nil)), fs));
+  sharded_op_state_roll(op_parse_steps(SOS(Nil, OS(Nil, Nil), Nil), fs));
