@@ -14,7 +14,7 @@ type binop =
 type unop =
   | Minus;
 
-type terms = listr(sharded(term))
+type terms = list(term)
 
 and child =
   | Hole
@@ -36,7 +36,11 @@ and term =
   | DEBUG;
 
 let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
-  map_r(abstract_sharded, fs)
+  switch (fs) {
+  | Nil => []
+  | Cons(fs, Shard(_)) => abstract_terms(fs)
+  | Cons(fs, Form(f)) => abstract_terms(fs) @ [abstract_form(f)]
+  }
 
 and abstract_child = (form: option(open_form)): child =>
   switch (form) {
@@ -113,13 +117,13 @@ and abstract_form = (form: open_form): term =>
     If(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
 
   | _ => DEBUG /* impossible fallthrough */
-  }
-
-and abstract_sharded = (sof: sharded(open_form)): sharded(term) =>
-  switch (sof) {
-  | Shard(t) => Shard(t)
-  | Form(f) => Form(abstract_form(f))
   };
+
+// and abstract_sharded = (sof: sharded(open_form)): option(term) =>
+//   switch (sof) {
+//   | Shard(_) => None
+//   | Form(f) => Some(abstract_form(f))
+//   };
 
 let go = (tokens: list(token)): terms =>
   abstract_terms(operatorize(match_parse(tokens)));
