@@ -1,6 +1,35 @@
 open Virtual_dom.Vdom;
 open Tylr_core;
+open LytrGrammar;
 open LytrAbstractor;
+
+let string_of_token = (t: token) =>
+  switch (t) {
+  | BOF => "#"
+  | EOF => "#"
+  | TOP => "("
+  | TCP => ")"
+  | TAtom(a) => string_of_atom(a)
+  | TPlus => "+"
+  | TMinus => "-"
+  | TTimes => "*"
+  | TDivide => "/"
+  | TDoubleDivide => "//"
+  | TModulo => "%"
+  | TFun => "fun"
+  | TArrow => "->"
+  | TLet => "let"
+  | TEquals => "="
+  | TIn => "in"
+  | TType => "type"
+  | TCase => "case"
+  | TPipe => "|"
+  | TDoubleArrow => "=>"
+  | TEnd => "end"
+  | TIf => "if"
+  | TThen => "then"
+  | TElse => "else"
+  };
 
 /* Create styled view nodes that mimic the rich token system */
 let mk_styled_token = (~text, ~classes, ()) => {
@@ -135,13 +164,18 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
 and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
   | Shard(token) =>
-    let text = LytrToken.string_of_token(token);
+    let text = string_of_token(token);
     mk_error_token(~text, ());
   | Form(term) => view_lytr_term(~font, term)
   }
 
 and view_lytr_term = (~font, term: term): Node.t =>
   switch (term) {
+  | Unit =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-unit")],
+      [mk_paren_token(~text="()", ())],
+    )
   | Parens(inner_terms) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-parens")],
@@ -180,7 +214,7 @@ and view_lytr_term = (~font, term: term): Node.t =>
     switch (atom) {
     | Unlexed(s) => mk_unlexed_token(~text=s, ())
     | _ =>
-      let text = LytrToken.string_of_atom(atom);
+      let text = LytrGrammar.string_of_atom(atom);
       mk_atom_token(~text, ());
     }
   | Fun(params, body) =>
@@ -188,7 +222,7 @@ and view_lytr_term = (~font, term: term): Node.t =>
       ~attrs=[Attr.class_("lytr-fun")],
       [mk_atom_token(~text="fun ", ())]
       @ view_lytr_terms(~font, params)
-      @ [mk_operator_token(~text=" -> ", ())]
+      @ [mk_atom_token(~text=" -> ", ())]
       @ [view_lytr_child(~font, body)],
     )
   | Ap(func, args) =>
@@ -227,21 +261,32 @@ and view_lytr_term = (~font, term: term): Node.t =>
         ((pattern, body)) =>
           Node.span(
             ~attrs=[Attr.class_("lytr-case-branch")],
-            [mk_operator_token(~text="|", ())]
+            [Node.br()]
+            @ [mk_operator_token(~text="| ", ())]
             @ view_lytr_terms(~font, pattern)
-            @ [mk_operator_token(~text="=>", ())]
+            @ [mk_operator_token(~text=" => ", ())]
             @ view_lytr_terms(~font, body),
           ),
         branches,
       );
     Node.span(
       ~attrs=[Attr.class_("lytr-case")],
-      [mk_atom_token(~text="case", ())]
-      @ [view_lytr_child(~font, scrutinee)]
-      @ [mk_atom_token(~text="of", ())]
+      [mk_atom_token(~text="case ", ())]
+      @ view_lytr_terms(~font, scrutinee)
       @ branch_nodes
+      @ [Node.br()]
       @ [mk_atom_token(~text="end", ())],
     );
+  | If(terms1, terms2, child) =>
+    Node.span(
+      ~attrs=[Attr.class_("lytr-if")],
+      [mk_atom_token(~text="if ", ())]
+      @ view_lytr_terms(~font, terms1)
+      @ [mk_atom_token(~text=" then ", ())]
+      @ view_lytr_terms(~font, terms2)
+      @ [mk_atom_token(~text=" else ", ())]
+      @ [view_lytr_child(~font, child)],
+    )
   | DEBUG => mk_error_token(~text="DEBUG", ())
   }
 

@@ -1,4 +1,3 @@
-open LytrToken;
 open LytrGrammar;
 
 type listr('a) =
@@ -80,9 +79,9 @@ let rec shatter_partial_form =
   };
 
 let flatten_partial_form = (f: partial_form): listr(sharded(partial_form)) =>
-  switch (close_token(face_of_partial_form(f))) {
-  | Closed => sing(Form(f))
-  | Unclosed => shatter_partial_form(f)
+  switch (is_valid_end(face_of_partial_form(f))) {
+  | ValidEnd => sing(Form(f))
+  | NotValidEnd => shatter_partial_form(f)
   };
 
 let rec flatten =
@@ -125,9 +124,9 @@ let match_push =
   switch (match_stack_init(s, t)) {
   | Match(s_prime) => s_prime
   | NoMatch =>
-    switch (init_token(t)) {
-    | NoInit => Cons(s, Shard(t))
-    | Init => Cons(s, Form(Head(t)))
+    switch (is_valid_start(t)) {
+    | NotValidStart => Cons(s, Shard(t))
+    | ValidStart => Cons(s, Form(Head(t)))
     }
   };
 
@@ -149,6 +148,46 @@ let match_parse = (ts: list(token)): listr(sharded(partial_form)) => {
 };
 
 /* operatorize phase */
+
+type compare_tokens_result =
+  | Shift // first thing wants the second as a child
+  | Reduce // second thing wants the first as a child
+  | Roll; // neither can be the other's child
+// Fuse // for associative operators
+
+/* Precondition: t1 ends a form and t2 starts a form */
+let compare_tokens = (t1: token, t2: token): compare_tokens_result => {
+  let (_, prec1_r) = prec(t1);
+  let (prec2_l, _) = prec(t2);
+  switch (prec1_r, prec2_l) {
+  | (Precedence(p1), Precedence(p2)) =>
+    if (p1 < p2) {
+      Shift;
+    } else if (p1 > p2) {
+      Reduce;
+    } else {
+      // Roll?
+      failwith("impossible: precedence collision");
+    }
+  | (Uninterested, Precedence(_)) => Reduce
+  | (Precedence(_), Uninterested) => Shift
+  | (Uninterested, Uninterested) => Roll
+  | (Interior, _)
+  | (_, Interior) => failwith("impossible: precondition violated")
+  };
+};
+
+type wants_left_child_result =
+  | Yes
+  | No;
+
+/* need only consider when t starts a form */
+let wants_left_child = (t: token): wants_left_child_result =>
+  switch (prec(t)) {
+  | (Interior, _)
+  | (Uninterested, _) => No
+  | (Precedence(_), _) => Yes
+  };
 
 type op_state =
   | OS(listr(open_form), list(half_open_form));

@@ -1,4 +1,4 @@
-open LytrToken;
+open LytrGrammar;
 open LytrParser;
 
 /* abstraction phase */
@@ -22,6 +22,7 @@ and child =
 
 and term =
   | Parens(terms)
+  | Unit
   | Atom(atom)
   | Binop(binop, child, child)
   | Unop(unop, child)
@@ -29,7 +30,8 @@ and term =
   | Ap(child, terms)
   | Let(terms, terms, child)
   | Type(terms, terms, child)
-  | Case(child, list((terms, terms)))
+  | Case(terms, list((terms, terms)))
+  | If(terms, terms, child)
   | DEBUG;
 
 let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
@@ -41,10 +43,22 @@ and abstract_child = (form: option(open_form)): child =>
   | Some(f) => Term(abstract_form(f))
   }
 
+and extract_case_branches =
+    (form: closed_form, is: listr(sharded(open_form))) => {
+  switch (form) {
+  | Head(TCase) => (abstract_terms(is), [])
+  | Match(Match(form, is1, TPipe), is2, TDoubleArrow) =>
+    let (scrutinee, cases) = extract_case_branches(form, is1);
+    (scrutinee, cases @ [(abstract_terms(is2), abstract_terms(is))]);
+  | _ => failwith("impossible; uneven case form")
+  };
+}
+
 /* precondition: the input begins, ends, and matches validly */
 and abstract_form = (form: open_form): term =>
   switch (form) {
-  // parens (including ap)
+  // parens (including unit and ap)
+  | OForm(None, Match(Head(TOP), Nil, TCP), None) => Unit
   | OForm(None, Match(Head(TOP), is, TCP), None) =>
     Parens(abstract_terms(is))
   | OForm(Some(l), Match(Head(TOP), is, TCP), None) =>
@@ -79,6 +93,12 @@ and abstract_form = (form: open_form): term =>
     Type(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
 
   // todo: cases
+  | OForm(None, Match(form, is, TEnd), None) =>
+    let (scrutinee, cases) = extract_case_branches(form, is);
+    Case(scrutinee, cases);
+
+  | OForm(None, Match(Match(Head(TIf), is1, TThen), is2, TElse), r) =>
+    If(abstract_terms(is1), abstract_terms(is2), abstract_child(r))
 
   | _ => DEBUG /* impossible fallthrough */
   }

@@ -67,6 +67,8 @@
   --bar-z: 0;
   --anchor-z: 14;
   --caret-z: 14;
+
+  --grout-color : #cfbf9b;
 }
 
 .token.space {
@@ -673,6 +675,7 @@ svg {
 
 /* Override grout SVG sizing for lytr holes */
 .lytr-grout .lytr-hole-svg {
+  color: var(--grout-color);
   width: 1em !important;
   height: 1em !important;
   display: inline-block !important;
@@ -681,6 +684,11 @@ svg {
 
 .lytr-hole-svg path {
   transform: none !important; /* Override grout path transform */
+}
+
+/* Grout dot styling */
+.lytr-token.lytr-grout {
+  color: var(--grout-color);
 }
 
 /* LytrTerms cursor styling */

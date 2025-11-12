@@ -1,24 +1,85 @@
-open LytrToken;
+type atom =
+  | Numlit(int)
+  | Identifier(string)
+  | Unlexed(string);
+
+let string_of_atom = (a: atom) =>
+  switch (a) {
+  | Numlit(n) => string_of_int(n)
+  | Identifier(s) => s
+  | Unlexed(s) => s
+  };
+
+type token =
+  | BOF // beginning of file
+  | EOF // end of file
+  | TOP // open parens
+  | TCP // close parens
+  | TAtom(atom)
+  | TPlus
+  | TMinus
+  | TTimes
+  | TDivide
+  | TDoubleDivide
+  | TModulo
+  | TFun
+  | TArrow
+  | TLet
+  | TEquals
+  | TIn
+  | TType
+  | TCase
+  | TPipe
+  | TDoubleArrow
+  | TEnd
+  | TIf
+  | TThen
+  | TElse;
 
 type token_entry = token;
 
-type init_token_result =
-  | NoInit
-  | Init;
+type is_valid_start =
+  | NotValidStart
+  | ValidStart;
 
-let non_initial_tokens = [
-  EOF,
-  TCP,
-  TArrow,
-  TEquals,
-  TIn,
-  TPipe,
-  TDoubleArrow,
-  TEnd,
-];
+type is_valid_end =
+  | ValidEnd
+  | NotValidEnd;
 
-let init_token = (t: token): init_token_result =>
-  List.mem(t, non_initial_tokens) ? NoInit : Init;
+let is_valid_start_end = (t: token): (is_valid_start, is_valid_end) => {
+  switch (t) {
+  | BOF => (ValidStart, NotValidEnd)
+  | EOF => (NotValidStart, ValidEnd)
+  | TOP => (ValidStart, NotValidEnd)
+  | TCP => (NotValidStart, ValidEnd)
+  | TAtom(_) => (ValidStart, ValidEnd)
+  | TPlus => (ValidStart, ValidEnd)
+  | TMinus => (ValidStart, ValidEnd)
+  | TTimes => (ValidStart, ValidEnd)
+  | TDivide => (ValidStart, ValidEnd)
+  | TDoubleDivide => (ValidStart, ValidEnd)
+  | TModulo => (ValidStart, ValidEnd)
+  | TFun => (ValidStart, NotValidEnd)
+  | TArrow => (NotValidStart, ValidEnd)
+  | TLet => (ValidStart, NotValidEnd)
+  | TEquals => (NotValidStart, NotValidEnd)
+  | TIn => (NotValidStart, ValidEnd)
+  | TType => (ValidStart, NotValidEnd)
+  | TCase => (ValidStart, NotValidEnd)
+  | TPipe => (NotValidStart, NotValidEnd)
+  | TDoubleArrow => (NotValidStart, NotValidEnd)
+  | TEnd => (NotValidStart, ValidEnd)
+  | TIf => (ValidStart, NotValidEnd)
+  | TThen => (NotValidStart, NotValidEnd)
+  | TElse => (NotValidStart, ValidEnd)
+  };
+};
+
+let is_valid_start = (t: token): is_valid_start =>
+  fst(is_valid_start_end(t));
+
+let is_valid_end = (te: token_entry): is_valid_end =>
+  snd(is_valid_start_end(te));
 
 type match_token_result =
   | Match
@@ -37,27 +98,10 @@ let match_token = (te1: token_entry, te2: token_entry): match_token_result =>
   | (TPipe, TDoubleArrow) => Match
   | (TDoubleArrow, TPipe) => Match
   | (TDoubleArrow, TEnd) => Match
+  | (TIf, TThen) => Match
+  | (TThen, TElse) => Match
   | (_, _) => NoMatch /* fallthrough */
   };
-
-type close_token_result =
-  | Closed
-  | Unclosed;
-
-let unclosed_tokens = [
-  BOF,
-  TOP,
-  TFun,
-  TLet,
-  TEquals,
-  TType,
-  TCase,
-  TPipe,
-  TDoubleArrow,
-];
-
-let close_token = (te: token_entry): close_token_result =>
-  List.mem(te, unclosed_tokens) ? Unclosed : Closed;
 
 type prec =
   | Interior // never relevent, always matches over
@@ -87,44 +131,7 @@ let prec = (t: token): (prec, prec) =>
   | TPipe => (Interior, Interior)
   | TDoubleArrow => (Interior, Interior)
   | TEnd => (Interior, Uninterested)
-  };
-
-type compare_tokens_result =
-  | Shift // first thing wants the second as a child
-  | Reduce // second thing wants the first as a child
-  | Roll; // neither can be the other's child
-// Fuse // for associative operators
-
-/* Precondition: t1 ends a form and t2 starts a form */
-let compare_tokens = (t1: token, t2: token): compare_tokens_result => {
-  let (_, prec1_r) = prec(t1);
-  let (prec2_l, _) = prec(t2);
-  switch (prec1_r, prec2_l) {
-  | (Precedence(p1), Precedence(p2)) =>
-    if (p1 < p2) {
-      Shift;
-    } else if (p1 > p2) {
-      Reduce;
-    } else {
-      // Roll?
-      failwith("impossible: precedence collision");
-    }
-  | (Uninterested, Precedence(_)) => Reduce
-  | (Precedence(_), Uninterested) => Shift
-  | (Uninterested, Uninterested) => Roll
-  | (Interior, _)
-  | (_, Interior) => failwith("impossible: precondition violated")
-  };
-};
-
-type wants_left_child_result =
-  | Yes
-  | No;
-
-/* need only consider when t starts a form */
-let wants_left_child = (t: token): wants_left_child_result =>
-  switch (prec(t)) {
-  | (Interior, _)
-  | (Uninterested, _) => No
-  | (Precedence(_), _) => Yes
+  | TIf => (Uninterested, Interior)
+  | TThen => (Interior, Interior)
+  | TElse => (Interior, Precedence(0.))
   };

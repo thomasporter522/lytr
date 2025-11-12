@@ -1,4 +1,4 @@
-open LytrToken;
+open LytrGrammar;
 
 /* Helper function to check if a character is whitespace */
 let is_whitespace = (c: char): bool =>
@@ -56,6 +56,9 @@ let rec lex_chars = (chars: list(char)): list(token) =>
       | "type" => TType
       | "case" => TCase
       | "end" => TEnd
+      | "if" => TIf
+      | "then" => TThen
+      | "else" => TElse
       | _ => TAtom(Identifier(id_str))
       };
     [token, ...lex_chars(remaining)];
