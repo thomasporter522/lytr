@@ -3,11 +3,17 @@ open Tylr_core;
 open LytrGrammar;
 open LytrAbstractor;
 
+let string_of_secondary = (s: secondary) =>
+  switch (s) {
+  | Whitespace(s) => s
+  | Unlexed(s) => s
+  };
+
 let string_of_atom = (a: atom) =>
   switch (a) {
   | Numlit(n) => string_of_int(n)
   | Identifier(s) => s
-  | Unlexed(s) => s
+  | Secondary(s) => string_of_secondary(s)
   };
 
 let string_of_token = (t: token) =>
@@ -67,62 +73,8 @@ let mk_grout_dot = () => {
   );
 };
 
-let mk_grout_hourglass = (~font, ()) => {
-  /* Create a simple inline grout symbol without complex positioning */
-  Node.span(
-    ~attrs=[Attr.classes(["token", "lytr-token", "hole", "lytr-grout"])],
-    [
-      Node.text(Util.Unicode.nbsp),
-      Dec.Box.mk(
-        ~font,
-        ~loc={
-          row: 0,
-          col: 0,
-        },
-        [
-          Dec.Token.hexagon(
-            Dec.Token.Style.{
-              sort: Sort.root,
-              shape: (Tip.Conc, Tip.Conc),
-              sil: false,
-            },
-            1,
-          ),
-        ],
-      ),
-    ],
-  );
-};
-
 let mk_grout = (~font as _, ()) => {
   mk_grout_dot();
-};
-
-let mk_hole_hex = (~font, ()) => {
-  /* Create a simple inline grout symbol without complex positioning */
-  Node.span(
-    ~attrs=[Attr.classes(["token", "lytr-token", "hole", "lytr-grout"])],
-    [
-      Node.text(Util.Unicode.nbsp),
-      Dec.Box.mk(
-        ~font,
-        ~loc={
-          row: 0,
-          col: 0,
-        },
-        [
-          Dec.Token.hexagon(
-            Dec.Token.Style.{
-              sort: Sort.root,
-              shape: (Tip.Conv, Tip.Conv),
-              sil: false,
-            },
-            1,
-          ),
-        ],
-      ),
-    ],
-  );
 };
 
 let mk_hole_circ = () => {
@@ -193,7 +145,7 @@ and view_lytr_term = (~font, term: term): Node.t =>
         (elem, acc) =>
           switch (acc) {
           | [] => [elem]
-          | _ => [elem, mk_operator_token(~text=", ", ()), ...acc]
+          | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
           },
         tuple_elements,
         [],
@@ -233,7 +185,12 @@ and view_lytr_term = (~font, term: term): Node.t =>
     );
   | Atom(atom) =>
     switch (atom) {
-    | Unlexed(s) => mk_unlexed_token(~text=s, ())
+    | Secondary(s) =>
+      let text = string_of_secondary(s);
+      switch (s) {
+      | Whitespace(_) => mk_styled_token(~text, ~classes=["whitespace"], ())
+      | Unlexed(_) => mk_unlexed_token(~text, ())
+      };
     | _ =>
       let text = string_of_atom(atom);
       mk_atom_token(~text, ());
@@ -241,9 +198,9 @@ and view_lytr_term = (~font, term: term): Node.t =>
   | Fun(params, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-fun")],
-      [mk_atom_token(~text="fun ", ())]
+      [mk_atom_token(~text="fun", ())]
       @ view_lytr_terms(~font, params)
-      @ [mk_atom_token(~text=" -> ", ())]
+      @ [mk_atom_token(~text="->", ())]
       @ [view_lytr_child(~font, body)],
     )
   | Ap(func, args) =>
@@ -259,7 +216,7 @@ and view_lytr_term = (~font, term: term): Node.t =>
         (elem, acc) =>
           switch (acc) {
           | [] => [elem]
-          | _ => [elem, mk_operator_token(~text=", ", ()), ...acc]
+          | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
           },
         arg_elements,
         [],
@@ -274,23 +231,21 @@ and view_lytr_term = (~font, term: term): Node.t =>
   | Let(bindings, body_terms, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-let")],
-      [mk_atom_token(~text="let ", ())]
+      [mk_atom_token(~text="let", ())]
       @ view_lytr_terms(~font, bindings)
-      @ [mk_atom_token(~text=" = ", ())]
+      @ [mk_atom_token(~text="=", ())]
       @ view_lytr_terms(~font, body_terms)
-      @ [mk_atom_token(~text=" in ", ())]
-      @ [Node.br()]
+      @ [mk_atom_token(~text="in", ())]
       @ [view_lytr_child(~font, body)],
     )
   | Type(type_params, type_body, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-type")],
-      [mk_atom_token(~text="type ", ())]
+      [mk_atom_token(~text="type", ())]
       @ view_lytr_terms(~font, type_params)
-      @ [mk_operator_token(~text=" = ", ())]
+      @ [mk_operator_token(~text="=", ())]
       @ view_lytr_terms(~font, type_body)
-      @ [mk_atom_token(~text=" in ", ())]
-      @ [Node.br()]
+      @ [mk_atom_token(~text="in", ())]
       @ [view_lytr_child(~font, body)],
     )
   | Case(scrutinee, branches) =>
@@ -299,44 +254,42 @@ and view_lytr_term = (~font, term: term): Node.t =>
         ((pattern, body)) =>
           Node.span(
             ~attrs=[Attr.class_("lytr-case-branch")],
-            [Node.br()]
-            @ [mk_operator_token(~text="| ", ())]
+            [mk_operator_token(~text="|", ())]
             @ view_lytr_terms(~font, pattern)
-            @ [mk_operator_token(~text=" => ", ())]
+            @ [mk_operator_token(~text="=>", ())]
             @ view_lytr_terms(~font, body),
           ),
         branches,
       );
     Node.span(
       ~attrs=[Attr.class_("lytr-case")],
-      [mk_atom_token(~text="case ", ())]
+      [mk_atom_token(~text="case", ())]
       @ view_lytr_terms(~font, scrutinee)
       @ branch_nodes
-      @ [Node.br()]
       @ [mk_atom_token(~text="end", ())],
     );
   | If(terms1, terms2, child) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-if")],
-      [mk_atom_token(~text="if ", ())]
+      [mk_atom_token(~text="if", ())]
       @ view_lytr_terms(~font, terms1)
-      @ [mk_atom_token(~text=" then ", ())]
+      @ [mk_atom_token(~text="then", ())]
       @ view_lytr_terms(~font, terms2)
-      @ [mk_atom_token(~text=" else ", ())]
+      @ [mk_atom_token(~text="else", ())]
       @ [view_lytr_child(~font, child)],
     )
   | Asc(c1, c2) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-asc")],
       [view_lytr_child(~font, c1)]
-      @ [mk_atom_token(~text=" : ", ())]
+      @ [mk_atom_token(~text=":", ())]
       @ [view_lytr_child(~font, c2)],
     )
   | Arrow(c1, c2) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-asc")],
       [view_lytr_child(~font, c1)]
-      @ [mk_atom_token(~text=" -> ", ())]
+      @ [mk_atom_token(~text="->", ())]
       @ [view_lytr_child(~font, c2)],
     )
   | DEBUG => mk_error_token(~text="DEBUG", ())

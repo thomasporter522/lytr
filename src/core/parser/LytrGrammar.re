@@ -1,7 +1,11 @@
+type secondary =
+  | Whitespace(string)
+  | Unlexed(string);
+
 type atom =
   | Numlit(int)
   | Identifier(string)
-  | Unlexed(string);
+  | Secondary(secondary);
 
 type token =
   | BOF // beginning of file

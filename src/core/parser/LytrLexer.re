@@ -25,7 +25,6 @@ let is_alphanum = (c: char): bool =>
 let rec lex_chars = (chars: list(char)): list(token) =>
   switch (chars) {
   | [] => []
-  | [' ' | '\t' | '\n' | '\r', ...rest] => lex_chars(rest) /* skip whitespace */
   | ['(', ...rest] => [TOP, ...lex_chars(rest)]
   | [')', ...rest] => [TCP, ...lex_chars(rest)]
   | [',', ...rest] => [TComma, ...lex_chars(rest)]
@@ -40,6 +39,10 @@ let rec lex_chars = (chars: list(char)): list(token) =>
   | ['=', ...rest] => [TEquals, ...lex_chars(rest)]
   | ['|', ...rest] => [TPipe, ...lex_chars(rest)]
   | [':', ...rest] => [TColon, ...lex_chars(rest)]
+  | [c, ...rest] when is_whitespace(c) => [
+      TAtom(Secondary(Whitespace(String.of_seq(List.to_seq([c]))))),
+      ...lex_chars(rest),
+    ]
   | [c, ...rest] when is_digit(c) =>
     /* Collect numeric sequence */
     let (num, remaining) = collect_number([c], rest);
@@ -66,7 +69,7 @@ let rec lex_chars = (chars: list(char)): list(token) =>
     [token, ...lex_chars(remaining)];
   | [c, ...rest] =>
     /* Unknown character - treat as unlexed atom */
-    [TAtom(Unlexed(String.make(1, c))), ...lex_chars(rest)]
+    [TAtom(Secondary(Unlexed(String.make(1, c)))), ...lex_chars(rest)]
   }
 
 /* Helper function to collect a numeric sequence */

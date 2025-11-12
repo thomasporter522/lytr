@@ -66,9 +66,12 @@ and abstract_tuple = (form: closed_form) => {
 /* precondition: the input begins, ends, and matches validly */
 and abstract_form = (form: open_form): term =>
   switch (form) {
-  // tuples (including ap)
+  // tuples (including unit and ap)
+  | OForm(None, Match(Head(TOP), Nil, TCP), None) => Tuple([])
   | OForm(None, Match(form, is, TCP), None) =>
     Tuple(abstract_tuple(form) @ [abstract_terms(is)])
+  | OForm(Some(l), Match(Head(TOP), Nil, TCP), None) =>
+    Ap(abstract_child(Some(l)), [])
   | OForm(Some(l), Match(form, is, TCP), None) =>
     Ap(
       abstract_child(Some(l)),
