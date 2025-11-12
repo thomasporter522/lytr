@@ -119,11 +119,52 @@ let rec view_lytr_terms_no_grout = (~font, terms: terms): list(Node.t) =>
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
 and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
-  let nodes = view_lytr_terms_no_grout(~font, terms);
-  if (List.length(nodes) == 0) {
-    [mk_hole(~font, ())];
+  /* Process terms and add grout only between forms */
+  let rec process_terms = (terms: terms) =>
+    switch (terms) {
+    | Nil => ([], false)
+    | Cons(rest, sharded) =>
+      let node = view_lytr_sharded(~font, sharded);
+      let is_form =
+        switch (sharded) {
+        | Form(_) => true
+        | _ => false
+        };
+
+      let (processed_rest, exists_form) = process_terms(rest);
+
+      let processed =
+        processed_rest
+        @ (
+          if (exists_form && is_form) {
+            [mk_grout(~font, ())];
+          } else {
+            [];
+          }
+        )
+        @ [node];
+
+      (processed, is_form || exists_form);
+    };
+
+  /* Check if we have any forms at all */
+  let rec has_forms = (terms: terms) =>
+    switch (terms) {
+    | Nil => false
+    | Cons(rest, sharded) =>
+      switch (sharded) {
+      | Form(_) => true
+      | _ => has_forms(rest)
+      }
+    };
+
+  let (result, _) = process_terms(terms);
+
+  if (!has_forms(terms)) {
+    /* No forms - add hole at the end */
+    result @ [mk_hole(~font, ())];
   } else {
-    intersperse_grout(~font, nodes);
+    result;
   };
 }
 
@@ -308,11 +349,3 @@ let view_lytr_text = (~font, terms: terms): Node.t => {
     [Node.span(~attrs=[Attr.class_("line")], styled_line)],
   );
 };
-
-/* Fallback simple view function */
-let rec view_lytr_terms = (~font, terms: terms): list(Node.t) =>
-  switch (terms) {
-  | Nil => []
-  | Cons(rest, sharded) =>
-    view_lytr_terms(~font, rest) @ [view_lytr_sharded(~font, sharded)]
-  };
