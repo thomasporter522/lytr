@@ -153,7 +153,12 @@ let rec intersperse_grout = (~font, nodes: list(Node.t)): list(Node.t) =>
 
 /* Convert LytrParser terms to styled nodes WITHOUT grout interspersion */
 let rec view_lytr_terms_no_grout = (~font, terms: terms): list(Node.t) =>
-  List.map(view_lytr_term(~font), terms)
+  switch (terms) {
+  | Nil => []
+  | Cons(rest, sharded) =>
+    view_lytr_terms_no_grout(~font, rest)
+    @ [view_lytr_sharded(~font, sharded)]
+  }
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
 and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
@@ -165,13 +170,13 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
   };
 }
 
-// and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
-//   switch (sharded) {
-//   | Shard(token) =>
-//     let text = string_of_token(token);
-//     mk_error_token(~text, ());
-//   | Form(term) => view_lytr_term(~font, term)
-//   }
+and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
+  switch (sharded) {
+  | Shard(token) =>
+    let text = string_of_token(token);
+    mk_error_token(~text, ());
+  | Form(term) => view_lytr_term(~font, term)
+  }
 
 and view_lytr_term = (~font, term: term): Node.t =>
   switch (term) {
@@ -352,10 +357,10 @@ let view_lytr_text = (~font, terms: terms): Node.t => {
   );
 };
 
-// /* Fallback simple view function */
-// let rec view_lytr_terms = (~font, terms: terms): list(Node.t) =>
-//   switch (terms) {
-//   | Nil => []
-//   | Cons(rest, sharded) =>
-//     view_lytr_terms(~font, rest) @ [view_lytr_sharded(~font, sharded)]
-//   };
+/* Fallback simple view function */
+let rec view_lytr_terms = (~font, terms: terms): list(Node.t) =>
+  switch (terms) {
+  | Nil => []
+  | Cons(rest, sharded) =>
+    view_lytr_terms(~font, rest) @ [view_lytr_sharded(~font, sharded)]
+  };
