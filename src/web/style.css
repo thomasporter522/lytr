@@ -674,7 +674,7 @@ svg {
   display: inline-block;
   border: 1px solid var(--grout-color) !important; /* Very obvious red border for debugging */
   border-radius: 3px;
-  margin: 1px;
+  margin: 1px 1px;
   padding: 1px 1px;
 }
 

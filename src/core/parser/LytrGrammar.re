@@ -59,7 +59,7 @@ let prec = (t: primary_token): (prec, prec) =>
   | TModulo => (Precedence(2.1), Precedence(1.9))
   | TFactorial => (Precedence(3.), Uninterested)
   | TFun => (Uninterested, Interior)
-  | TArrow => (Precedence(0.1), Precedence(0.))
+  | TArrow => (Precedence(0.7), Precedence(0.6))
   | TLet => (Uninterested, Interior)
   | TEquals => (Interior, Interior)
   | TIn => (Interior, Precedence(0.))
