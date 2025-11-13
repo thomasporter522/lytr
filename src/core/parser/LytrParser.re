@@ -242,17 +242,28 @@ let wants_left_child = (t: primary_token): wants_left_child_result =>
 //   | SESecondary(secondary_token)
 
 type op_state =
-  | OS(listr(open_form), listr(half_open_form));
+  | OS(listr(sharded(open_form)), listr(half_open_form));
 
 let rec op_state_roll =
-        (os: op_state, acc: option(open_form)): listr(open_form) =>
+        (
+          os: op_state,
+          se_acc: listr(secondary_token),
+          acc: option(open_form),
+        )
+        : listr(sharded(open_form)) => {
+  let se_acc' = mapr(f => Secondary(f), se_acc);
   switch (os, acc) {
-  | (OS(fs, Nil), None) => fs
-  | (OS(fs, Nil), Some(acc)) => Cons(fs, acc)
+  | (OS(fs, Nil), None) => appendr(fs, se_acc')
+  | (OS(fs, Nil), Some(acc)) => Cons(appendr(fs, se_acc'), Form(acc))
   | (OS(fs, Cons(s, HOForm(l, se1, f, se2))), acc) =>
     // print_endline("rollin!");
-    op_state_roll(OS(fs, s), Some(OForm(l, se1, f, se2, acc)))
+    op_state_roll(
+      OS(fs, s),
+      Nil,
+      Some(OForm(l, se1, f, appendr(se2, se_acc), acc)),
+    )
   };
+};
 
 let rec op_parse =
         (
@@ -269,7 +280,7 @@ let rec op_parse =
     | (Yes, _) => OS(fs, sing(HOForm(acc, se_acc2, f, Nil)))
     | (No, None) => OS(fs, sing(HOForm(None, Nil, f, Nil)))
     | (No, Some(acc)) =>
-      OS(Cons(fs, acc), sing(HOForm(None, Nil, f, Nil)))
+      OS(Cons(fs, Form(acc)), sing(HOForm(None, Nil, f, Nil)))
     }
   | OS(fs, Cons(s, f1)) =>
     switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
@@ -308,7 +319,10 @@ let rec op_parse =
       switch (f1) {
       | HOForm(_) =>
         OS(
-          op_state_roll(OS(fs, Cons(s, f1)), acc),
+          appendr(
+            op_state_roll(OS(fs, Cons(s, f1)), se_acc1, acc),
+            mapr(f => Secondary(f), se_acc2),
+          ),
           sing(HOForm(None, Nil, f, Nil)),
         )
       }
@@ -323,7 +337,7 @@ let sharded_op_state_roll =
   switch (sos) {
   | SOS(fs, s, se) =>
     appendr(
-      appendr(fs, mapr(f => Form(f), op_state_roll(s, None))),
+      appendr(fs, op_state_roll(s, Nil, None)),
       mapr(se => Secondary(se), se),
     )
   };
