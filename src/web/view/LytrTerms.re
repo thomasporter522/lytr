@@ -12,7 +12,7 @@ let string_of_secondary_token = (s: secondary_token) =>
 
 let string_of_atom = (a: atom) =>
   switch (a) {
-  | Numlit(n) => string_of_int(n)
+  | Numlit(n) => n
   | Identifier(s) => s
   };
 

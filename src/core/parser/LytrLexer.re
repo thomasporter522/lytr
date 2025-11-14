@@ -49,7 +49,7 @@ let rec lex_chars = (chars: list(char)): list(token) =>
   | [c, ...rest] when is_digit(c) =>
     /* Collect numeric sequence */
     let (num, remaining) = collect_number([c], rest);
-    let num = int_of_string(String.of_seq(List.to_seq(List.rev(num))));
+    let num = String.of_seq(List.to_seq(List.rev(num)));
     [Primary(TAtom(Numlit(num))), ...lex_chars(remaining)];
   | [c, ...rest] when is_letter(c) =>
     /* Collect identifier sequence */

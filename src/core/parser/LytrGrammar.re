@@ -1,5 +1,5 @@
 type atom =
-  | Numlit(int)
+  | Numlit(string)
   | Identifier(string);
 
 type primary_token =
