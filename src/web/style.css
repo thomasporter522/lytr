@@ -668,7 +668,7 @@ svg {
 
 .lytr-token.error {
   color: var(--unmolded-color);
-  background-color: #ffe6e6;
+  /* background-color: #ffe6e6; */
   /* border-radius: 2px; */
   /* padding: 0 2px; */
   /* font-style: italic; */

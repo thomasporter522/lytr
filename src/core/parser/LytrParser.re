@@ -1,5 +1,11 @@
 open LytrGrammar;
 
+type shard_mode =
+  | ShardsSecondary
+  | ShardsObstructive;
+
+let shardmode: shard_mode = ShardsSecondary;
+
 // lists that grow on the right
 // used so that the left-right order in this code matches
 // the left-right order of the parsed object code
@@ -283,11 +289,28 @@ let rec op_push_form =
 };
 
 let op_push = (os: op_state, f: sharded(closed_form)): op_state =>
-  switch (os, f) {
-  | (OS(completed, Nil), Unform(u)) => OS(Cons(completed, Unform(u)), Nil)
-  | (OS(completed, Cons(fs, HOForm(a, b, c, ses))), Unform(u)) =>
-    OS(completed, Cons(fs, HOForm(a, b, c, Cons(ses, u))))
-  | (os, Form(f)) => op_push_form(os, None, Nil, f)
+  switch (shardmode) {
+  | ShardsSecondary =>
+    switch (os, f) {
+    | (OS(completed, Nil), Unform(u)) =>
+      OS(Cons(completed, Unform(u)), Nil)
+    | (OS(completed, Cons(fs, HOForm(a, b, c, ses))), Unform(u)) =>
+      OS(completed, Cons(fs, HOForm(a, b, c, Cons(ses, u))))
+    | (os, Form(f)) => op_push_form(os, None, Nil, f)
+    }
+  | ShardsObstructive =>
+    switch (os, f) {
+    | (OS(completed, Nil), Unform(Secondary(se))) =>
+      OS(Cons(completed, Unform(Secondary(se))), Nil)
+    | (
+        OS(completed, Cons(fs, HOForm(a, b, c, ses))),
+        Unform(Secondary(se)),
+      ) =>
+      OS(completed, Cons(fs, HOForm(a, b, c, Cons(ses, Secondary(se)))))
+    | (os, Unform(Shard(s))) =>
+      OS(Cons(op_state_roll(os, None), Unform(Shard(s))), Nil)
+    | (os, Form(f)) => op_push_form(os, None, Nil, f)
+    }
   };
 
 let rec close_partial_form = (f: partial_form): closed_form =>
