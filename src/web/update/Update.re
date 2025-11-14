@@ -69,6 +69,7 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
     | (_, "Enter") =>
       //TODO(andrew): using funky char to avoid weird regexp issues with using \n
       now_save(Insert("\n"))
+    | (Up, "Tab") => now_save(Insert("\t"))
     | _ when String.length(key) == 1 =>
       /* TODO(andrew): length==1 is hack to prevent things
          like F5 which are now valid tokens and also weird

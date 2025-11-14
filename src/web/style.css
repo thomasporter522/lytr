@@ -68,7 +68,8 @@
   --anchor-z: 14;
   --caret-z: 14;
 
-  --grout-color : #cfbf9b;
+  --hole-color : #cfbf9b;
+  --grout-color : var(--unmolded-color);
 }
 
 .token.space {
@@ -240,6 +241,8 @@
   cursor: text;
   user-select: none;
   white-space: pre;
+  tab-size: 4;
+  -moz-tab-size: 4;
   /* height: calc(100vw - 18.2em);
   overflow: scroll; */
 }
@@ -634,6 +637,8 @@ svg {
 .lytr-token {
   display: inline;
   white-space: pre;
+  tab-size: 4;
+  -moz-tab-size: 4;
 }
 
 .lytr-token.operator {
@@ -672,7 +677,7 @@ svg {
 /* Term outline styling - provides visual boundary around each term */
 .lytr-term-outlined {
   display: inline-block;
-  border: 1px solid var(--grout-color) !important; /* Very obvious red border for debugging */
+  border: 1px solid var(--hole-color) !important; /* Very obvious red border for debugging */
   border-radius: 3px;
   margin: 1px 1px;
   padding: 1px 1px;
@@ -698,6 +703,11 @@ svg {
 /* Grout dot styling */
 .lytr-token.lytr-grout {
   color: var(--grout-color);
+}
+
+/* Grout dot styling */
+.hole {
+  color: var(--hole-color);
 }
 
 /* LytrTerms cursor styling */

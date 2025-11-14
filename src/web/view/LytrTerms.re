@@ -53,6 +53,27 @@ let string_of_token = (t: token) =>
   | Secondary(s) => string_of_secondary_token(s)
   };
 
+let is_whitespace = (t: sharded(term)): bool =>
+  switch (t) {
+  | Secondary(Whitespace(_)) => true
+  | _ => false
+  };
+
+let is_form = (t: sharded(term)): bool =>
+  switch (t) {
+  | Form(_) => true
+  | _ => false
+  };
+
+let list_of_listr = (l: listr('a)): list('a) => {
+  let rec helper = (l, acc) =>
+    switch (l) {
+    | Nil => acc
+    | Cons(l, a) => helper(l, [a, ...acc])
+    };
+  helper(l, []);
+};
+
 /* Create styled view nodes that mimic the rich token system */
 let mk_styled_token = (~text, ~classes, ()) => {
   Node.span(
@@ -73,64 +94,66 @@ let mk_atom_token = (~text, ()) =>
 let mk_unlexed_token = (~text, ()) =>
   mk_styled_token(~text, ~classes=["atom", "tile", "unlexed"], ());
 
-let mk_grout_dot = () => {
-  Node.span(
-    ~attrs=[Attr.class_("lytr-grout")],
-    [mk_styled_token(~text="·", ~classes=["hole", "lytr-grout"], ())],
-  );
-};
-
-let mk_grout = (~font as _, ()) => {
-  mk_grout_dot();
-};
+let mk_half_space = mk_atom_token(~text=" ", ());
 
 let mk_hole_circ = () => {
-  Node.span(
-    ~attrs=[Attr.class_("lytr-grout")],
-    [mk_styled_token(~text="○", ~classes=["hole", "lytr-grout"], ())],
-  );
+  Node.span([mk_styled_token(~text="○", ~classes=["hole"], ())]);
 };
 
-let mk_hole = (~font as _, ()) => {
+let mk_hole = {
   mk_hole_circ();
 };
 
 let mk_error_token = (~text, ()) =>
   mk_styled_token(~text, ~classes=["error", "grout"], ());
 
-/* Helper function to intersperse grout between terms */
-let rec intersperse_grout = (~font, nodes: list(Node.t)): list(Node.t) =>
-  switch (nodes) {
-  | [] => []
-  | [single] => [single]
-  | [first, ...rest] => [
-      first,
-      mk_grout(~font, ()),
-      ...intersperse_grout(~font, rest),
-    ]
-  };
+let mk_grout_dot = () => {
+  Node.span([mk_styled_token(~text="·", ~classes=["lytr-grout"], ())]);
+};
 
-/* Convert LytrParser terms to styled nodes WITHOUT grout interspersion */
-let rec view_lytr_terms_no_grout = (~font, terms: terms): list(Node.t) =>
+let mk_grout = (~font as _, ()) => {
+  mk_grout_dot();
+};
+
+// this could be better. replace a space, centered, etc.
+let rec put_hole_in_whitespace = (~font, terms: list(sharded(term))) => {
+  let view = view_lytr_sharded(~font);
+  let view_all = List.map(view);
   switch (terms) {
-  | Nil => []
-  | Cons(rest, sharded) =>
-    view_lytr_terms_no_grout(~font, rest)
-    @ [view_lytr_sharded(~font, sharded)]
-  }
+  | [] => [mk_hole]
+  // | [Secondary(Whitespace(" "))] => [mk_hole]
+  // | [Secondary(Whitespace(" ")), Secondary(Whitespace(" "))] => [
+  //     mk_half_space,
+  //     mk_hole,
+  //     mk_half_space,
+  //   ]
+  | [h, ...t] => [view(h), mk_hole, ...view_all(t)]
+  // | _ => [mk_hole] @ nodes
+  };
+}
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
 and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
-  let nodes = view_lytr_terms_no_grout(~font, terms);
-  if (List.length(nodes) == 0) {
-    [mk_hole(~font, ())];
+  let terms = list_of_listr(terms);
+  if (List.for_all(is_whitespace, terms)) {
+    put_hole_in_whitespace(~font, terms);
   } else {
-    intersperse_grout(~font, nodes);
+    let rec render_with_grout = (terms, preceeded_by_form) => {
+      switch (terms) {
+      | [] => []
+      | [term, ...terms] =>
+        (preceeded_by_form && is_form(term) ? [mk_grout(~font, ())] : [])
+        @ [view_lytr_sharded(~font, term)]
+        @ render_with_grout(terms, preceeded_by_form || is_form(term))
+      };
+    };
+    render_with_grout(terms, false);
   };
 }
 
 and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
+  | Secondary(Unlexed(text)) => mk_error_token(~text, ())
   | Secondary(token) =>
     let text = string_of_secondary_token(token);
     mk_atom_token(~text, ());
@@ -318,29 +341,26 @@ and view_lytr_term = (~font, term: term): Node.t => {
 
 and view_lytr_left_child = (~font, child: left_child): list(Node.t) =>
   switch (child) {
-  | Hole => [mk_hole(~font, ())]
+  | Hole => [mk_hole]
   | Term(term, se) =>
-    [view_lytr_term(~font, term)] @ view_lytr_secondaries(~font, se)
+    [view_lytr_term(~font, term)] @ view_lytr_child_secondaries(~font, se)
   }
 
 and view_lytr_right_child = (~font, child: right_child): list(Node.t) =>
   switch (child) {
-  | Hole => [mk_hole(~font, ())]
+  | Hole => [mk_hole]
   | Term(se, term) =>
-    print_endline("Child ");
-    view_lytr_secondaries(~font, se) @ [view_lytr_term(~font, term)];
+    view_lytr_child_secondaries(~font, se) @ [view_lytr_term(~font, term)]
   }
 
-and view_lytr_secondaries = (~font, se: secondaries): list(Node.t) => {
+and view_lytr_child_secondaries = (~font, se: secondaries): list(Node.t) => {
   switch (se) {
   | Nil => []
   | Cons(rest, secondary) =>
-    view_lytr_secondaries(~font, rest)
+    view_lytr_child_secondaries(~font, rest)
     @ [
       switch (secondary) {
-      | Whitespace(s) =>
-        print_endline("Whitespace " ++ s);
-        mk_atom_token(~text=s, ());
+      | Whitespace(s) => mk_atom_token(~text=s, ())
       | Unlexed(s) => mk_unlexed_token(~text=s, ())
       },
     ]
