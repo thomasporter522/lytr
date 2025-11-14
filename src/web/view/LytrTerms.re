@@ -131,7 +131,7 @@ let mk_grout = (~font as _, ()) => {
 
 // this could be better. replace a space, centered, etc.
 let rec put_hole_in_whitespace = (~font, terms: list(sharded(term))) => {
-  let view = view_lytr_sharded(~font);
+  let view = x => view_lytr_sharded(~font, x, failwith("todo"));
   let view_all = List.map(view);
   switch (terms) {
   | [] => [mk_hole]
@@ -147,7 +147,7 @@ let rec put_hole_in_whitespace = (~font, terms: list(sharded(term))) => {
 }
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
-and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
+and view_lytr_terms = (~font, terms: terms, cursor: int): list(Node.t) => {
   let terms = list_of_listr(terms);
   if (List.for_all(is_whitespace, terms)) {
     put_hole_in_whitespace(~font, terms);
@@ -157,7 +157,7 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
       | [] => []
       | [term, ...terms] =>
         (preceeded_by_form && is_form(term) ? [mk_grout(~font, ())] : [])
-        @ [view_lytr_sharded(~font, term)]
+        @ [view_lytr_sharded(~font, term, cursor)]
         @ render_with_grout(
             terms,
             preceeded_by_form && is_whitespace(term) || is_form(term),
@@ -168,7 +168,7 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
   };
 }
 
-and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
+and view_lytr_sharded = (~font, sharded: sharded(term), cursor: int): Node.t =>
   switch (sharded) {
   | Unform(Secondary(Unlexed(text))) => mk_error_token(~text, ())
   | Unform(Secondary(token)) =>
@@ -177,14 +177,17 @@ and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   | Unform(Shard(token)) =>
     let text = string_of_primary_token(token);
     mk_error_token(~text, ());
-  | Form(term) => view_lytr_term(~font, term)
+  | Form(term) => view_lytr_term(~font, term, cursor)
   }
 
-and view_comma_terms = (~font, terms) => {
+and view_comma_terms = (~font, terms, cursor: int) => {
   let tuple_elements =
     List.fold_right(
       (terms, acc) =>
-        [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+        [
+          Node.span(~attrs=[], view_lytr_terms(~font, terms, cursor)),
+          ...acc,
+        ],
       terms,
       [],
     );
@@ -199,29 +202,29 @@ and view_comma_terms = (~font, terms) => {
   );
 }
 
-and view_lytr_term_inner = (~font, term: term): Node.t => {
+and view_lytr_term_inner = (~font, term: term, cursor): Node.t => {
   switch (term) {
   | Tuple(inner_term_list) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-tuple")],
       [mk_paren_token(~text="(", ())]
-      @ view_comma_terms(~font, inner_term_list)
+      @ view_comma_terms(~font, inner_term_list, cursor)
       @ [mk_paren_token(~text=")", ())],
     )
   | List(inner_term_list) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-tuple")],
       [mk_paren_token(~text="[", ())]
-      @ view_comma_terms(~font, inner_term_list)
+      @ view_comma_terms(~font, inner_term_list, cursor)
       @ [mk_paren_token(~text="]", ())],
     )
   | InfixBinop(left, binop, right) =>
     let op_text = string_of_binop(binop);
     Node.span(
       ~attrs=[Attr.class_("lytr-binop")],
-      view_lytr_left_child(~font, left)
+      view_lytr_left_child(~font, left, cursor)
       @ [mk_operator_token(~text=op_text, ())]
-      @ view_lytr_right_child(~font, right),
+      @ view_lytr_right_child(~font, right, cursor),
     );
   | AssocBinop(left, binop, entries, right) =>
     let op_text = string_of_binop(binop);
@@ -236,7 +239,7 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
             @ acc
           | Term(u1, term, u2) =>
             view_lytr_child_unforms(~font, u1)
-            @ [view_lytr_term(~font, term)]
+            @ [view_lytr_term(~font, term, cursor)]
             @ view_lytr_child_unforms(~font, u2)
             @ [mk_operator_token(~text=op_text, ())]
             @ acc
@@ -246,10 +249,10 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
       );
     Node.span(
       ~attrs=[Attr.class_("lytr-assoc-binop")],
-      view_lytr_left_child(~font, left)
+      view_lytr_left_child(~font, left, cursor)
       @ [mk_operator_token(~text=op_text, ())]
       @ entry_nodes
-      @ view_lytr_right_child(~font, right),
+      @ view_lytr_right_child(~font, right, cursor),
     );
   | PrefixUnop(unop, child) =>
     let op_text =
@@ -260,7 +263,7 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
     Node.span(
       ~attrs=[Attr.class_("lytr-unop")],
       [mk_operator_token(~text=op_text, ())]
-      @ view_lytr_right_child(~font, child),
+      @ view_lytr_right_child(~font, child, cursor),
     );
   | PostfixUnop(child, unop) =>
     let op_text =
@@ -270,7 +273,7 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
       };
     Node.span(
       ~attrs=[Attr.class_("lytr-unop")],
-      view_lytr_left_child(~font, child)
+      view_lytr_left_child(~font, child, cursor)
       @ [mk_operator_token(~text=op_text, ())],
     );
   | Atom(atom) =>
@@ -280,15 +283,18 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
     Node.span(
       ~attrs=[Attr.class_("lytr-fun")],
       [mk_atom_token(~text="fun", ())]
-      @ view_lytr_terms(~font, params)
+      @ view_lytr_terms(~font, params, cursor)
       @ [mk_atom_token(~text="→", ())]
-      @ view_lytr_right_child(~font, body),
+      @ view_lytr_right_child(~font, body, cursor),
     )
   | Ap(func, args) =>
     let arg_elements =
       List.fold_right(
         (terms, acc) =>
-          [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+          [
+            Node.span(~attrs=[], view_lytr_terms(~font, terms, cursor)),
+            ...acc,
+          ],
         args,
         [],
       );
@@ -304,7 +310,7 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
       );
     Node.span(
       ~attrs=[Attr.class_("lytr-ap")],
-      view_lytr_left_child(~font, func)
+      view_lytr_left_child(~font, func, cursor)
       @ [mk_paren_token(~text="(", ())]
       @ interspersed_args
       @ [mk_paren_token(~text=")", ())],
@@ -313,21 +319,21 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
     Node.span(
       ~attrs=[Attr.class_("lytr-let")],
       [mk_atom_token(~text="let", ())]
-      @ view_lytr_terms(~font, bindings)
+      @ view_lytr_terms(~font, bindings, cursor)
       @ [mk_atom_token(~text="=", ())]
-      @ view_lytr_terms(~font, body_terms)
+      @ view_lytr_terms(~font, body_terms, cursor)
       @ [mk_atom_token(~text="in", ())]
-      @ view_lytr_right_child(~font, body),
+      @ view_lytr_right_child(~font, body, cursor),
     )
   | Type(type_params, type_body, body) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-type")],
       [mk_atom_token(~text="type", ())]
-      @ view_lytr_terms(~font, type_params)
+      @ view_lytr_terms(~font, type_params, cursor)
       @ [mk_operator_token(~text="=", ())]
-      @ view_lytr_terms(~font, type_body)
+      @ view_lytr_terms(~font, type_body, cursor)
       @ [mk_atom_token(~text="in", ())]
-      @ view_lytr_right_child(~font, body),
+      @ view_lytr_right_child(~font, body, cursor),
     )
   | Case(scrutinee, branches) =>
     let branch_nodes =
@@ -336,16 +342,16 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
           Node.span(
             ~attrs=[Attr.class_("lytr-case-branch")],
             [mk_atom_token(~text="|", ())]
-            @ view_lytr_terms(~font, pattern)
+            @ view_lytr_terms(~font, pattern, cursor)
             @ [mk_atom_token(~text="⇒", ())]
-            @ view_lytr_terms(~font, body),
+            @ view_lytr_terms(~font, body, cursor),
           ),
         branches,
       );
     Node.span(
       ~attrs=[Attr.class_("lytr-case")],
       [mk_atom_token(~text="case", ())]
-      @ view_lytr_terms(~font, scrutinee)
+      @ view_lytr_terms(~font, scrutinee, cursor)
       @ branch_nodes
       @ [mk_atom_token(~text="end", ())],
     );
@@ -353,32 +359,32 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
     Node.span(
       ~attrs=[Attr.class_("lytr-if")],
       [mk_atom_token(~text="if", ())]
-      @ view_lytr_terms(~font, terms1)
+      @ view_lytr_terms(~font, terms1, cursor)
       @ [mk_atom_token(~text="then", ())]
-      @ view_lytr_terms(~font, terms2)
+      @ view_lytr_terms(~font, terms2, cursor)
       @ [mk_atom_token(~text="else", ())]
-      @ view_lytr_right_child(~font, child),
+      @ view_lytr_right_child(~font, child, cursor),
     )
   | Asc(c1, c2) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-asc")],
-      view_lytr_left_child(~font, c1)
+      view_lytr_left_child(~font, c1, cursor)
       @ [mk_atom_token(~text=":", ())]
-      @ view_lytr_right_child(~font, c2),
+      @ view_lytr_right_child(~font, c2, cursor),
     )
   | Arrow(c1, c2) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-asc")],
-      view_lytr_left_child(~font, c1)
+      view_lytr_left_child(~font, c1, cursor)
       @ [mk_atom_token(~text="→", ())]
-      @ view_lytr_right_child(~font, c2),
+      @ view_lytr_right_child(~font, c2, cursor),
     )
   | DEBUG => mk_error_token(~text="DEBUG", ())
   };
 }
 
-and view_lytr_term = (~font, term: term): Node.t => {
-  let node = view_lytr_term_inner(~font, term);
+and view_lytr_term = (~font, term: term, cursor: int): Node.t => {
+  let node = view_lytr_term_inner(~font, term, cursor);
   /* Add outline to every term */
   Node.span(
     ~attrs=[Attr.classes(["lytr-term", "lytr-term-outlined"])],
@@ -386,18 +392,20 @@ and view_lytr_term = (~font, term: term): Node.t => {
   );
 }
 
-and view_lytr_left_child = (~font, child: left_child): list(Node.t) =>
+and view_lytr_left_child = (~font, child: left_child, cursor): list(Node.t) =>
   switch (child) {
   | Hole => [mk_hole]
   | Term(term, se) =>
-    [view_lytr_term(~font, term)] @ view_lytr_child_unforms(~font, se)
+    [view_lytr_term(~font, term, cursor)]
+    @ view_lytr_child_unforms(~font, se)
   }
 
-and view_lytr_right_child = (~font, child: right_child): list(Node.t) =>
+and view_lytr_right_child = (~font, child: right_child, cursor): list(Node.t) =>
   switch (child) {
   | Hole => [mk_hole]
   | Term(se, term) =>
-    view_lytr_child_unforms(~font, se) @ [view_lytr_term(~font, term)]
+    view_lytr_child_unforms(~font, se)
+    @ [view_lytr_term(~font, term, cursor)]
   }
 
 and view_lytr_child_unforms = (~font, se: unforms): list(Node.t) => {
@@ -418,8 +426,8 @@ and view_lytr_child_unforms = (~font, se: unforms): list(Node.t) => {
 };
 
 /* Rich view function using styled tokens */
-let view_lytr_text = (~font, terms: terms): Node.t => {
-  let styled_line = view_lytr_terms(~font, terms);
+let view_lytr_text = (~font, terms: terms, cursor: int): Node.t => {
+  let styled_line = view_lytr_terms(~font, terms, cursor);
   Node.div(
     ~attrs=[Attr.classes(["block", "lytr-block"])],
     [Node.span(~attrs=[Attr.class_("line")], styled_line)],
