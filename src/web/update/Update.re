@@ -8,7 +8,6 @@ let catch_exns = ref(true);
 
 [@deriving (show({with_path: false}), sexp, yojson)]
 type t =
-  | Warmup
   | SetFont(Font.t)
   | PerformAction(Edit.t)
   | Undo
@@ -168,9 +167,6 @@ let apply =
     : Result.t(Model.t) => {
   // print_endline("apply");
   switch (update) {
-  | Warmup =>
-    Tylr_core.Walker.warmup();
-    Ok(model);
   | SetFont(font) =>
     Ok({
       ...model,

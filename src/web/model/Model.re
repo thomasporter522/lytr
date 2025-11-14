@@ -2,7 +2,6 @@ open Tylr_core;
 
 module State = State;
 module Font = Font;
-module History = History;
 
 type hist = list((string, string));
 

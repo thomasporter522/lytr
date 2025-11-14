@@ -2,7 +2,6 @@
 
 (library
  (name tylr_core)
- (virtual_modules sort grammar)
  (libraries stds sedlex re sexplib uutf fmt)
  (js_of_ocaml)
  (preprocess

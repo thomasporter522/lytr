@@ -11,7 +11,7 @@ type t =
   | Delete(Dir.t);
 
 let perform = (a: t, b: Buffer.t): option(Buffer.t) => {
-  Effects.reset();
+  // Effects.reset();
   switch (a) {
   // | Tab(d) => Tab.perform(d, b)
   | Move(a) => Move.perform(a, b)

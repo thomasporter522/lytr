@@ -226,11 +226,11 @@ let on_key = (~inject, ~model) => {
   ];
 };
 
-let copy = (cur: Tylr_core.Zipper.Cursor.Base.t('tok)) =>
-  switch (Tylr_core.Zipper.selection_str(cur)) {
-  | None => ()
-  | Some(str) => Util.Dom.copy(str)
-  };
+// let copy = (cur: Tylr_core.Zipper.Cursor.Base.t('tok)) =>
+//   switch (Tylr_core.Zipper.selection_str(cur)) {
+//   | None => ()
+//   | Some(str) => Util.Dom.copy(str)
+//   };
 
 let get_goal = (~font: Model.Font.t, ~target_id, e): Tylr_core.Loc.t => {
   let rect = Util.Dom.get_elem_by_id(target_id)##getBoundingClientRect;
@@ -298,7 +298,7 @@ let load_button = (~inject, idx) => {
   );
 };
 
-let view = (~inject, ~stored, model: Model.t) => {
+let view = (~inject, model: Model.t) => {
   div(
     ~attrs=
       Attr.[
@@ -343,14 +343,6 @@ let view = (~inject, ~stored, model: Model.t) => {
     [
       FontSpecimen.view("font-specimen"),
       Util.Dom.clipboard_shim,
-      // FontSpecimen.view("logo-font-specimen"),
-      Dec.Filters.all,
-      // top_bar_view(~inject, model),
-      // editor_caption_view(model),
-      div(
-        ~attrs=[Attr.id("top-bar")],
-        List.init(1 + stored, load_button(~inject)),
-      ),
       editor_view(model),
       History.view(model),
     ],
