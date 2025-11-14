@@ -27,6 +27,7 @@ and right_child =
 
 and term =
   | Tuple(list(terms))
+  | List(list(terms))
   | Atom(atom)
   | InfixBinop(left_child, binop, right_child)
   | PrefixUnop(unop, right_child)
@@ -40,6 +41,14 @@ and term =
   | Asc(left_child, right_child)
   | Arrow(left_child, right_child)
   | DEBUG;
+
+let rec terms_all_secondary = terms => {
+  switch (terms) {
+  | Nil => true
+  | Cons(terms, Secondary(_)) => terms_all_secondary(terms)
+  | Cons(_, _) => false
+  };
+};
 
 let rec abstract_terms = (fs: listr(sharded(open_form))): terms =>
   mapr(abstract_sharded, fs)
@@ -72,8 +81,18 @@ and abstract_case_branches =
 and abstract_tuple = (form: closed_form) => {
   switch (form) {
   | Head(TOP) => []
-  | Match(form, is, TComma) => abstract_tuple(form) @ [abstract_terms(is)]
+  | Match(form, is, TCommaTuple) =>
+    abstract_tuple(form) @ [abstract_terms(is)]
   | _ => failwith("impossible; ill structured tuple form")
+  };
+}
+
+and abstract_list = (form: closed_form) => {
+  switch (form) {
+  | Head(TOSB) => []
+  | Match(form, is, TCommaList) =>
+    abstract_list(form) @ [abstract_terms(is)]
+  | _ => failwith("impossible; ill structured list form")
   };
 }
 
@@ -91,6 +110,10 @@ and abstract_form = (form: open_form): term =>
       abstract_left_child(Some(l), se),
       abstract_tuple(form) @ [abstract_terms(is)],
     )
+  // lists
+  | OForm(None, Nil, Match(Head(TOSB), Nil, TCSB), Nil, None) => List([])
+  | OForm(None, Nil, Match(form, is, TCSB), Nil, None) =>
+    List(abstract_list(form) @ [abstract_terms(is)])
 
   // atoms
   | OForm(None, Nil, Head(TAtom(a)), Nil, None) => Atom(a)

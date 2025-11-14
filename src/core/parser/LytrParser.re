@@ -104,6 +104,8 @@ let rec match_stack =
   | Cons(rest, Form(f)) =>
     switch (match_token(face_of_partial_form(f), t)) {
     | NoMatch => match_stack(rest, t, [Form(f), ...s_skipped])
+    | MatchMorph(t') =>
+      Match(Cons(rest, Form(Match(f, flatten(s_skipped), t'))))
     | Match => Match(Cons(rest, Form(Match(f, flatten(s_skipped), t))))
     }
   };

@@ -22,6 +22,8 @@ let string_of_primary_token = (t: primary_token) =>
   | EOF => "#"
   | TOP => "("
   | TCP => ")"
+  | TOSB => "["
+  | TCSB => "]"
   | TAtom(a) => string_of_atom(a)
   | TPlus => "+"
   | TMinus => "-"
@@ -44,7 +46,9 @@ let string_of_primary_token = (t: primary_token) =>
   | TThen => "then"
   | TElse => "else"
   | TColon => ":"
-  | TComma => ","
+  | TComma
+  | TCommaTuple
+  | TCommaList => ","
   };
 
 let string_of_token = (t: token) =>
@@ -144,7 +148,10 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
       | [term, ...terms] =>
         (preceeded_by_form && is_form(term) ? [mk_grout(~font, ())] : [])
         @ [view_lytr_sharded(~font, term)]
-        @ render_with_grout(terms, preceeded_by_form || is_form(term))
+        @ render_with_grout(
+            terms,
+            preceeded_by_form && is_whitespace(term) || is_form(term),
+          )
       };
     };
     render_with_grout(terms, false);
@@ -163,33 +170,42 @@ and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   | Form(term) => view_lytr_term(~font, term)
   }
 
+and view_comma_terms = (~font, terms) => {
+  let tuple_elements =
+    List.fold_right(
+      (terms, acc) =>
+        [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+      terms,
+      [],
+    );
+  List.fold_right(
+    (elem, acc) =>
+      switch (acc) {
+      | [] => [elem]
+      | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
+      },
+    tuple_elements,
+    [],
+  );
+}
+
 and view_lytr_term = (~font, term: term): Node.t => {
   let node = {
     switch (term) {
     | Tuple(inner_term_list) =>
-      let tuple_elements =
-        List.fold_right(
-          (terms, acc) =>
-            [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
-          inner_term_list,
-          [],
-        );
-      let interspersed_elements =
-        List.fold_right(
-          (elem, acc) =>
-            switch (acc) {
-            | [] => [elem]
-            | _ => [elem, mk_operator_token(~text=",", ()), ...acc]
-            },
-          tuple_elements,
-          [],
-        );
       Node.span(
         ~attrs=[Attr.class_("lytr-tuple")],
         [mk_paren_token(~text="(", ())]
-        @ interspersed_elements
+        @ view_comma_terms(~font, inner_term_list)
         @ [mk_paren_token(~text=")", ())],
-      );
+      )
+    | List(inner_term_list) =>
+      Node.span(
+        ~attrs=[Attr.class_("lytr-tuple")],
+        [mk_paren_token(~text="[", ())]
+        @ view_comma_terms(~font, inner_term_list)
+        @ [mk_paren_token(~text="]", ())],
+      )
     | InfixBinop(left, binop, right) =>
       let op_text =
         switch (binop) {

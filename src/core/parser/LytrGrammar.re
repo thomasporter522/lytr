@@ -7,6 +7,8 @@ type primary_token =
   | EOF // end of file
   | TOP // open parens
   | TCP // close parens
+  | TOSB // open square bracket
+  | TCSB // close square bracket
   | TAtom(atom)
   | TPlus
   | TMinus
@@ -29,7 +31,9 @@ type primary_token =
   | TThen
   | TElse
   | TColon
-  | TComma;
+  | TComma
+  | TCommaTuple
+  | TCommaList;
 
 type secondary_token =
   | Whitespace(string)
@@ -50,6 +54,8 @@ let prec = (t: primary_token): (prec, prec) =>
   | EOF => (Interior, Uninterested)
   | TOP => (Precedence(3.), Interior)
   | TCP => (Interior, Uninterested)
+  | TOSB => (Uninterested, Interior)
+  | TCSB => (Interior, Uninterested)
   | TAtom(_) => (Uninterested, Uninterested)
   | TPlus => (Precedence(0.9), Precedence(1.1))
   | TMinus => (Precedence(0.9), Precedence(1.1))
@@ -73,16 +79,20 @@ let prec = (t: primary_token): (prec, prec) =>
   | TElse => (Interior, Precedence(0.))
   | TColon => (Precedence(0.5), Precedence(0.5))
   | TComma => (Interior, Interior)
+  | TCommaTuple => (Interior, Interior)
+  | TCommaList => (Interior, Interior)
   };
 
 type match_token_result =
   | Match
+  | MatchMorph(primary_token)
   | NoMatch;
 
 let match_token = (te1: primary_token, te2: primary_token): match_token_result =>
   switch (te1, te2) {
   | (BOF, EOF) => Match
   | (TOP, TCP) => Match
+  | (TOSB, TCSB) => Match
   | (TFun, TArrow) => Match
   | (TLet, TEquals) => Match
   | (TEquals, TIn) => Match
@@ -94,9 +104,12 @@ let match_token = (te1: primary_token, te2: primary_token): match_token_result =
   | (TDoubleArrow, TEnd) => Match
   | (TIf, TThen) => Match
   | (TThen, TElse) => Match
-  | (TOP, TComma) => Match
-  | (TComma, TComma) => Match
-  | (TComma, TCP) => Match
+  | (TOP, TComma) => MatchMorph(TCommaTuple)
+  | (TCommaTuple, TComma) => MatchMorph(TCommaTuple)
+  | (TCommaTuple, TCP) => Match
+  | (TOSB, TComma) => MatchMorph(TCommaList)
+  | (TCommaList, TComma) => MatchMorph(TCommaList)
+  | (TCommaList, TCSB) => Match
   | (_, _) => NoMatch /* fallthrough */
   };
 
