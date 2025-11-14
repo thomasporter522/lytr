@@ -205,176 +205,111 @@ type compare_tokens_result =
 /* Precondition: t1 ends a form and t2 starts a form */
 let compare_tokens =
     (t1: primary_token, t2: primary_token): compare_tokens_result => {
-  let (_, prec1_r) = prec(t1);
-  let (prec2_l, _) = prec(t2);
-  switch (prec1_r, prec2_l) {
-  | (Precedence(p1), Precedence(p2)) =>
-    if (p1 < p2) {
-      Shift;
-    } else if (p1 > p2) {
-      Reduce;
-    } else {
-      // Roll?
-      failwith("impossible: precedence collision");
-    }
+  switch (snd(prec(t1)), fst(prec(t2))) {
+  | (Precedence(p1), Precedence(p2)) when p1 < p2 => Shift
+  | (Precedence(p1), Precedence(p2)) when p1 > p2 => Reduce
+  | (Precedence(_), Precedence(_)) => failwith("precedence collision")
   | (Uninterested, Precedence(_)) => Reduce
   | (Precedence(_), Uninterested) => Shift
   | (Uninterested, Uninterested) => Roll
   | (Interior, _)
-  | (_, Interior) => failwith("impossible: precondition violated")
+  | (_, Interior) => failwith("precondition violated")
   };
 };
 
-type wants_left_child_result =
-  | Yes
-  | No;
-
 /* need only consider when t starts a form */
-let wants_left_child = (t: primary_token): wants_left_child_result =>
+let wants_left_child = (t: primary_token): bool =>
   switch (prec(t)) {
   | (Interior, _)
-  | (Uninterested, _) => No
-  | (Precedence(_), _) => Yes
+  | (Uninterested, _) => false
+  | (Precedence(_), _) => true
   };
-
-// type stack_entry =
-//   | SEForm(half_open_form)
-//   | SESecondary(secondary_token)
 
 type op_state =
   | OS(listr(sharded(open_form)), listr(half_open_form));
 
 let rec op_state_roll =
-        (
-          os: op_state,
-          se_acc: listr(secondary_token),
-          acc: option(open_form),
-        )
-        : listr(sharded(open_form)) => {
-  let se_acc' = mapr(f => Secondary(f), se_acc);
-  switch (os, acc) {
-  | (OS(fs, Nil), None) => appendr(fs, se_acc')
-  | (OS(fs, Nil), Some(acc)) => Cons(appendr(fs, se_acc'), Form(acc))
-  | (OS(fs, Cons(s, HOForm(l, se1, f, se2))), acc) =>
-    // print_endline("rollin!");
-    op_state_roll(
-      OS(fs, s),
-      Nil,
-      Some(OForm(l, se1, f, appendr(se2, se_acc), acc)),
-    )
+        (s: op_state, acc: option(open_form)): listr(sharded(open_form)) => {
+  switch (s, acc) {
+  | (OS(fs, Nil), None) => fs
+  | (OS(fs, Nil), Some(acc)) => Cons(fs, Form(acc))
+  | (OS(fs, Cons(s, HOForm(l, se1, f, se2))), None) =>
+    let se2' = mapr(f => Secondary(f), se2);
+    let acc' = Some(OForm(l, se1, f, Nil, None));
+    let rolled = op_state_roll(OS(fs, s), acc');
+    appendr(rolled, se2');
+  | (OS(fs, Cons(s, HOForm(l, se1, f, se2))), Some(acc)) =>
+    op_state_roll(OS(fs, s), Some(OForm(l, se1, f, se2, Some(acc))))
   };
 };
 
-let rec op_parse =
+let rec op_push_form =
         (
           os: op_state,
-          se_acc1: secondaries,
           acc: option(open_form),
-          se_acc2: secondaries,
+          se_acc: listr(secondary_token),
           f: closed_form,
         )
-        : op_state =>
+        : op_state => {
   switch (os) {
   | OS(fs, Nil) =>
-    switch (wants_left_child(head_of(f)), acc) {
-    | (Yes, _) => OS(fs, sing(HOForm(acc, se_acc2, f, Nil)))
-    | (No, None) => OS(fs, sing(HOForm(None, Nil, f, Nil)))
-    | (No, Some(acc)) =>
-      OS(Cons(fs, Form(acc)), sing(HOForm(None, Nil, f, Nil)))
+    switch (acc, wants_left_child(head_of(f))) {
+    | (None, _) => OS(fs, sing(HOForm(None, Nil, f, Nil)))
+    | (Some(acc), true) => OS(fs, sing(HOForm(Some(acc), se_acc, f, Nil)))
+    | (Some(_), false) => failwith("I'm curious whether this is possible")
+    // OS(Cons(fs, Form(acc)), sing(HOForm(None, Nil, f, Nil)))
     }
-  | OS(fs, Cons(s, f1)) =>
-    switch (compare_tokens(face_of_half_open_form(f1), head_of(f))) {
-    | Shift =>
-      switch (f1) {
-      | HOForm(l, se1, f1_inner, se2) =>
-        OS(
-          fs,
-          Cons(
-            Cons(s, HOForm(l, se1, f1_inner, appendr(se2, se_acc1))),
-            HOForm(acc, se_acc2, f, Nil),
-          ),
-        )
-      }
+  | OS(fs, Cons(s, face)) =>
+    switch (compare_tokens(face_of_half_open_form(face), head_of(f))) {
+    | Shift => OS(fs, Cons(Cons(s, face), HOForm(acc, se_acc, f, Nil)))
     | Reduce =>
-      switch (f1, acc) {
+      switch (face, acc) {
       | (HOForm(l, se1, f1_inner, se2), None) =>
-        op_parse(
-          OS(fs, s),
-          Nil,
-          Some(OForm(l, se1, f1_inner, Nil, None)),
-          appendr(se2, appendr(se_acc1, se_acc2)),
-          f,
-        )
+        let acc' = Some(OForm(l, se1, f1_inner, Nil, None));
+        op_push_form(OS(fs, s), acc', appendr(se2, se_acc), f);
       | (HOForm(l, se1, f1_inner, se2), Some(acc)) =>
-        op_parse(
-          OS(fs, s),
-          Nil,
-          Some(OForm(l, se1, f1_inner, appendr(se2, se_acc1), Some(acc))),
-          se_acc2,
-          f,
-        )
+        let acc' = Some(OForm(l, se1, f1_inner, se2, Some(acc)));
+        op_push_form(OS(fs, s), acc', se_acc, f);
       }
     | Roll =>
-      // need to use acc1 and acc2 somewhere
-      switch (f1) {
-      | HOForm(_) =>
-        OS(
-          appendr(
-            op_state_roll(OS(fs, Cons(s, f1)), se_acc1, acc),
-            mapr(f => Secondary(f), se_acc2),
-          ),
-          sing(HOForm(None, Nil, f, Nil)),
-        )
-      }
+      let se_acc' = mapr(f => Secondary(f), se_acc);
+      let completed' = appendr(op_state_roll(os, acc), se_acc');
+      OS(completed', sing(HOForm(None, Nil, f, Nil)));
     }
   };
+};
 
-type sharded_op_state =
-  | SOS(listr(sharded(open_form)), op_state, secondaries);
-
-let sharded_op_state_roll =
-    (sos: sharded_op_state): listr(sharded(open_form)) =>
-  switch (sos) {
-  | SOS(fs, s, se) =>
-    appendr(
-      appendr(fs, op_state_roll(s, Nil, None)),
-      mapr(se => Secondary(se), se),
-    )
+let op_push = (os: op_state, f: sharded(closed_form)): op_state =>
+  switch (os, f) {
+  | (OS(completed, Nil), Secondary(se)) =>
+    OS(Cons(completed, Secondary(se)), Nil)
+  | (OS(completed, Cons(fs, HOForm(a, b, c, ses))), Secondary(se)) =>
+    OS(completed, Cons(fs, HOForm(a, b, c, Cons(ses, se))))
+  | (os, Shard(s)) => OS(Cons(op_state_roll(os, None), Shard(s)), Nil)
+  | (os, Form(f)) => op_push_form(os, None, Nil, f)
   };
 
-let rec close_partial_form = (pf: partial_form): closed_form =>
-  switch (pf) {
+let rec close_partial_form = (f: partial_form): closed_form =>
+  switch (f) {
   | Head(t) => Head(t)
   | Match(f, fs, t) => Match(close_partial_form(f), operatorize(fs), t)
   }
 
 and close_sharded_partial_form =
-    (spf: sharded(partial_form)): sharded(closed_form) =>
-  switch (spf) {
+    (f: sharded(partial_form)): sharded(closed_form) =>
+  switch (f) {
   | Secondary(s) => Secondary(s)
   | Shard(t) => Shard(t)
   | Form(f) => Form(close_partial_form(f))
   }
 
-and op_parse_step =
-    (s: sharded_op_state, scf: sharded(closed_form)): sharded_op_state =>
-  switch (s, scf) {
-  | (SOS(fs, os, se_acc), Secondary(se)) => SOS(fs, os, Cons(se_acc, se))
-  | (_, Shard(t)) =>
-    SOS(Cons(sharded_op_state_roll(s), Shard(t)), OS(Nil, Nil), Nil)
-  | (SOS(fs, os, se_acc), Form(f)) =>
-    SOS(fs, op_parse(os, se_acc, None, Nil, f), Nil)
-  }
-
-and op_parse_steps =
-    (s: sharded_op_state, spfs: listr(sharded(partial_form)))
-    : sharded_op_state =>
-  switch (spfs) {
+and op_pushes = (s: op_state, fs: listr(sharded(partial_form))): op_state => {
+  switch (fs) {
   | Nil => s
-  | Cons(l, f) =>
-    op_parse_step(op_parse_steps(s, l), close_sharded_partial_form(f))
-  }
+  | Cons(fs, f) => op_push(op_pushes(s, fs), close_sharded_partial_form(f))
+  };
+}
 
 and operatorize =
     (fs: listr(sharded(partial_form))): listr(sharded(open_form)) =>
-  sharded_op_state_roll(op_parse_steps(SOS(Nil, OS(Nil, Nil), Nil), fs));
+  op_state_roll(op_pushes(OS(Nil, Nil), fs), None);
