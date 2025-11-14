@@ -59,7 +59,7 @@ let string_of_token = (t: token) =>
 
 let is_whitespace = (t: sharded(term)): bool =>
   switch (t) {
-  | Secondary(Whitespace(_)) => true
+  | Unform(Secondary(Whitespace(_))) => true
   | _ => false
   };
 
@@ -160,11 +160,11 @@ and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
 
 and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
-  | Secondary(Unlexed(text)) => mk_error_token(~text, ())
-  | Secondary(token) =>
+  | Unform(Secondary(Unlexed(text))) => mk_error_token(~text, ())
+  | Unform(Secondary(token)) =>
     let text = string_of_secondary_token(token);
     mk_atom_token(~text, ());
-  | Shard(token) =>
+  | Unform(Shard(token)) =>
     let text = string_of_primary_token(token);
     mk_error_token(~text, ());
   | Form(term) => view_lytr_term(~font, term)
@@ -359,25 +359,28 @@ and view_lytr_left_child = (~font, child: left_child): list(Node.t) =>
   switch (child) {
   | Hole => [mk_hole]
   | Term(term, se) =>
-    [view_lytr_term(~font, term)] @ view_lytr_child_secondaries(~font, se)
+    [view_lytr_term(~font, term)] @ view_lytr_child_unforms(~font, se)
   }
 
 and view_lytr_right_child = (~font, child: right_child): list(Node.t) =>
   switch (child) {
   | Hole => [mk_hole]
   | Term(se, term) =>
-    view_lytr_child_secondaries(~font, se) @ [view_lytr_term(~font, term)]
+    view_lytr_child_unforms(~font, se) @ [view_lytr_term(~font, term)]
   }
 
-and view_lytr_child_secondaries = (~font, se: secondaries): list(Node.t) => {
+and view_lytr_child_unforms = (~font, se: unforms): list(Node.t) => {
   switch (se) {
   | Nil => []
-  | Cons(rest, secondary) =>
-    view_lytr_child_secondaries(~font, rest)
+  | Cons(rest, unform) =>
+    view_lytr_child_unforms(~font, rest)
     @ [
-      switch (secondary) {
-      | Whitespace(s) => mk_atom_token(~text=s, ())
-      | Unlexed(s) => mk_unlexed_token(~text=s, ())
+      switch (unform) {
+      | Secondary(Whitespace(s)) => mk_atom_token(~text=s, ())
+      | Secondary(Unlexed(s)) => mk_unlexed_token(~text=s, ())
+      | Shard(token) =>
+        let text = string_of_primary_token(token);
+        mk_error_token(~text, ());
       },
     ]
   };

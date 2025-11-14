@@ -22,10 +22,13 @@ let rec mapr = (f: 'a => 'b, l: listr('a)): listr('b) =>
   | Cons(rest, a) => Cons(mapr(f, rest), f(a))
   };
 
+type unform =
+  | Secondary(secondary_token)
+  | Shard(primary_token);
+
 // syntax forms along with with secondary syntax and unmatched tokens (shards)
 type sharded('a) =
-  | Secondary(secondary_token)
-  | Shard(primary_token)
+  | Unform(unform)
   | Form('a);
 
 // a "work in progress" matched syntactic form
@@ -52,9 +55,9 @@ let face_of_partial_form = (pf: partial_form): primary_token =>
 let rec shatter_partial_form =
         (pf: partial_form): listr(sharded(partial_form)) =>
   switch (pf) {
-  | Head(te) => sing(Shard(te))
+  | Head(te) => sing(Unform(Shard(te)))
   | Match(f, is, te) =>
-    appendr(shatter_partial_form(f), Cons(is, Shard(te)))
+    appendr(shatter_partial_form(f), Cons(is, Unform(Shard(te))))
   };
 
 // this flattens a partial form that appeared on the stack
@@ -73,8 +76,7 @@ let rec flatten =
         (spfs: list(sharded(partial_form))): listr(sharded(partial_form)) =>
   switch (spfs) {
   | [] => Nil
-  | [Secondary(se), ...s] => appendr(sing(Secondary(se)), flatten(s))
-  | [Shard(t), ...s] => appendr(sing(Shard(t)), flatten(s))
+  | [Unform(u), ...s] => appendr(sing(Unform(u)), flatten(s))
   | [Form(f), ...s] => appendr(flatten_partial_form(f), flatten(s))
   };
 
@@ -97,10 +99,8 @@ let rec match_stack =
         : match_stack_result =>
   switch (s) {
   | Nil => NoMatch
-  | Cons(rest, Secondary(s)) =>
-    match_stack(rest, t, [Secondary(s), ...s_skipped])
-  | Cons(rest, Shard(t_prime)) =>
-    match_stack(rest, t, [Shard(t_prime), ...s_skipped])
+  | Cons(rest, Unform(u)) =>
+    match_stack(rest, t, [Unform(u), ...s_skipped])
   | Cons(rest, Form(f)) =>
     switch (match_token(face_of_partial_form(f), t)) {
     | NoMatch => match_stack(rest, t, [Form(f), ...s_skipped])
@@ -120,13 +120,13 @@ let match_push =
     (s: listr(sharded(partial_form)), t: token)
     : listr(sharded(partial_form)) =>
   switch (t) {
-  | Secondary(se) => Cons(s, Secondary(se))
+  | Secondary(se) => Cons(s, Unform(Secondary(se)))
   | Primary(t) =>
     switch (match_stack(s, t, [])) {
     | Match(s_prime) => s_prime
     | NoMatch =>
       switch (is_valid_start(t)) {
-      | false => Cons(s, Shard(t))
+      | false => Cons(s, Unform(Shard(t)))
       | true => Cons(s, Form(Head(t)))
       }
     }
@@ -160,7 +160,8 @@ let match_parse = (ts: list(token)): listr(sharded(partial_form)) => {
 // and that the two pieces must simply stay at arms length in a
 // "multiterm" - a list of terms that occupy the same closed child position.
 
-type secondaries = listr(secondary_token);
+// type secondaries = listr(secondary_token);
+type unforms = listr(unform);
 
 // a complete matched syntactic form
 type closed_form =
@@ -171,15 +172,15 @@ type closed_form =
 and open_form =
   | OForm(
       option(open_form),
-      secondaries,
+      unforms,
       closed_form,
-      secondaries,
+      unforms,
       option(open_form),
     );
 
 // a complete matched syntactic form with a (possible) child on the left
 type half_open_form =
-  | HOForm(option(open_form), secondaries, closed_form, secondaries);
+  | HOForm(option(open_form), unforms, closed_form, unforms);
 
 let rec head_of = (cf: closed_form): primary_token =>
   switch (cf) {
@@ -236,7 +237,7 @@ let rec op_state_roll =
   | (OS(fs, Nil), None) => fs
   | (OS(fs, Nil), Some(acc)) => Cons(fs, Form(acc))
   | (OS(fs, Cons(s, HOForm(l, se1, f, se2))), None) =>
-    let se2' = mapr(f => Secondary(f), se2);
+    let se2' = mapr(f => Unform(f), se2);
     let acc' = Some(OForm(l, se1, f, Nil, None));
     let rolled = op_state_roll(OS(fs, s), acc');
     appendr(rolled, se2');
@@ -249,7 +250,7 @@ let rec op_push_form =
         (
           os: op_state,
           acc: option(open_form),
-          se_acc: listr(secondary_token),
+          se_acc: listr(unform),
           f: closed_form,
         )
         : op_state => {
@@ -274,7 +275,7 @@ let rec op_push_form =
         op_push_form(OS(fs, s), acc', se_acc, f);
       }
     | Roll =>
-      let se_acc' = mapr(f => Secondary(f), se_acc);
+      let se_acc' = mapr(f => Unform(f), se_acc);
       let completed' = appendr(op_state_roll(os, acc), se_acc');
       OS(completed', sing(HOForm(None, Nil, f, Nil)));
     }
@@ -283,11 +284,9 @@ let rec op_push_form =
 
 let op_push = (os: op_state, f: sharded(closed_form)): op_state =>
   switch (os, f) {
-  | (OS(completed, Nil), Secondary(se)) =>
-    OS(Cons(completed, Secondary(se)), Nil)
-  | (OS(completed, Cons(fs, HOForm(a, b, c, ses))), Secondary(se)) =>
-    OS(completed, Cons(fs, HOForm(a, b, c, Cons(ses, se))))
-  | (os, Shard(s)) => OS(Cons(op_state_roll(os, None), Shard(s)), Nil)
+  | (OS(completed, Nil), Unform(u)) => OS(Cons(completed, Unform(u)), Nil)
+  | (OS(completed, Cons(fs, HOForm(a, b, c, ses))), Unform(u)) =>
+    OS(completed, Cons(fs, HOForm(a, b, c, Cons(ses, u))))
   | (os, Form(f)) => op_push_form(os, None, Nil, f)
   };
 
@@ -300,8 +299,7 @@ let rec close_partial_form = (f: partial_form): closed_form =>
 and close_sharded_partial_form =
     (f: sharded(partial_form)): sharded(closed_form) =>
   switch (f) {
-  | Secondary(s) => Secondary(s)
-  | Shard(t) => Shard(t)
+  | Unform(u) => Unform(u)
   | Form(f) => Form(close_partial_form(f))
   }
 
