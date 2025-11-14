@@ -1,10 +1,10 @@
 open LytrGrammar;
 
 type shard_mode =
-  | ShardsSecondary
-  | ShardsObstructive;
+  | ShardsObstructive
+  | ShardsSecondary;
 
-let shardmode: shard_mode = ShardsSecondary;
+let shardmode: shard_mode = ShardsObstructive;
 
 // lists that grow on the right
 // used so that the left-right order in this code matches

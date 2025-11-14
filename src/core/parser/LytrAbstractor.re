@@ -25,11 +25,16 @@ and right_child =
   | Hole
   | Term(unforms, term)
 
+and assoc_entry =
+  | Empty(unforms)
+  | Term(unforms, term, unforms)
+
 and term =
   | Tuple(list(terms))
   | List(list(terms))
   | Atom(atom)
   | InfixBinop(left_child, binop, right_child)
+  | AssocBinop(left_child, binop, list(assoc_entry), right_child)
   | PrefixUnop(unop, right_child)
   | PostfixUnop(left_child, unop)
   | Fun(terms, right_child)
@@ -94,6 +99,45 @@ and abstract_list = (form: closed_form) => {
   };
 }
 
+and abstract_associative = (token, binop, f: open_form): term => {
+  switch (f) {
+  | OForm(lc, lu, Head(t), ru, rc) when t == token =>
+    let (left_child, left_extension): (left_child, list(assoc_entry)) =
+      switch (lc) {
+      | Some(l) =>
+        switch (abstract_associative(token, binop, l)) {
+        | AssocBinop(a1, binop2, a2, a3) when binop2 == binop =>
+          switch (a3) {
+          | Hole => (a1, a2 @ [Empty(lu)])
+          | Term(b1, b2) => (a1, a2 @ [Term(b1, b2, lu)])
+          }
+        | lc2 => (Term(lc2, lu), [])
+        }
+      | None => (Hole, [])
+      };
+    let (right_extension, right_child): (list(assoc_entry), right_child) =
+      switch (rc) {
+      | Some(r) =>
+        switch (abstract_associative(token, binop, r)) {
+        | AssocBinop(a1, binop2, a2, a3) when binop2 == binop =>
+          switch (a1) {
+          | Hole => ([Empty(ru), ...a2], a3)
+          | Term(b1, b2) => ([Term(ru, b1, b2), ...a2], a3)
+          }
+        | rc2 => ([], Term(ru, rc2))
+        }
+      | None => ([], Hole)
+      };
+    AssocBinop(
+      left_child,
+      binop,
+      left_extension @ right_extension,
+      right_child,
+    );
+  | _ => abstract_form(f)
+  };
+}
+
 /* precondition: the input begins, ends, and matches validly */
 and abstract_form = (form: open_form): term =>
   switch (form) {
@@ -120,23 +164,16 @@ and abstract_form = (form: open_form): term =>
     PrefixUnop(Minus, abstract_right_child(u, r))
   | OForm(l, u, Head(TFactorial), Nil, None) =>
     PostfixUnop(abstract_left_child(l, u), Factorial)
+  // associative binary operations
+  | OForm(_, _, Head(TPlus), _, _) =>
+    abstract_associative(TPlus, Plus, form)
+  | OForm(_, _, Head(TTimes), _, _) =>
+    abstract_associative(TTimes, Times, form)
   // binary operations
-  | OForm(l, u1, Head(TPlus), u2, r) =>
-    InfixBinop(
-      abstract_left_child(l, u1),
-      Plus,
-      abstract_right_child(u2, r),
-    )
   | OForm(l, u1, Head(TMinus), u2, r) =>
     InfixBinop(
       abstract_left_child(l, u1),
       Minus,
-      abstract_right_child(u2, r),
-    )
-  | OForm(l, u1, Head(TTimes), u2, r) =>
-    InfixBinop(
-      abstract_left_child(l, u1),
-      Times,
       abstract_right_child(u2, r),
     )
   | OForm(l, u1, Head(TDivide), u2, r) =>

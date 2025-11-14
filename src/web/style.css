@@ -32,7 +32,8 @@
   --selection-color: #ffd5be;
   --selection-shadow-color: rosybrown;
 
-  --unmolded-color: #dc322f;
+  --parse-error-color: #dc322f;
+  /* --parse-error-color: #e05114; */
 
   --caret-focus-color: #ff7200;
   --caret-anchor-color: #ffa760;
@@ -45,7 +46,7 @@
   --exp-shadow-color: #c3b292;
   --exp-text-color: #756e58;
 
-  --unlexed-color: var(--unmolded-color);
+  --unlexed-color: var(--parse-error-color);
 
   --pat-bg-color: #d0e7ec;
   --pat-shadow-color: #91bcd9;
@@ -69,7 +70,7 @@
   --caret-z: 14;
 
   --hole-color : #cfbf9b;
-  --grout-color : var(--unmolded-color);
+  --grout-color : var(--parse-error-color);
 }
 
 .token.space {
@@ -131,7 +132,7 @@
 .unmolded {
   /* font-style: italic; */
   opacity: 40%;
-  color: var(--unmolded-color);
+  color: var(--parse-error-color);
 }
 
 .tile.match {
@@ -660,14 +661,14 @@ svg {
 }
 
 .lytr-token.hole {
-  /* color: var(--unmolded-color); */
+  /* color: var(--parse-error-color); */
   /* background-color: var(--exp-bg-color); */
   /* border-radius: 2px; */
   /* padding: 0 2px; */
 }
 
 .lytr-token.error {
-  color: var(--unmolded-color);
+  color: var(--parse-error-color);
   /* background-color: #ffe6e6; */
   /* border-radius: 2px; */
   /* padding: 0 2px; */

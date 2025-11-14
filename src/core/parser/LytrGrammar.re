@@ -83,6 +83,15 @@ let prec = (t: primary_token): (prec, prec) =>
   | TCommaList => (Interior, Interior)
   };
 
+// Match morph: a mechanism to prevent things like [0,1,2) from being parsed.
+// The basic format here is to specify which tokens match which.
+// But [ matches , and , matched ), so how do we prevent the aforementioned nonsense?
+// When [ matches , then that comma gets morphed into a "list comma", which looks the
+// same but allows it to distinguish itself from the tuple comma and refuse to match ).
+// This solution is a little strange but it's extremely lightweight and allows the
+// normal case to remain unchanged (you can just use the Match constructor below most
+// of the time) so I think it's good.
+
 type match_token_result =
   | Match
   | MatchMorph(primary_token)
