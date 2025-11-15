@@ -74,15 +74,13 @@ let apply = (old_model, action, state, ~schedule_action): Model.t => {
         hist: [(act_str(action), "✔"), ...model.hist],
       }
     }
-  | Error(FailedToPerform as err) =>
-    prerr_endline(Update.Failure.show(FailedToPerform));
-    {
+  | Error(FailedToPerform as err) => {
       ...old_model,
       hist: [
         (act_str(action), Update.Failure.show(err)),
         ...old_model.hist,
       ],
-    };
+    }
   | Error(err) =>
     print_endline(Update.Failure.show(err));
     {

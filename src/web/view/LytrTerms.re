@@ -4,6 +4,10 @@ open LytrGrammar;
 open LytrParser;
 open LytrAbstractor;
 
+// I want to add sort highlighting here just for it to look pretty, 
+// in the actual integration view and sort checking will be decoupled. 
+type sort = Exp | Pat | Typ;
+
 let string_of_secondary_token = (s: secondary_token) =>
   switch (s) {
   | Whitespace(s) => s
@@ -147,7 +151,7 @@ let rec put_hole_in_whitespace = (~font, terms: list(sharded(term))) => {
 }
 
 /* Convert LytrParser terms to styled nodes WITH grout interspersion */
-and view_lytr_terms = (~font, terms: terms): list(Node.t) => {
+and view_lytr_terms = (~font, ~sort:sort, terms: terms): list(Node.t) => {
   let terms = list_of_listr(terms);
   if (List.for_all(is_whitespace, terms)) {
     put_hole_in_whitespace(~font, terms);
@@ -180,11 +184,11 @@ and view_lytr_sharded = (~font, sharded: LytrParser.sharded(term)): Node.t =>
   | Form(term) => view_lytr_term(~font, term)
   }
 
-and view_comma_terms = (~font, terms) => {
+and view_comma_terms = (~font, ~sort, terms) => {
   let tuple_elements =
     List.fold_right(
       (terms, acc) =>
-        [Node.span(~attrs=[], view_lytr_terms(~font, terms)), ...acc],
+        [Node.span(~attrs=[], view_lytr_terms(~font, ~sort, terms)), ...acc],
       terms,
       [],
     );
@@ -199,13 +203,13 @@ and view_comma_terms = (~font, terms) => {
   );
 }
 
-and view_lytr_term_inner = (~font, term: term): Node.t => {
+and view_lytr_term_inner = (~font, ~sort:sort, term: term): Node.t => {
   switch (term) {
   | Tuple(inner_term_list) =>
     Node.span(
       ~attrs=[Attr.class_("lytr-tuple")],
       [mk_paren_token(~text="(", ())]
-      @ view_comma_terms(~font, inner_term_list)
+      @ view_comma_terms(~font, ~sort, inner_term_list)
       @ [mk_paren_token(~text=")", ())],
     )
   | List(inner_term_list) =>
@@ -377,27 +381,30 @@ and view_lytr_term_inner = (~font, term: term): Node.t => {
   };
 }
 
-and view_lytr_term = (~font, term: term): Node.t => {
-  let node = view_lytr_term_inner(~font, term);
-  /* Add outline to every term */
-  Node.span(
-    ~attrs=[Attr.classes(["lytr-term", "lytr-term-outlined"])],
-    [node],
-  );
+and view_lytr_term = (~font, ~sort:sort, term: term): Node.t => {
+  let node = view_lytr_term_inner(~font, ~sort, term);
+  switch (term) {
+  | Atom(_) => node
+  | _ =>
+    Node.span(
+      ~attrs=[Attr.classes(["lytr-term", "lytr-term-outlined"])],
+      [node],
+    )
+  };
 }
 
-and view_lytr_left_child = (~font, child: left_child): list(Node.t) =>
+and view_lytr_left_child = (~font, ~sort, child: left_child): list(Node.t) =>
   switch (child) {
   | Hole => [mk_hole]
   | Term(term, se) =>
-    [view_lytr_term(~font, term)] @ view_lytr_child_unforms(~font, se)
+    [view_lytr_term(~font, ~sort, term)] @ view_lytr_child_unforms(~font, se)
   }
 
-and view_lytr_right_child = (~font, child: right_child): list(Node.t) =>
+and view_lytr_right_child = (~font, ~sort, child: right_child): list(Node.t) =>
   switch (child) {
   | Hole => [mk_hole]
   | Term(se, term) =>
-    view_lytr_child_unforms(~font, se) @ [view_lytr_term(~font, term)]
+    view_lytr_child_unforms(~font, se) @ [view_lytr_term(~font, ~sort, term)]
   }
 
 and view_lytr_child_unforms = (~font, se: unforms): list(Node.t) => {
@@ -419,7 +426,7 @@ and view_lytr_child_unforms = (~font, se: unforms): list(Node.t) => {
 
 /* Rich view function using styled tokens */
 let view_lytr_text = (~font, terms: terms): Node.t => {
-  let styled_line = view_lytr_terms(~font, terms);
+  let styled_line = view_lytr_terms(~font, ~sort=Exp, terms);
   Node.div(
     ~attrs=[Attr.classes(["block", "lytr-block"])],
     [Node.span(~attrs=[Attr.class_("line")], styled_line)],

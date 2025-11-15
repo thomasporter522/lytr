@@ -1,6 +1,5 @@
 open Sexplib.Std;
 open Ppx_yojson_conv_lib.Yojson_conv.Primitives;
-open Stds;
 open Tylr_core;
 open Model;
 

@@ -2,7 +2,7 @@
 
 (library
  (name tylr_core)
- (libraries stds sedlex re sexplib uutf fmt)
+ (libraries sedlex re sexplib uutf fmt)
  (js_of_ocaml)
  (preprocess
   (pps
