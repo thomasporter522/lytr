@@ -62,6 +62,10 @@
   /* --hole-color : #c053df; */
   --hole-color: var(--parse-error-color);
   --grout-color : var(--parse-error-color);
+
+  --exp-id-color: #5289b6;
+  --pat-id-color: #9b52b6;
+  --typ-id-color: #52b69a;
 }
 
 #page {
@@ -75,6 +79,12 @@
   background-color: var(--light-page-color);
   color: var(--light-text-color);
 }
+
+
+.exp-id {
+  color: var(--exp-id-color);
+}
+
 
 #editor-id {
   color: var(--top-bar-text);
@@ -230,4 +240,16 @@
   height: 1.2em;
   display: inline-block;
   width: 2px;
+}
+
+.lytr-token.atom.exp-id {
+  color: var(--exp-id-color);
+}
+
+.lytr-token.atom.pat-id {
+  color: var(--pat-id-color);
+}
+
+.lytr-token.atom.typ-id {
+  color: var(--typ-id-color);
 }
