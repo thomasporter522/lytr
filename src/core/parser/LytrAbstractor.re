@@ -245,6 +245,3 @@ and abstract_sharded = (sof: sharded(open_form)): sharded(term) =>
   | Unform(u) => Unform(u)
   | Form(f) => Form(abstract_form(f))
   };
-
-let go = (tokens: list(token)): terms =>
-  abstract_terms(operatorize(match_parse(tokens)));

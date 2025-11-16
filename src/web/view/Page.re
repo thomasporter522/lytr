@@ -2,9 +2,11 @@ open Virtual_dom.Vdom;
 open Node;
 open Tylr_core;
 
+
 let editor_view = (model: Model.t) => {
   let text = model.buffer.text;
-  let parsed = LytrAbstractor.go(LytrLexer.lex(text));
+  let abstracted =
+    LytrAbstractor.abstract_terms(LytrParser.parse(LytrLexer.lex(text)));
   let cursor = model.buffer.cursor;
   let len = String.length(text);
   let cursor_pos = max(0, min(cursor, len));
@@ -32,7 +34,7 @@ let editor_view = (model: Model.t) => {
       cursor_element,
       Node.text(after_cursor),
       Node.br(),
-      LytrTerms.view_lytr_text(~font=model.font, parsed),
+      LytrTerms.view_lytr_text(~font=model.font, abstracted),
       Node.br(),
     ],
   );

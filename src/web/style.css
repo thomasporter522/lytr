@@ -57,15 +57,32 @@
 
   --selection-color: #c1caca;
 
-  --parse-error-color: #F85F5F;
+  /* --parse-error-color: #F85F5F; */
+  --parse-error-color: #ee4725;
   --unlexed-color: var(--parse-error-color);
   /* --hole-color : #c053df; */
   --hole-color: var(--parse-error-color);
   --grout-color : var(--parse-error-color);
 
   --exp-id-color: #5289b6;
-  --pat-id-color: #9b52b6;
-  --typ-id-color: #52b69a;
+  --pat-id-color: #9a58b1;
+  --typ-id-color: #33ad89;
+
+
+  --faded-error-color: #da8574;
+}
+
+.blinking-error {
+  animation: error-undulate 3s ease-in-out infinite;
+}
+
+@keyframes error-undulate {
+  0%, 25%, 75%, 100% {
+    color: var(--hole-color);
+  }
+  50% {
+    color: var(--faded-error-color); 
+  }
 }
 
 #page {
@@ -168,22 +185,26 @@
 
 .lytr-token.unlexed {
   color: var(--unlexed-color);
+  /* animation: error-undulate 1s ease-in-out infinite; */
+}
+
+.lytr-token.unmatched {
+  color: var(--parse-error-color);
+  /* animation: error-undulate 1s ease-in-out infinite; */
 }
 
 .lytr-token.hole {
+  font-weight: bold;
   color: var(--hole-color);
-  /* background-color: var(--exp-bg-color); */
-  /* border-radius: 2px; */
-  /* padding: 0 2px; */
+  /* animation: error-undulate 1s ease-in-out infinite; */
 }
 
-.lytr-token.error {
-  color: var(--parse-error-color);
-  /* background-color: #ffe6e6; */
-  /* border-radius: 2px; */
-  /* padding: 0 2px; */
-  /* font-style: italic; */
+.lytr-token.lytr-grout {
+  font-weight: bold;
+  color: var(--grout-color);
+  /* animation: error-undulate 1s ease-in-out infinite; */
 }
+
 
 /* Term outline styling - provides visual boundary around each term */
 .lytr-term-outlined {
@@ -198,27 +219,8 @@
   display: inline-block;
 }
 
-/* Override grout SVG sizing for lytr holes */
-.lytr-grout .lytr-hole-svg {
-  color: var(--grout-color);
-  width: 1em !important;
-  height: 1em !important;
-  display: inline-block !important;
-  vertical-align: middle !important;
-}
-
 .lytr-hole-svg path {
   transform: none !important; /* Override grout path transform */
-}
-
-/* Grout dot styling */
-.lytr-token.lytr-grout {
-  color: var(--grout-color);
-}
-
-/* Grout dot styling */
-.hole {
-  color: var(--hole-color);
 }
 
 /* LytrTerms cursor styling */

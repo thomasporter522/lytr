@@ -136,8 +136,8 @@ let mk_hole = {
   mk_hole_circ();
 };
 
-let mk_error_token = (~text, ()) =>
-  mk_styled_token(~text, ~classes=["error", "grout"], ());
+let mk_unmatched_token = (~text, ()) =>
+  mk_styled_token(~text, ~classes=["unmatched", "grout"], ());
 
 let mk_grout_dot = () => {
   Node.span([mk_styled_token(~text="·", ~classes=["lytr-grout"], ())]);
@@ -189,13 +189,13 @@ and view_lytr_terms = (~font, ~sort: sort, terms: terms): list(Node.t) => {
 and view_lytr_sharded =
     (~font, ~sort, sharded: LytrParser.sharded(term)): Node.t =>
   switch (sharded) {
-  | Unform(Secondary(Unlexed(text))) => mk_error_token(~text, ())
+  | Unform(Secondary(Unlexed(text))) => mk_unlexed_token(~text, ())
   | Unform(Secondary(token)) =>
     let text = string_of_secondary_token(token);
     mk_atom_token(~text, ());
   | Unform(Shard(token)) =>
     let text = string_of_primary_token(token);
-    mk_error_token(~text, ());
+    mk_unmatched_token(~text, ());
   | Form(term) => view_lytr_term(~font, ~sort, term)
   }
 
@@ -402,7 +402,7 @@ and view_lytr_term_inner = (~font, ~sort: sort, term: term): Node.t => {
       @ [mk_atom_token(~text="→", ())]
       @ view_lytr_right_child(~font, ~sort=Typ, c2),
     )
-  | DEBUG => mk_error_token(~text="DEBUG", ())
+  | DEBUG => mk_unlexed_token(~text="DEBUG", ())
   };
 }
 
@@ -445,7 +445,7 @@ and view_lytr_child_unforms = (~font, se: unforms): list(Node.t) => {
       | Secondary(Unlexed(s)) => mk_unlexed_token(~text=s, ())
       | Shard(token) =>
         let text = string_of_primary_token(token);
-        mk_error_token(~text, ());
+        mk_unmatched_token(~text, ());
       },
     ]
   };

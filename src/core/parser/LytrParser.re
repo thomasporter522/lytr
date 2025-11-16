@@ -336,3 +336,5 @@ and op_pushes = (s: op_state, fs: listr(sharded(partial_form))): op_state => {
 and operatorize =
     (fs: listr(sharded(partial_form))): listr(sharded(open_form)) =>
   op_state_roll(op_pushes(OS(Nil, Nil), fs), None);
+
+let parse = x => operatorize(match_parse(x));
