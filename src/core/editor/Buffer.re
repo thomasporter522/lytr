@@ -1,9 +1,16 @@
+type id = int;
+
+type character = {
+  text: char,
+  id,
+};
+
 type t = {
-  text: string,
+  text: list(character),
   cursor: int,
 };
 
 let empty: t = {
-  text: "",
+  text: [],
   cursor: 0,
 };

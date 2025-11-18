@@ -54,6 +54,11 @@
 
   --light-page-color: #fafafa;
   --light-text-color: #486a74;
+  --dark-page-color: #545f6d;
+  --dark-text-color: #cfdbde;
+
+  --page-color: var(var(--dark-page-color))
+  --text-color: var(var(--dark-text-color))
 
   --selection-color: #c1caca;
 
@@ -93,8 +98,8 @@
   position: fixed;
   top: 0%;
   left: 0%;
-  background-color: var(--light-page-color);
-  color: var(--light-text-color);
+  background-color: var(--page-color);
+  color: var(--text-color);
 }
 
 

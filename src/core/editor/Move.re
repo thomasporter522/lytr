@@ -14,8 +14,8 @@ let unselect = (~toward as _=?, b: Buffer.t) =>
   b;
 
 // Helper to clamp cursor position within buffer bounds
-let clamp_cursor = (cursor: int, text: string): int => {
-  let len = String.length(text);
+let clamp_cursor = (cursor: int, text: list('a)): int => {
+  let len = List.length(text);
   max(0, min(cursor, len));
 };
 
@@ -50,8 +50,9 @@ let hstep = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
 
 // Find the next/previous line in the buffer
 let find_line_start =
-    (text: string, from_pos: int, direction: Dir.t): option(int) => {
-  let len = String.length(text);
+    (text: list(Buffer.character), from_pos: int, direction: Dir.t)
+    : option(int) => {
+  let len = List.length(text);
   let pos = clamp_cursor(from_pos, text);
 
   switch (direction) {
@@ -61,7 +62,7 @@ let find_line_start =
       if (i < 0) {
         Some
           (0); // Beginning of text
-      } else if (text.[i] == '\n') {
+      } else if (List.nth(text, i).text == '\n') {
         Some
           (i + 1); // Start of line after newline
       } else {
@@ -73,7 +74,7 @@ let find_line_start =
       let rec find_current = i =>
         if (i <= 0) {
           0;
-        } else if (text.[i - 1] == '\n') {
+        } else if (List.nth(text, i - 1).text == '\n') {
           i;
         } else {
           find_current(i - 1);
@@ -89,7 +90,7 @@ let find_line_start =
     let rec find_next_newline = i =>
       if (i >= len) {
         None; // End of text
-      } else if (text.[i] == '\n') {
+      } else if (List.nth(text, i).text == '\n') {
         Some
           (i + 1); // Start of next line
       } else {
@@ -112,8 +113,9 @@ let vstep = (~round_tok=?, ~save_anchor=false, d: Dir.t, b: Buffer.t) => {
 };
 
 // Find start/end of current line or start/end of document
-let find_line_boundary = (text: string, cursor: int, d2: Dir2.t): int => {
-  let len = String.length(text);
+let find_line_boundary =
+    (text: list(Buffer.character), cursor: int, d2: Dir2.t): int => {
+  let len = List.length(text);
   let pos = clamp_cursor(cursor, text);
 
   switch (d2) {
