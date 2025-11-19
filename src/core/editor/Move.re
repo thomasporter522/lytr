@@ -50,7 +50,8 @@ let hstep = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
 
 // Find the next/previous line in the buffer
 let find_line_start =
-    (text: list(Buffer.character), from_pos: int, direction: Dir.t): option(int) => {
+    (text: list(Buffer.character), from_pos: int, direction: Dir.t)
+    : option(int) => {
   let len = List.length(text);
   let pos = clamp_cursor(from_pos, text);
 
@@ -112,7 +113,8 @@ let vstep = (~round_tok=?, ~save_anchor=false, d: Dir.t, b: Buffer.t) => {
 };
 
 // Find start/end of current line or start/end of document
-let find_line_boundary = (text: list(Buffer.character), cursor: int, d2: Dir2.t): int => {
+let find_line_boundary =
+    (text: list(Buffer.character), cursor: int, d2: Dir2.t): int => {
   let len = List.length(text);
   let pos = clamp_cursor(cursor, text);
 
