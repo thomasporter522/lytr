@@ -1,8 +1,19 @@
 open LytrGrammar;
+open Buffer;
+
+// hash instead, later
+type token_id =
+  | Char(int)
+  | Merge(token_id, token_id);
+
+type token = {
+  text: tok,
+  id: token_id,
+};
 
 /* Helper function to check if a character is whitespace */
-let is_whitespace = (c: char): bool =>
-  switch (c) {
+let is_whitespace = (c: character): bool =>
+  switch (c.text) {
   | ' '
   | '\t'
   | '\n'
@@ -11,53 +22,189 @@ let is_whitespace = (c: char): bool =>
   };
 
 /* Helper function to check if a character is a digit */
-let is_digit = (c: char): bool => c >= '0' && c <= '9';
+let is_digit = (c: character): bool => c.text >= '0' && c.text <= '9';
 
 /* Helper function to check if a character is a letter */
-let is_letter = (c: char): bool =>
-  c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z';
+let is_letter = (c: character): bool =>
+  c.text >= 'a' && c.text <= 'z' || c.text >= 'A' && c.text <= 'Z';
 
 /* Helper function to check if a character is alphanumeric */
-let is_alphanum = (c: char): bool =>
-  is_letter(c) || is_digit(c) || c == '_';
+let is_alphanum = (c: character): bool =>
+  is_letter(c) || is_digit(c) || c.text == '_';
+
+/* Helper function to collect a numeric sequence */
+let rec collect_number =
+        (acc: list(character), id_acc: token_id, chars: list(character))
+        : (list(character), token_id, list(character)) =>
+  switch (chars) {
+  | [] => (acc, id_acc, [])
+  | [c, ...rest] when is_digit(c) =>
+    collect_number([c, ...acc], Merge(id_acc, Char(c.id)), rest)
+  | _ => (acc, id_acc, chars)
+  };
+
+/* Helper function to collect a word (alphanumeric sequence) */
+let rec collect_word =
+        (acc: list(character), id_acc: token_id, chars: list(character))
+        : (list(character), token_id, list(character)) =>
+  switch (chars) {
+  | [] => (acc, id_acc, [])
+  | [c, ...rest] when is_alphanum(c) =>
+    collect_word([c, ...acc], Merge(id_acc, Char(c.id)), rest)
+  | _ => (acc, id_acc, chars)
+  };
 
 /* Tokenize a single character or sequence */
-let rec lex_chars = (chars: list(char)): list(token) =>
+let rec lex_chars = (chars: list(character)): list(token) =>
   switch (chars) {
   | [] => []
-  | ['(', ...rest] => [Primary(TOP), ...lex_chars(rest)]
-  | [')', ...rest] => [Primary(TCP), ...lex_chars(rest)]
-  | ['[', ...rest] => [Primary(TOSB), ...lex_chars(rest)]
-  | [']', ...rest] => [Primary(TCSB), ...lex_chars(rest)]
-  | [',', ...rest] => [Primary(TComma), ...lex_chars(rest)]
-  | ['+', ...rest] => [Primary(TPlus), ...lex_chars(rest)]
-  | ['-', '>', ...rest] => [Primary(TArrow), ...lex_chars(rest)]
-  | ['-', ...rest] => [Primary(TMinus), ...lex_chars(rest)]
-  | ['*', ...rest] => [Primary(TTimes), ...lex_chars(rest)]
-  | ['/', '/', ...rest] => [Primary(TDoubleDivide), ...lex_chars(rest)]
-  | ['/', ...rest] => [Primary(TDivide), ...lex_chars(rest)]
-  | ['%', ...rest] => [Primary(TModulo), ...lex_chars(rest)]
-  | ['!', ...rest] => [Primary(TFactorial), ...lex_chars(rest)]
-  | ['=', '>', ...rest] => [Primary(TDoubleArrow), ...lex_chars(rest)]
-  | ['=', ...rest] => [Primary(TEquals), ...lex_chars(rest)]
-  | ['|', ...rest] => [Primary(TPipe), ...lex_chars(rest)]
-  | [':', ...rest] => [Primary(TColon), ...lex_chars(rest)]
+  | [{text: '(', id}, ...rest] => [
+      {
+        text: Primary(TOP),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: ')', id}, ...rest] => [
+      {
+        text: Primary(TCP),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '[', id}, ...rest] => [
+      {
+        text: Primary(TOSB),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: ']', id}, ...rest] => [
+      {
+        text: Primary(TCSB),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: ',', id}, ...rest] => [
+      {
+        text: Primary(TComma),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '+', id}, ...rest] => [
+      {
+        text: Primary(TPlus),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '-', id}, {text: '>', id: id2}, ...rest] => [
+      {
+        text: Primary(TArrow),
+        id: Merge(Char(id), Char(id2)),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '-', id}, ...rest] => [
+      {
+        text: Primary(TMinus),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '*', id}, ...rest] => [
+      {
+        text: Primary(TTimes),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '/', id}, {text: '/', id: id2}, ...rest] => [
+      {
+        text: Primary(TDoubleDivide),
+        id: Merge(Char(id), Char(id2)),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '/', id}, ...rest] => [
+      {
+        text: Primary(TDivide),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '%', id}, ...rest] => [
+      {
+        text: Primary(TModulo),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '!', id}, ...rest] => [
+      {
+        text: Primary(TFactorial),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '=', id}, {text: '>', id: id2}, ...rest] => [
+      {
+        text: Primary(TDoubleArrow),
+        id: Merge(Char(id), Char(id2)),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '=', id}, ...rest] => [
+      {
+        text: Primary(TEquals),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: '|', id}, ...rest] => [
+      {
+        text: Primary(TPipe),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
+  | [{text: ':', id}, ...rest] => [
+      {
+        text: Primary(TColon),
+        id: Char(id),
+      },
+      ...lex_chars(rest),
+    ]
   | [c, ...rest] when is_whitespace(c) => [
-      Secondary(Whitespace(String.of_seq(List.to_seq([c])))),
+      {
+        text: Secondary(Whitespace([c])),
+        id: Char(c.id),
+      },
       ...lex_chars(rest),
     ]
   | [c, ...rest] when is_digit(c) =>
     /* Collect numeric sequence */
-    let (num, remaining) = collect_number([c], rest);
-    let num = String.of_seq(List.to_seq(List.rev(num)));
-    [Primary(TAtom(Numlit(num))), ...lex_chars(remaining)];
+    let (num, id, remaining) = collect_number([c], Char(c.id), rest);
+    let num = List.rev(num);
+    [
+      {
+        text: Primary(TAtom(Numlit(num))),
+        id,
+      },
+      ...lex_chars(remaining),
+    ];
   | [c, ...rest] when is_letter(c) =>
     /* Collect identifier sequence */
-    let (id, remaining) = collect_word([c], rest);
-    let id_str = String.of_seq(List.to_seq(List.rev(id)));
+    let (word, id, remaining) = collect_word([c], Char(c.id), rest);
+    let word_str =
+      String.of_seq(
+        List.to_seq(List.map((c: character) => c.text, List.rev(word))),
+      );
     /* Check if it's a keyword */
     let token =
-      switch (id_str) {
+      switch (word_str) {
       | "fun" => TFun
       | "let" => TLet
       | "in" => TIn
@@ -67,34 +214,27 @@ let rec lex_chars = (chars: list(char)): list(token) =>
       | "if" => TIf
       | "then" => TThen
       | "else" => TElse
-      | _ => TAtom(Identifier(id_str))
+      | _ => TAtom(Identifier(List.rev(word)))
       };
-    [Primary(token), ...lex_chars(remaining)];
+    [
+      {
+        text: Primary(token),
+        id,
+      },
+      ...lex_chars(remaining),
+    ];
   | [c, ...rest] =>
     /* Unknown character - treat as unlexed atom */
-    [Secondary(Unlexed(String.make(1, c))), ...lex_chars(rest)]
-  }
-
-/* Helper function to collect a numeric sequence */
-and collect_number =
-    (acc: list(char), chars: list(char)): (list(char), list(char)) =>
-  switch (chars) {
-  | [] => (acc, [])
-  | [c, ...rest] when is_digit(c) => collect_number([c, ...acc], rest)
-  | _ => (acc, chars)
-  }
-
-/* Helper function to collect a word (alphanumeric sequence) */
-and collect_word =
-    (acc: list(char), chars: list(char)): (list(char), list(char)) =>
-  switch (chars) {
-  | [] => (acc, [])
-  | [c, ...rest] when is_alphanum(c) => collect_word([c, ...acc], rest)
-  | _ => (acc, chars)
+    [
+      {
+        text: Secondary(Unlexed([c])),
+        id: Char(c.id),
+      },
+      ...lex_chars(rest),
+    ]
   };
 
 /* Main lexer function */
-let lex = (s: string): list(token) => {
-  let chars = String.to_seq(s) |> List.of_seq;
-  lex_chars(chars);
+let lex = (s: list(character)): list(token) => {
+  lex_chars(s);
 };

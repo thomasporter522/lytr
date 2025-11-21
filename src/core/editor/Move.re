@@ -160,9 +160,9 @@ let skip =
 };
 
 // Convert Loc.t to simple buffer position (for now, just use a simple mapping)
-let loc_to_pos = (loc: Loc.t, text: string): int => {
+let loc_to_pos = (loc: Loc.t, text: list(Buffer.character)): int => {
   // Simple implementation: treat loc as {row, col} and find position
-  let len = String.length(text);
+  let len = List.length(text);
   let target_row = max(0, loc.row);
   let target_col = max(0, loc.col);
 
@@ -171,7 +171,7 @@ let loc_to_pos = (loc: Loc.t, text: string): int => {
       pos;
     } else if (current_row == target_row && current_col >= target_col) {
       pos;
-    } else if (text.[pos] == '\n') {
+    } else if (List.nth(text, pos).text == '\n') {
       find_pos(pos + 1, current_row + 1, 0);
     } else {
       find_pos(pos + 1, current_row, current_col + 1);

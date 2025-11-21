@@ -11,13 +11,13 @@ type sort =
   | Pat
   | Typ;
 
-let string_of_secondary_token = (s: secondary_token) =>
+let string_of_secondary_token = (s: secondary_token): string =>
   switch (s) {
   | Whitespace(s) => s
   | Unlexed(s) => s
   };
 
-let string_of_atom = (a: atom) =>
+let string_of_atom = (a: atom): string =>
   switch (a) {
   | Numlit(n) => n
   | Identifier(s) => s

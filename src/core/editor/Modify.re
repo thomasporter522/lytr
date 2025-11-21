@@ -753,29 +753,44 @@
 // };
 
 // Helper to clamp cursor position within buffer bounds
-let clamp_cursor = (cursor: int, text: string): int => {
-  let len = String.length(text);
+let clamp_cursor = (cursor: int, text: list(Buffer.character)): int => {
+  let len = List.length(text);
   max(0, min(cursor, len));
 };
 
 let delete = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
   let pos = clamp_cursor(b.cursor, b.text);
-  let len = String.length(b.text);
+  let len = List.length(b.text);
+
+  let rec take = (n, list) =>
+    switch (n, list) {
+    | (0, _) => []
+    | (_, []) => []
+    | (n, [h, ...t]) => [h, ...take(n - 1, t)]
+    };
+
+  let rec drop = (n, list) =>
+    switch (n, list) {
+    | (0, list) => list
+    | (_, []) => []
+    | (n, [_, ...t]) => drop(n - 1, t)
+    };
 
   switch (d) {
   | L when pos > 0 =>
     // Delete character before cursor (backspace)
-    let new_text =
-      String.sub(b.text, 0, pos - 1) ++ String.sub(b.text, pos, len - pos);
+    let before = take(pos - 1, b.text);
+    let after = drop(pos, b.text);
+    let new_text = before @ after;
     Some({
       text: new_text,
       cursor: pos - 1,
     });
   | R when pos < len =>
     // Delete character after cursor (delete)
-    let new_text =
-      String.sub(b.text, 0, pos)
-      ++ String.sub(b.text, pos + 1, len - pos - 1);
+    let before = take(pos, b.text);
+    let after = drop(pos + 1, b.text);
+    let new_text = before @ after;
     Some({
       ...b,
       text: new_text,
@@ -787,14 +802,76 @@ let delete = (d: Dir.t, b: Buffer.t): option(Buffer.t) => {
 let insert = (s: string, b: Buffer.t): Buffer.t => {
   // Mode.set(Inserting(s));
   let pos = clamp_cursor(b.cursor, b.text);
-  let len = String.length(b.text);
 
-  // Insert string at cursor position
-  let new_text =
-    String.sub(b.text, 0, pos) ++ s ++ String.sub(b.text, pos, len - pos);
+  // // Print current buffer state to console
+  // let rec chars_to_string = (chars: list(Buffer.character)) =>
+  //   switch (chars) {
+  //   | [] => ""
+  //   | [char, ...rest] => String.make(1, char.text) ++ chars_to_string(rest)
+  //   };
+  // let rec chars_to_ids = (chars: list(Buffer.character)) =>
+  //   switch (chars) {
+  //   | [] => ""
+  //   | [char, ...rest] =>
+  //     string_of_int(char.id)
+  //     ++ (rest == [] ? "" : ", ")
+  //     ++ chars_to_ids(rest)
+  //   };
+  // let text_string = chars_to_string(b.text);
+  // let ids_string = chars_to_ids(b.text);
+  // print_endline("Before insert '" ++ s ++ "':");
+  // print_endline("  Text: " ++ text_string);
+  // print_endline("  IDs:  [" ++ ids_string ++ "]");
+
+  let rec take = (n, list) =>
+    switch (n, list) {
+    | (0, _) => []
+    | (_, []) => []
+    | (n, [h, ...t]) => [h, ...take(n - 1, t)]
+    };
+
+  let rec drop = (n, list) =>
+    switch (n, list) {
+    | (0, list) => list
+    | (_, []) => []
+    | (n, [_, ...t]) => drop(n - 1, t)
+    };
+
+  // Convert string to list of characters with IDs
+  let rec string_to_chars = (s, idx, next_id) =>
+    if (idx >= String.length(s)) {
+      [];
+    } else {
+      let char = s.[idx];
+      [
+        {
+          Buffer.text: char,
+          id: next_id,
+        },
+        ...string_to_chars(s, idx + 1, next_id + 1),
+      ];
+    };
+
+  // Find the highest ID in the existing text to avoid collisions
+  let max_id =
+    List.fold_left((max_id, {Buffer.id, _}) => max(max_id, id), 0, b.text);
+  let new_chars = string_to_chars(s, 0, max_id + 1);
+
+  // Insert characters at cursor position
+  let before = take(pos, b.text);
+  let after = drop(pos, b.text);
+  let new_text = before @ new_chars @ after;
 
   // Move cursor to end of inserted text
-  let new_cursor = pos + String.length(s);
+  let new_cursor = pos + List.length(new_chars);
+
+  // Print final buffer state
+  // let final_text_string = chars_to_string(new_text);
+  // let final_ids_string = chars_to_ids(new_text);
+  // print_endline("After insert:");
+  // print_endline("  Text: " ++ final_text_string);
+  // print_endline("  IDs:  [" ++ final_ids_string ++ "]");
+  // print_endline("");
 
   {
     text: new_text,

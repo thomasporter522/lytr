@@ -126,7 +126,24 @@ let handle_key_event = (k: Util.Key.t, ~model: Model.t): list(t) => {
     | "a" => now(Move(Skip(H(L))))
     | "e" => now(Move(Skip(H(R))))
     | "s" =>
-      print_endline(model.buffer.text);
+      let rec chars_to_string = (chars: list(Buffer.character)) =>
+        switch (chars) {
+        | [] => ""
+        | [char, ...rest] =>
+          String.make(1, char.text) ++ chars_to_string(rest)
+        };
+      let rec chars_to_ids = (chars: list(Buffer.character)) =>
+        switch (chars) {
+        | [] => ""
+        | [char, ...rest] =>
+          string_of_int(char.id)
+          ++ (rest == [] ? "" : ", ")
+          ++ chars_to_ids(rest)
+        };
+      let text_string = chars_to_string(model.buffer.text);
+      let ids_string = chars_to_ids(model.buffer.text);
+      print_endline("Text: " ++ text_string);
+      print_endline("IDs:  [" ++ ids_string ++ "]");
       [];
     | _ => []
     }

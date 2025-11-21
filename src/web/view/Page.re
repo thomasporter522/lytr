@@ -3,9 +3,17 @@ open Node;
 open Tylr_core;
 
 let editor_view = (model: Model.t) => {
-  let text = model.buffer.text;
+  let buffer_chars = model.buffer.text;
+  let rec chars_to_string = (chars: list(Buffer.character)) =>
+    switch (chars) {
+    | [] => ""
+    | [char, ...rest] => String.make(1, char.text) ++ chars_to_string(rest)
+    };
+  let text = chars_to_string(buffer_chars);
   let abstracted =
-    LytrAbstractor.abstract_terms(LytrParser.parse(LytrLexer.lex(text)));
+    LytrAbstractor.abstract_terms(
+      LytrParser.parse(LytrLexer.lex(model.buffer.text)),
+    );
   let cursor = model.buffer.cursor;
   let len = String.length(text);
   let cursor_pos = max(0, min(cursor, len));

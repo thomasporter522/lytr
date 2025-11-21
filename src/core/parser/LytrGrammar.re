@@ -1,8 +1,10 @@
-type atom =
-  | Numlit(string)
-  | Identifier(string);
+open Buffer;
 
-type primary_token =
+type atom =
+  | Numlit(list(character))
+  | Identifier(list(character));
+
+type primary_tok =
   | BOF // beginning of file
   | EOF // end of file
   | TOP // open parens
@@ -35,20 +37,20 @@ type primary_token =
   | TCommaTuple
   | TCommaList;
 
-type secondary_token =
-  | Whitespace(string)
-  | Unlexed(string);
+type secondary_tok =
+  | Whitespace(list(character))
+  | Unlexed(list(character));
 
-type token =
-  | Primary(primary_token)
-  | Secondary(secondary_token);
+type tok =
+  | Primary(primary_tok)
+  | Secondary(secondary_tok);
 
 type prec =
   | Interior // never relevent, always matches over
   | Uninterested // can't have a child
   | Precedence(float);
 
-let prec = (t: primary_token): (prec, prec) =>
+let prec = (t: primary_tok): (prec, prec) =>
   switch (t) {
   | BOF => (Uninterested, Interior)
   | EOF => (Interior, Uninterested)
@@ -84,7 +86,7 @@ let prec = (t: primary_token): (prec, prec) =>
   };
 
 // Match morph: a mechanism to prevent things like [0,1,2) from being parsed.
-// The basic format here is to specify which tokens match which.
+// The basic format here is to specify which toks match which.
 // But [ matches , and , matched ), so how do we prevent the aforementioned nonsense?
 // When [ matches , then that comma gets morphed into a "list comma", which looks the
 // same but allows it to distinguish itself from the tuple comma and refuse to match ).
@@ -92,12 +94,12 @@ let prec = (t: primary_token): (prec, prec) =>
 // normal case to remain unchanged (you can just use the Match constructor below most
 // of the time) so I think it's good.
 
-type match_token_result =
+type match_tok_result =
   | Match
-  | MatchMorph(primary_token)
+  | MatchMorph(primary_tok)
   | NoMatch;
 
-let match_token = (te1: primary_token, te2: primary_token): match_token_result =>
+let match_tok = (te1: primary_tok, te2: primary_tok): match_tok_result =>
   switch (te1, te2) {
   | (BOF, EOF) => Match
   | (TOP, TCP) => Match
@@ -122,6 +124,6 @@ let match_token = (te1: primary_token, te2: primary_token): match_token_result =
   | (_, _) => NoMatch /* fallthrough */
   };
 
-let is_valid_start = (t: primary_token): bool => fst(prec(t)) != Interior;
+let is_valid_start = (t: primary_tok): bool => fst(prec(t)) != Interior;
 
-let is_valid_end = (te: primary_token): bool => snd(prec(te)) != Interior;
+let is_valid_end = (te: primary_tok): bool => snd(prec(te)) != Interior;
