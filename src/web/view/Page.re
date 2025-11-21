@@ -2,7 +2,6 @@ open Virtual_dom.Vdom;
 open Node;
 open Tylr_core;
 
-
 let editor_view = (model: Model.t) => {
   let text = model.buffer.text;
   let abstracted =

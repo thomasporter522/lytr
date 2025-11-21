@@ -47,13 +47,13 @@
 
 
   /* tylr colors */
-  /* --light-page-color: #fdf6e3; */
-  /* --light-text-color: #586e75; */
+  --light-page-color: #fdf6e3; 
+  --light-text-color: #586e75;
   /* --parse-error-color: #e05114; */
   /* --selection-color: #ffd5be; */
 
-  --light-page-color: #fafafa;
-  --light-text-color: #486a74;
+  /* --light-page-color: #fafafa;
+  --light-text-color: #486a74; */
 
   --selection-color: #c1caca;
 
